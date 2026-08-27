@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component 4 — Build Log, 26 August</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#F3F5F1; --surface:#FFFFFF; --surface-alt:#EAEDE7;
+  --border:#D8DED2; --border-strong:#BFC9BB;
+  --ink:#16231F; --ink-muted:#56645C; --ink-faint:#7C8A80;
+  --teal:#0F3D3E; --teal-soft:#DDEAE8;
+  --copper:#A8622B; --copper-soft:#F1E1D2;
+  --ok:#3F7D4C; --ok-soft:#E4F0E5;
+  --warn:#A9761F; --warn-soft:#FBF0DD;
+  --stop:#A8433A; --stop-soft:#F8E6E3;
+  --sans:'IBM Plex Sans',ui-sans-serif,system-ui,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --measure:68ch; --radius:4px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1A19; --surface:#142826; --surface-alt:#1B332F;
+    --border:#274541; --border-strong:#3E6560;
+    --ink:#E8EFEA; --ink-muted:#9FB3AC; --ink-faint:#7E948C;
+    --teal:#6FBBB8; --teal-soft:#1C3A38;
+    --copper:#D89A5D; --copper-soft:#33241A;
+    --ok:#7FBE8C; --ok-soft:#1D3324;
+    --warn:#E0B15E; --warn-soft:#3A2E14;
+    --stop:#E28A81; --stop-soft:#3A1E1B;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1A19; --surface:#142826; --surface-alt:#1B332F;
+  --border:#274541; --border-strong:#3E6560;
+  --ink:#E8EFEA; --ink-muted:#9FB3AC; --ink-faint:#7E948C;
+  --teal:#6FBBB8; --teal-soft:#1C3A38;
+  --copper:#D89A5D; --copper-soft:#33241A;
+  --ok:#7FBE8C; --ok-soft:#1D3324;
+  --warn:#E0B15E; --warn-soft:#3A2E14;
+  --stop:#E28A81; --stop-soft:#3A1E1B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+     font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1020px;margin:0 auto;padding:0 24px 90px}
+p,ul,ol{max-width:var(--measure)}
+
+header.page{padding:60px 0 32px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.14em;
+         text-transform:uppercase;color:var(--copper);margin:0 0 14px}
+h1{font-size:clamp(1.9rem,4.6vw,2.7rem);line-height:1.07;font-weight:700;
+   letter-spacing:-.025em;text-wrap:balance;margin:0 0 16px}
+.standfirst{font-size:1.05rem;color:var(--ink-muted);max-width:var(--measure);margin:0}
+
+.scoreboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+            gap:1px;background:var(--border);border:1px solid var(--border);margin-top:34px}
+.scoreboard div{background:var(--surface);padding:13px 15px}
+.scoreboard dt{font-family:var(--mono);font-size:.63rem;letter-spacing:.12em;
+               text-transform:uppercase;color:var(--ink-faint);margin:0 0 5px}
+.scoreboard dd{margin:0;font-weight:600;font-size:.9rem;font-family:var(--mono)}
+
+section{padding-top:52px}
+h2{font-size:1.45rem;font-weight:700;letter-spacing:-.015em;text-wrap:balance;margin:0 0 10px}
+h3{font-size:1rem;font-weight:600;margin:26px 0 8px;text-wrap:balance}
+.lede{color:var(--ink-muted);max-width:var(--measure);margin:0 0 22px}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-alt);
+     border:1px solid var(--border);border-radius:3px;padding:1px 5px}
+pre{font-family:var(--mono);font-size:.8rem;line-height:1.6;background:var(--surface);
+    border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:var(--radius);
+    padding:14px 16px;overflow-x:auto;margin:14px 0}
+pre code{background:none;border:0;padding:0}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);
+           margin:18px 0;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;min-width:560px}
+th{text-align:left;font-family:var(--mono);font-size:.64rem;letter-spacing:.11em;
+   text-transform:uppercase;color:var(--ink-faint);font-weight:500;padding:10px 14px;
+   border-bottom:1px solid var(--border-strong);background:var(--surface-alt);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.pin{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--teal);
+       white-space:nowrap;font-weight:500}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;
+      text-transform:uppercase;padding:2px 7px;border-radius:2px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.stop{background:var(--stop-soft);color:var(--stop)}
+.pill.idle{background:var(--surface-alt);color:var(--ink-faint)}
+
+ol.log{counter-reset:l;list-style:none;padding:0;margin:20px 0;max-width:var(--measure)}
+ol.log li{counter-increment:l;position:relative;padding:14px 0 14px 44px;
+          border-bottom:1px solid var(--border)}
+ol.log li::before{content:counter(l);position:absolute;left:0;top:14px;
+  width:26px;height:26px;border-radius:50%;background:var(--teal-soft);color:var(--teal);
+  font-family:var(--mono);font-size:.75rem;font-weight:600;display:flex;
+  align-items:center;justify-content:center}
+ol.log li b{display:block;font-weight:600;margin-bottom:2px}
+ol.log li span{font-size:.88rem;color:var(--ink-muted)}
+
+.note{background:var(--warn-soft);border-left:3px solid var(--warn);padding:12px 15px;
+      margin:18px 0;max-width:var(--measure);font-size:.88rem;border-radius:0 4px 4px 0}
+.note.bad{background:var(--stop-soft);border-left-color:var(--stop)}
+.note.good{background:var(--ok-soft);border-left-color:var(--ok)}
+
+ul.next{list-style:none;padding:0;margin:16px 0;max-width:var(--measure)}
+ul.next li{padding:9px 0 9px 28px;border-bottom:1px solid var(--border);
+           position:relative;font-size:.92rem}
+ul.next li::before{content:"";position:absolute;left:2px;top:14px;width:11px;height:11px;
+  border:1.5px solid var(--border-strong);border-radius:2px}
+
+footer.page{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);
+            font-size:.82rem;color:var(--ink-faint);max-width:var(--measure)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <p class="eyebrow">R26-IT-015 &middot; Component 4 &middot; Wednesday 26 August 2026</p>
+  <h1>From Loose Parts to a Working Loop</h1>
+  <p class="standfirst">
+    The day the terminal came together: three status LEDs wired and driven, the colour
+    sensor brought back from dead readings after two pin moves, the backend made fast
+    enough for a microcontroller to actually talk to, and the first end-to-end scan
+    &mdash; sensor to Wi-Fi to forecast to lamp.
+  </p>
+  <dl class="scoreboard">
+    <div><dt>Sketches</dt><dd>7</dd></div>
+    <div><dt>LEDs live</dt><dd>3 / 3</dd></div>
+    <div><dt>Ingest reply</dt><dd>14 KB &rarr; 232 B</dd></div>
+    <div><dt>Scan time</dt><dd>14 s &rarr; 0.22 s</dd></div>
+    <div><dt>Materials logged</dt><dd>2</dd></div>
+  </dl>
+</header>
+
+<section>
+  <h2>Where everything stands</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Subsystem</th><th>Pins</th><th>State</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>ESP32 DevKit V1</td><td class="pin">COM5</td><td><span class="pill ok">Working</span></td><td>Core 3.3.11, IDE 2.3.10 &mdash; both latest</td></tr>
+        <tr><td>TCS34725 colour</td><td class="pin">SDA 16 &middot; SCL 17</td><td><span class="pill ok">Working</span></td><td>Moved twice; 16&times; gain, 154&nbsp;ms</td></tr>
+        <tr><td>Green LED &mdash; SELL</td><td class="pin">D19</td><td><span class="pill ok">Working</span></td><td>180&nbsp;&Omega;</td></tr>
+        <tr><td>Yellow LED &mdash; HOLD</td><td class="pin">D23</td><td><span class="pill ok">Working</span></td><td>180&nbsp;&Omega;</td></tr>
+        <tr><td>Red LED &mdash; BIN FULL</td><td class="pin">D4</td><td><span class="pill ok">Working</span></td><td>Idle until the lockout exists</td></tr>
+        <tr><td>Wi-Fi uplink</td><td class="pin">&mdash;</td><td><span class="pill ok">Working</span></td><td>iPhone hotspot, 2.4&nbsp;GHz</td></tr>
+        <tr><td>FastAPI backend</td><td class="pin">:8000</td><td><span class="pill ok">Working</span></td><td>Bound <code>0.0.0.0</code></td></tr>
+        <tr><td>IR obstacle sensor</td><td class="pin">D27</td><td><span class="pill stop">Overheated</span></td><td>Removed; not needed &mdash; see below</td></tr>
+        <tr><td>Buzzer</td><td class="pin">D13</td><td><span class="pill idle">Not started</span></td><td>Same pattern as an LED</td></tr>
+        <tr><td>HC-SR04 bin level</td><td class="pin">D5 &middot; D18</td><td><span class="pill idle">Not started</span></td><td>Echo needs a 5&nbsp;V divider</td></tr>
+        <tr><td>SG90 routing gate</td><td class="pin">D25</td><td><span class="pill idle">Not started</span></td><td>Needs 5&nbsp;V 3&nbsp;A supply</td></tr>
+        <tr><td>MG996R crusher</td><td class="pin">D26</td><td><span class="pill idle">Not started</span></td><td>Needs 5&nbsp;V 3&nbsp;A supply</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note good">
+    <b>Milestone reached.</b> A real reading travelled sensor &rarr; Wi-Fi &rarr; backend
+    &rarr; decision &rarr; LED, and the batch appeared in the dashboard manifest. The
+    core loop works.
+  </div>
+</section>
+
+<section>
+  <h2>What happened, in order</h2>
+  <ol class="log">
+    <li><b>Verified the toolchain &mdash; nothing needed installing</b><span>Arduino IDE 2.3.10 and ESP32 core 3.3.11 both turned out to be the newest releases available. All seven libraries present, and all five handoff sketches compiled clean. CP210x driver already installed; board is COM5 here, not COM8 as on the old laptop.</span></li>
+    <li><b>Read the handoff and found three contradictions</b><span>The load cell is no longer part of Component 4 (only Component 3 has one &mdash; weight arrives via the backend), the servos moved to D25/D26, and an IR sensor appeared on D27. None of these are in either PDF.</span></li>
+    <li><b>Wired all three status LEDs</b><span>Green D19, yellow D23, red D4, 180&nbsp;&Omega; each, sharing one ground column. Verified with a purpose-built LedDebug sketch that blinks all three forever alongside the onboard LED, so a dark lamp can be told apart from a stalled sketch.</span></li>
+    <li><b>IR sensor overheated &mdash; removed from the design</b><span>Almost certainly reversed VCC/GND. Turned out not to matter: the colour sensor's own Clear-channel drop does the same triggering job, which is what the original design PDF specified all along.</span></li>
+    <li><b>Chased the colour sensor through two pin moves</b><span>D21/D22 &rarr; D32/D33 &rarr; finally GPIO&nbsp;16/17. The giveaway was readings repeating byte-for-byte with Clear lower than R, G and B &mdash; physically impossible, so I&sup2;C failure rather than darkness. Gain also had to be tuned: 4&times; was too dim, 60&times; saturated at 61,442 of 65,535, 16&times; is right.</span></li>
+    <li><b>Made the backend fast enough for a microcontroller</b><span>Ingest was answering with 14,362 bytes and taking 14 seconds &mdash; past the ESP32's 5&nbsp;s timeout, so it could never get an answer. Two causes, both fixed. See the next section.</span></li>
+    <li><b>Rewrote the firmware end to end</b><span>Clear-drop trigger with a baseline measured at boot, Wi-Fi POST, JSON parse, LED control. Backed up the old IR version rather than overwriting it.</span></li>
+    <li><b>Sorted the network</b><span>Laptop was on SLIIT-STD at 5&nbsp;GHz &mdash; a band the ESP32 physically cannot use, on a different network from the board. Moved both onto the phone hotspot at 2.4&nbsp;GHz.</span></li>
+    <li><b>Collected the first colour signatures</b><span>Brown cardboard and yellow. The result was not what anyone hoped &mdash; see the findings below.</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2>The backend fix worth remembering</h2>
+  <p class="lede">
+    An ESP32 scan was timing out at <code>HTTP -11</code>. The request was arriving
+    fine; the reply took too long. Two independent causes, each slower than the
+    ESP32's entire patience budget.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Cause</th><th>Cost</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Response embedded a 90-point forecast series the board can't use</td><td class="num">14 KB</td><td><code>?compact=true</code> &rarr; 232 bytes</td></tr>
+        <tr><td>ARIMA/LSTM model reloaded and backtested every request</td><td class="num">~6 s</td><td>Cache the model path per metal, 15 min TTL</td></tr>
+        <tr><td>InfluxDB retried on every call &mdash; for a database never started</td><td class="num">~8 s</td><td>Circuit breaker: one failure, skip for 60 s</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    The InfluxDB one was the surprise. Two calls per forecast, each retrying with
+    backoff against nothing, on every single request &mdash; and it had been slowing
+    the dashboard down too, not just the terminal.
+  </p>
+<pre><code>first scan after restart   13 s   (TensorFlow load, unavoidable)
+every scan after         0.22 s</code></pre>
+  <div class="note">
+    Warm the backend with one throwaway scan before any demo. The first request after
+    a restart is always slow; everything after it is instant.
+  </div>
+</section>
+
+<section>
+  <h2>Colour findings so far</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Material</th><th>r/c</th><th>g/c</th><th>b/c</th><th>Clear</th></tr></thead>
+      <tbody>
+        <tr><td>Copper <span class="pill idle">4&times; gain</span></td><td class="num">0.569</td><td class="num">0.293</td><td class="num">0.248</td><td class="num">~3,000</td></tr>
+        <tr><td>Brown cardboard</td><td class="num">0.515</td><td class="num">0.295</td><td class="num">0.197</td><td class="num">~2,700</td></tr>
+        <tr><td>Yellow</td><td class="num">0.507</td><td class="num">0.306</td><td class="num">0.177</td><td class="num">~11,100</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Ratios rather than raw values, because raw readings drifted 10&times; across the day
+    as the light changed while the ratios held to within 0.01. That stability is the
+    whole reason the calibration is worth anything.
+  </p>
+  <div class="note bad">
+    <b>Brown cardboard and yellow are 0.008 apart on r/c.</b> Two colours obviously
+    different to the eye are nearly identical to this sensor. What separates them is
+    brightness &mdash; Clear differs 4&times; &mdash; but brightness moves with distance
+    and lighting, which is exactly what the ratios were normalising away.
+  </div>
+  <p>
+    The working conclusion: <b>copper versus not-copper</b> is a question three colour
+    channels can answer. Telling steel from nickel from zinc almost certainly is not,
+    since all four are grey. That is a limit of the sensor, worth stating plainly in
+    the report rather than discovering at the panel.
+  </p>
+  <p>
+    This is also consistent with the architecture: report &sect;5 gives waste-type
+    identification to <b>Component 3's AI</b>. Component 4's colour sensor is described
+    in the design PDF as detecting object placement and verifying reddish copper &mdash;
+    a confirmation aid, not the primary classifier.
+  </p>
+</section>
+
+<section>
+  <h2>Complete pin map</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Device</th><th>Device pin</th><th>ESP32</th><th>Silkscreen</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="4">TCS34725 colour</td><td>VIN</td><td class="pin">3V3</td><td class="pin">3V3</td><td>Not <code>3Vo</code></td></tr>
+        <tr><td>GND</td><td class="pin">GND</td><td class="pin">GND</td><td></td></tr>
+        <tr><td>SDA</td><td class="pin">GPIO 16</td><td class="pin">RX2</td><td>Adjacent to SCL</td></tr>
+        <tr><td>SCL</td><td class="pin">GPIO 17</td><td class="pin">TX2</td><td>Not TX0/RX0</td></tr>
+        <tr><td>Green LED</td><td>anode</td><td class="pin">GPIO 19</td><td class="pin">D19</td><td>180&nbsp;&Omega; &middot; SELL</td></tr>
+        <tr><td>Yellow LED</td><td>anode</td><td class="pin">GPIO 23</td><td class="pin">D23</td><td>180&nbsp;&Omega; &middot; HOLD</td></tr>
+        <tr><td>Red LED</td><td>anode</td><td class="pin">GPIO 4</td><td class="pin">D4</td><td>180&nbsp;&Omega; &middot; BIN FULL</td></tr>
+        <tr><td>Buzzer <span class="pill idle">later</span></td><td>+</td><td class="pin">GPIO 13</td><td class="pin">D13</td><td>Active type</td></tr>
+        <tr><td rowspan="2">HC-SR04 <span class="pill idle">later</span></td><td>Trig</td><td class="pin">GPIO 5</td><td class="pin">D5</td><td></td></tr>
+        <tr><td>Echo</td><td class="pin">GPIO 18</td><td class="pin">D18</td><td><span class="pill stop">5 V</span> needs divider</td></tr>
+        <tr><td>SG90 gate <span class="pill idle">later</span></td><td>signal</td><td class="pin">GPIO 25</td><td class="pin">D25</td><td>External 5 V</td></tr>
+        <tr><td>MG996R crusher <span class="pill idle">later</span></td><td>signal</td><td class="pin">GPIO 26</td><td class="pin">D26</td><td>External 5 V</td></tr>
+        <tr><td>IR sensor <span class="pill stop">removed</span></td><td>OUT</td><td class="pin">GPIO 27</td><td class="pin">D27</td><td>Overheated; code commented out</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <b>Never wire to TX0 or RX0.</b> They carry USB serial and uploads. On the board
+    they sit only four pins from TX2/RX2 and are easy to confuse &mdash; the labels
+    differ by a single digit.
+  </div>
+</section>
+
+<section>
+  <h2>Sketches in the handoff folder</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Sketch</th><th>Purpose</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td><code>BlinkTest</code></td><td>Board, toolchain, serial</td><td><span class="pill ok">Passing</span></td></tr>
+        <tr><td><code>ColourSensorTest</code></td><td>Continuous R/G/B/Clear, I&sup2;C scan on failure</td><td><span class="pill ok">Passing</span></td></tr>
+        <tr><td><code>LedTest</code></td><td>Three LEDs, self-test then serial-driven</td><td><span class="pill ok">Passing</span></td></tr>
+        <tr><td><code>LedDebug</code></td><td>Blinks all three forever &mdash; nothing to miss</td><td><span class="pill ok">Passing</span></td></tr>
+        <tr><td><code>ItemScan</code></td><td><b>Main firmware</b> &mdash; trigger, POST, decide, light</td><td><span class="pill ok">Compiles</span></td></tr>
+        <tr><td><code>IRSensorTest</code></td><td>IR module</td><td><span class="pill stop">Hardware dead</span></td></tr>
+        <tr><td><code>RoutingGateTest</code></td><td>SG90 gate, three angles</td><td><span class="pill idle">Not run</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ItemScan's decision rule</h3>
+  <p>
+    Colour is used only for the question it can answer reliably, and the answer is sent
+    to the backend as <code>known_material</code> rather than making the server guess
+    from three channels:
+  </p>
+<pre><code>r/c &ge; 0.55 AND b/c &ge; 0.22   &rarr;  COPPER      &rarr;  yellow lamp
+otherwise                      &rarr;  NOT COPPER  &rarr;  green lamp</code></pre>
+  <div class="note">
+    The backend's live forecast currently says copper = <b>SELL NOW</b> and aluminium =
+    <b>HOLD</b> &mdash; the mirror image of the local rule, so the lamp and the dashboard
+    will disagree. Both verdicts are printed to serial so this is visible rather than
+    mysterious. Setting <code>USE_BACKEND_DECISION = true</code> follows the forecast
+    instead and keeps them in step.
+  </div>
+</section>
+
+<section>
+  <h2>Open issues</h2>
+  <ul class="next">
+    <li><b>Weight is a hardcoded 2.5&nbsp;kg placeholder.</b> No load cell in this component; the real value must come from Component 3 via the backend.</li>
+    <li><b>IR module overheated</b> and is out of the build. Not blocking &mdash; the colour sensor triggers instead.</li>
+    <li><b>Grey metals probably will not separate by colour.</b> Needs confirming with real samples.</li>
+    <li><b>Wi-Fi credentials are in the sketch</b> and travel with the folder if it is zipped or shared.</li>
+    <li><b>The laptop IP changes on every reconnect</b> &mdash; re-check <code>ipconfig</code> and update <code>BACKEND_IP</code> before any demo.</li>
+    <li><b>Bin-full lockout is not enforced</b> in the backend yet, and nothing can clear one.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Next</h2>
+  <ul class="next">
+    <li>Measure copper and one grey metal &mdash; decides whether auto-classification is viable at all</li>
+    <li>Buzzer on D13 &mdash; ten minutes, completes the local feedback layer</li>
+    <li>Live terminal page on the dashboard, polling <code>/api/iot/last-scan</code></li>
+    <li>HC-SR04 with its voltage divider, then the bin-full lockout end to end</li>
+    <li>Source a 5&nbsp;V 3&nbsp;A supply, then both servos</li>
+  </ul>
+</section>
+
+<footer class="page">
+  Component 4 &mdash; Predictive Economic Valuation &amp; Strategic Disposition Terminal.
+  Research Project R26-IT-015, SLIIT. Pin assignments follow &sect;6 of the Proposed IoT
+  System report, except where the handoff notes supersede it.
+</footer>
+
+</div>
+</body>
+</html>

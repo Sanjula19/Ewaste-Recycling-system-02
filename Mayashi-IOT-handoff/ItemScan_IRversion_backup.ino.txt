@@ -1,0 +1,122 @@
+// Item scan - IR trigger + TCS34725 colour read, Component 4
+//
+// Waits for the IR sensor to see an item, lets it settle, then takes ONE
+// averaged colour reading and prints it. Won't re-trigger until the item
+// is removed.
+//
+// If the colour sensor isn't connected it still runs in IR-only mode, so
+// you can test each sensor on its own.
+//
+// This is the skeleton of the final firmware - later the print gets
+// replaced by an HTTP POST to the FastAPI backend.
+
+#include <Wire.h>
+#include "Adafruit_TCS34725.h"
+
+const int IR_PIN  = 27;   // board pin D27, active LOW
+const int SDA_PIN = 32;   // board pin D32
+const int SCL_PIN = 33;   // board pin D33
+
+const int SETTLE_MS  = 300;  // let the item come to rest before reading
+const int SAMPLES    = 5;    // average this many reads for a stable value
+const int DEBOUNCE_MS = 150; // IR must hold a state this long before we believe it
+
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_154MS,
+                                          TCS34725_GAIN_4X);
+
+bool itemPresent = false;
+bool colourOK    = false;   // false = colour sensor missing, IR-only mode
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  // PULLUP matters: with a plain INPUT, an unconnected OUT wire floats and
+  // reads random noise, which looks like items appearing and vanishing.
+  // With the pullup, a disconnected sensor reads HIGH = "clear" instead.
+  pinMode(IR_PIN, INPUT_PULLUP);
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  Serial.println("--- startup check ---");
+
+  colourOK = tcs.begin();
+  if (colourOK) {
+    Serial.println("TCS34725 : OK");
+  } else {
+    Serial.println("TCS34725 : not connected - running IR-ONLY mode");
+  }
+
+  if (digitalRead(IR_PIN) == LOW) {
+    Serial.println("IR D27   : reads DETECTED right now");
+    Serial.println("           (something is in front of it, or the pot is too sensitive)");
+  } else {
+    Serial.println("IR D27   : reads CLEAR");
+  }
+
+  Serial.println("---------------------");
+  Serial.println("Wave your hand over the IR sensor to test it.");
+
+  if (colourOK) {
+    Serial.println("R\tG\tB\tClear\tr/c\tg/c\tb/c");
+  }
+}
+
+void scanItem() {
+  if (!colourOK) {
+    Serial.println(">> IR TRIGGERED  (no colour sensor connected)");
+    return;
+  }
+
+  delay(SETTLE_MS);
+
+  uint32_t sumR = 0, sumG = 0, sumB = 0, sumC = 0;
+  for (int i = 0; i < SAMPLES; i++) {
+    uint16_t r, g, b, c;
+    tcs.getRawData(&r, &g, &b, &c);
+    sumR += r;  sumG += g;  sumB += b;  sumC += c;
+  }
+
+  uint16_t r = sumR / SAMPLES;
+  uint16_t g = sumG / SAMPLES;
+  uint16_t b = sumB / SAMPLES;
+  uint16_t c = sumC / SAMPLES;
+
+  // Ratios normalised by Clear. These stay stable when the item sits
+  // slightly closer or further away, unlike the raw channels.
+  float rc = (c > 0) ? (float)r / c : 0;
+  float gc = (c > 0) ? (float)g / c : 0;
+  float bc = (c > 0) ? (float)b / c : 0;
+
+  Serial.print(r);  Serial.print('\t');
+  Serial.print(g);  Serial.print('\t');
+  Serial.print(b);  Serial.print('\t');
+  Serial.print(c);  Serial.print('\t');
+  Serial.print(rc, 3);  Serial.print('\t');
+  Serial.print(gc, 3);  Serial.print('\t');
+  Serial.println(bc, 3);
+}
+
+void loop() {
+  bool raw = (digitalRead(IR_PIN) == LOW);   // module is active LOW
+
+  // Debounce: the raw signal chatters when an item sits right at the edge of
+  // the detection range. Only believe a state once it has held steady.
+  static bool lastRaw = false;
+  static unsigned long lastChangeMs = 0;
+
+  if (raw != lastRaw) {
+    lastRaw = raw;
+    lastChangeMs = millis();
+  }
+
+  if (millis() - lastChangeMs >= DEBOUNCE_MS && raw != itemPresent) {
+    itemPresent = raw;
+    if (itemPresent) {
+      scanItem();
+    } else {
+      Serial.println("-- removed --");
+    }
+  }
+
+  delay(10);
+}

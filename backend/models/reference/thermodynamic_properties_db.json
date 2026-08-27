@@ -1,0 +1,74 @@
+{
+    "EPA_WARM_MSW_Mixed_Glass": {
+        "Density": 2.52,
+        "Specific_Heat": 0.84,
+        "Melting_Point": 0.0,
+        "LHV_Estimated_MJ_kg": 0.0,
+        "Bio_Oil_Yield_Pct": 0.0,
+        "Syngas_Yield_Pct": 0.0,
+        "Char_Yield_Pct": 1.0
+    },
+    "Overview of materials for Expanded Polystyrene (EPS)": {
+        "Density": 0.0031,
+        "Specific_Heat": 0.0,
+        "Melting_Point": 99.0,
+        "LHV_Estimated_MJ_kg": 40.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    },
+    "Overview of materials for Polystyrene, Flame Retardant": {
+        "Density": 0.95,
+        "Specific_Heat": 0.0,
+        "Melting_Point": 80.0,
+        "LHV_Estimated_MJ_kg": 40.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    },
+    "Overview of materials for Polystyrene, Molded, Unreinforced": {
+        "Density": 0.013,
+        "Specific_Heat": 0.0,
+        "Melting_Point": 70.0,
+        "LHV_Estimated_MJ_kg": 40.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    },
+    "Overview of materials for Polystyrene, Impact Modified": {
+        "Density": 0.65,
+        "Specific_Heat": 1.79,
+        "Melting_Point": 35.0,
+        "LHV_Estimated_MJ_kg": 40.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    },
+    "Vycom VINTEC I (R) PVC Polyvinyl Chloride (PVC)": {
+        "Density": 1.42,
+        "Specific_Heat": 0.0,
+        "Melting_Point": 82.8,
+        "LHV_Estimated_MJ_kg": 20.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    },
+    "Axion Polymers AXPLAS (R) MEP54 0000 Mixed Engineering Polymer Granules": {
+        "Density": 0.0,
+        "Specific_Heat": 0.0,
+        "Melting_Point": 0.0,
+        "LHV_Estimated_MJ_kg": 37.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    },
+    "Axion Polymers AXPLAS (R) MEP52 0087 Mixed Engineering Polymer Granules": {
+        "Density": 0.0,
+        "Specific_Heat": 0.0,
+        "Melting_Point": 0.0,
+        "LHV_Estimated_MJ_kg": 37.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
+    }
+}

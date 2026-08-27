@@ -1,0 +1,108 @@
+/*
+  Design tokens.
+  ----------------
+  Palette grounded in the subject rather than a template default: deep
+  teal for civic/environmental trust, a copper accent that literally
+  matches one of the tracked materials, moss/ochre/brick for the
+  positive/hold/negative signals a recycling-economics dashboard needs
+  constantly (not a generic blue/red pair). Material colors (below) are
+  the app's signature element -- each tracked material keeps the same
+  color identity in every dropdown, chart, and table it appears in.
+*/
+
+:root {
+  --font-display: 'Noto Serif', 'Noto Serif Sinhala', 'Noto Serif Tamil', serif;
+  --font-body: 'Noto Sans', 'Noto Sans Sinhala', 'Noto Sans Tamil', sans-serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 30, 28, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 30, 28, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 30, 28, 0.14);
+
+  --transition-fast: 150ms ease;
+  --transition-med: 250ms ease;
+
+  /* Material identity colors -- consistent everywhere a material appears */
+  --mat-aluminium: #8E9C99;
+  --mat-copper: #A8622B;
+  --mat-lead: #5C6B78;
+  --mat-nickel: #7C8570;
+  --mat-steel: #6E7D8A;
+  --mat-zinc: #8FA0A6;
+  --mat-pvc: #4A7A9E;
+  --mat-polystyrene: #B7A66E;
+  --mat-glass: #6FA39A;
+}
+
+[data-theme='light'] {
+  --color-bg: #F3F5F1;
+  --color-bg-elevated: #FBFCFA;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #EAEDE7;
+  --color-border: #D8DED2;
+  --color-border-strong: #BFC9BB;
+
+  --color-text: #16231F;
+  --color-text-muted: #56645C;
+  --color-text-faint: #829083;
+
+  --color-primary: #0F3D3E;
+  --color-primary-hover: #0B2E2F;
+  --color-primary-contrast: #FFFFFF;
+  --color-primary-soft: #DDEAE8;
+
+  --color-accent: #A8622B;
+  --color-accent-contrast: #FFFFFF;
+  --color-accent-soft: #F1E1D2;
+
+  --color-success: #3F7D4C;
+  --color-success-bg: #E4F0E5;
+  --color-warning: #A9761F;
+  --color-warning-bg: #FBF0DD;
+  --color-danger: #A8433A;
+  --color-danger-bg: #F8E6E3;
+  --color-info: #2E6B8A;
+  --color-info-bg: #E2EEF3;
+}
+
+[data-theme='dark'] {
+  --color-bg: #0D1A19;
+  --color-bg-elevated: #112320;
+  --color-surface: #142826;
+  --color-surface-alt: #1B332F;
+  --color-border: #274541;
+  --color-border-strong: #345B55;
+
+  --color-text: #E8EFEA;
+  --color-text-muted: #9FB3AC;
+  --color-text-faint: #71877F;
+
+  --color-primary: #6FBBB8;
+  --color-primary-hover: #8FD0CD;
+  --color-primary-contrast: #06201F;
+  --color-primary-soft: #1C3A38;
+
+  --color-accent: #D89A5D;
+  --color-accent-contrast: #2A1608;
+  --color-accent-soft: #33241A;
+
+  --color-success: #7FBE8C;
+  --color-success-bg: #1D3324;
+  --color-warning: #E0B15E;
+  --color-warning-bg: #3A2E14;
+  --color-danger: #E28A81;
+  --color-danger-bg: #3A1E1B;
+  --color-info: #7FB8D6;
+  --color-info-bg: #16303D;
+}

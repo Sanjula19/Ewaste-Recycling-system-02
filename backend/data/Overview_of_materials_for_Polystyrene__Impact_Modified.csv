@@ -1,0 +1,103 @@
+﻿,,,
+Physical Properties,Metric,English,Comments
+Density ,0.650 - 2.12 g/cc,0.0235 - 0.0766 lb/in³,Average value: 1.05 g/cc Grade Count:469
+Water Absorption ,0.000 - 0.600 %,0.000 - 0.600 %,Average value: 0.0923 % Grade Count:92
+Moisture Absorption at Equilibrium ,0.0300 - 0.100 %,0.0300 - 0.100 %,Average value: 0.0957 % Grade Count:42
+Water Absorption at Saturation ,0.10%,0.10%,Average value: 0.100 % Grade Count:31
+Particle Size ,0.800 - 4000 µm,0.800 - 4000 µm,Average value: 1240 µm Grade Count:23
+Maximum Moisture Content ,0.01,0.01,Average value: 0.0100 Grade Count:8
+Linear Mold Shrinkage ,0.00200 - 0.0450 cm/cm,0.00200 - 0.0450 in/in,Average value: 0.00597 cm/cm Grade Count:278
+"Linear Mold Shrinkage, Transverse ",0.00200 - 0.00600 cm/cm,0.00200 - 0.00600 in/in,Average value: 0.00467 cm/cm Grade Count:3
+Melt Flow ,0.900 - 99.0 g/10 min,0.900 - 99.0 g/10 min,Average value: 7.83 g/10 min Grade Count:524
+Spiral Flow ,44.0 - 45.0 cm,17.3 - 17.7 in,Average value: 44.5 cm Grade Count:2
+,@Temperature 220 - 220 °C,@Temperature 428 - 428 °F,
+,,,
+Mechanical Properties,Metric,English,Comments
+"Hardness, Rockwell L ",40.0 - 84.0,40.0 - 84.0,Average value: 58.9 Grade Count:69
+"Hardness, Rockwell M ",32.0 - 103,32.0 - 103,Average value: 66.6 Grade Count:41
+"Hardness, Rockwell R ",53.0 - 120,53.0 - 120,Average value: 94.2 Grade Count:86
+Ball Indentation Hardness ,60.0 - 110 MPa,8700 - 16000 psi,Average value: 79.5 MPa Grade Count:28
+"Tensile Strength, Ultimate ",12.4 - 240 MPa,1800 - 34800 psi,Average value: 26.9 MPa Grade Count:278
+"Tensile Strength, Yield ",2.35 - 200 MPa,341 - 29000 psi,Average value: 25.8 MPa Grade Count:388
+Elongation at Break ,1.30 - 350 %,1.30 - 350 %,Average value: 45.2 % Grade Count:451
+Elongation at Yield ,1.00 - 75.0 %,1.00 - 75.0 %,Average value: 15.3 % Grade Count:87
+Modulus of Elasticity ,0.155 - 3.47 GPa,22.5 - 503 ksi,Average value: 1.97 GPa Grade Count:300
+Flexural Yield Strength ,3.92 - 450 MPa,569 - 65300 psi,Average value: 45.8 MPa Grade Count:343
+Flexural Modulus ,0.686 - 22.5 GPa,99.6 - 3260 ksi,Average value: 2.12 GPa Grade Count:387
+"Izod Impact, Notched ",0.0890 - 9.61 J/cm,0.167 - 18.0 ft-lb/in,Average value: 1.14 J/cm Grade Count:405
+,0.42712 - 1.81526 J/cm,0.80017 - 3.40073 ft-lb/in,Average value: 0.537 J/cm Grade Count:16
+,@Temperature -50.0 - -17.8 °C,@Temperature -58.0 - 0.000 °F,
+,0.0640 - 0.85424 J/cm,0.120 - 1.6003 ft-lb/in,Average value: 0.537 J/cm Grade Count:10
+,@Temperature -30.0 - -18.0 °C,@Temperature -22.0 - -0.400 °F,
+,0.0640 - 0.85424 J/cm,0.120 - 1.6003 ft-lb/in,Average value: 0.537 J/cm Grade Count:10
+,@Thickness 3.17 - 6.50 mm,@Thickness 0.125 - 0.256 in,
+"Izod Impact, Unnotched ",0.801 - 5340 J/cm,1.50 - 10000 ft-lb/in,Average value: 4.13 J/cm Grade Count:25
+"Izod Impact, Notched (ISO) ",2.00 - 14.0 kJ/m²,0.952 - 6.66 ft-lb/in²,Average value: 8.35 kJ/m² Grade Count:74
+,5.00 - 7.00 kJ/m²,2.38 - 3.33 ft-lb/in²,Average value: 5.50 kJ/m² Grade Count:2
+,@Temperature -30.0 - -30.0 °C,@Temperature -22.0 - -22.0 °F,
+,3.50 - 6.50 kJ/m²,1.67 - 3.09 ft-lb/in²,Average value: 5.50 kJ/m² Grade Count:8
+,@Temperature -30.0 - -30.0 °C,@Temperature -22.0 - -22.0 °F,
+,3.50 - 6.50 kJ/m²,1.67 - 3.09 ft-lb/in²,Average value: 5.50 kJ/m² Grade Count:8
+,@Thickness 4.00 - 4.00 mm,@Thickness 0.157 - 0.157 in,
+"Izod Impact, Unnotched (ISO) ",3.00 kJ/m² - NB,1.43 ft-lb/in² - NB,Average value: 35.8 kJ/m² Grade Count:33
+Charpy Impact Unnotched ,0.500 J/cm² - NB,2.38 ft-lb/in² - NB,Average value: 7.65 J/cm² Grade Count:83
+,2.50 J/cm² - NB,11.9 ft-lb/in² - NB,Average value: 8.55 J/cm² Grade Count:40
+,@Temperature -40.0 - -30.0 °C,@Temperature -40.0 - -22.0 °F,
+"Charpy Impact, Notched ",0.110 - 5.00 J/cm²,0.524 - 23.8 ft-lb/in²,Average value: 0.970 J/cm² Grade Count:88
+,0.200 - 0.700 J/cm²,0.952 - 3.33 ft-lb/in²,Average value: 0.422 J/cm² Grade Count:12
+,@Temperature -40.0 - -30.0 °C,@Temperature -40.0 - -22.0 °F,
+Gardner Impact ,1.69 - 36.2 J,1.25 - 26.7 ft-lb,Average value: 21.3 J Grade Count:20
+"Dart Drop, Total Energy ",11.3 - 18.0 J,8.33 - 13.3 ft-lb,Average value: 14.3 J Grade Count:5
+Falling Dart Impact ,9.04 - 583 J,6.67 - 430 ft-lb,Average value: 55.6 J Grade Count:25
+,528.77 - 528.77 J,390.00 - 390.00 ft-lb,Average value: 529 J Grade Count:1
+,@Temperature -40.0 - -40.0 °C,@Temperature -40.0 - -40.0 °F,
+Instrumented Impact Total Energy ,9.15 - 39.6 J,6.75 - 29.2 ft-lb,Average value: 26.8 J Grade Count:4
+"Tensile Creep Modulus, 1 hour ",1800 - 2200 MPa,261000 - 319000 psi,Average value: 2080 MPa Grade Count:5
+"Tensile Creep Modulus, 1000 hours ",1300 - 1800 MPa,189000 - 261000 psi,Average value: 1630 MPa Grade Count:8
+,,,
+Electrical Properties,Metric,English,Comments
+Electrical Resistivity ,100 - 1.00e+18 ohm-cm,100 - 1.00e+18 ohm-cm,Average value: 1.08e+17 ohm-cm Grade Count:109
+Surface Resistance ,100 - 1.50e+15 ohm,100 - 1.50e+15 ohm,Average value: 3.29e+14 ohm Grade Count:91
+Static Decay ,0.0100 - 2.00 sec,0.0100 - 2.00 sec,Average value: 0.362 sec Grade Count:6
+Dielectric Constant ,2.00 - 3.00,2.00 - 3.00,Average value: 2.46 Grade Count:101
+Dielectric Strength ,15.7 - 155 kV/mm,400 - 3940 kV/in,Average value: 48.7 kV/mm Grade Count:121
+Dissipation Factor ,0.000100 - 0.00100,0.000100 - 0.00100,Average value: 0.000365 Grade Count:54
+Arc Resistance ,60.0 - 180 sec,60.0 - 180 sec,Average value: 119 sec Grade Count:16
+Comparative Tracking Index ,250 - 600 V,250 - 600 V,Average value: 454 V Grade Count:55
+"Hot Wire Ignition, HWI ",7.00 - 60.0 sec,7.00 - 60.0 sec,Average value: 20.0 sec Grade Count:14
+"High Amp Arc Ignition, HAI ",60.0 - 120 arcs,60.0 - 120 arcs,Average value: 112 arcs Grade Count:14
+"High Voltage Arc-Tracking Rate, HVTR ",10.0 - 80.0 mm/min,0.394 - 3.15 in/min,Average value: 37.1 mm/min Grade Count:13
+,,,
+Thermal Properties,Metric,English,Comments
+"CTE, linear ",7.20 - 100 µm/m-°C,4.00 - 55.6 µin/in-°F,Average value: 80.6 µm/m-°C Grade Count:138
+Specific Heat Capacity ,1.79 - 2.20 J/g-°C,0.428 - 0.526 BTU/lb-°F,Average value: 2.06 J/g-°C Grade Count:5
+Thermal Conductivity ,0.134 - 0.188 W/m-K,0.930 - 1.30 BTU-in/hr-ft²-°F,Average value: 0.169 W/m-K Grade Count:27
+"Maximum Service Temperature, Air ",80.0 - 97.8 °C,176 - 208 °F,Average value: 91.6 °C Grade Count:15
+Hot Ball Pressure Test ,75.0 - 80.0 °C,167 - 176 °F,Average value: 78.3 °C Grade Count:3
+Deflection Temperature at 0.46 MPa (66 psi) ,60.0 - 104 °C,140 - 220 °F,Average value: 87.4 °C Grade Count:129
+Deflection Temperature at 1.8 MPa (264 psi) ,31.1 - 137 °C,88.0 - 279 °F,Average value: 81.9 °C Grade Count:383
+Vicat Softening Point ,35.0 - 113 °C,95.0 - 235 °F,Average value: 95.6 °C Grade Count:439
+Heat Distortion Temperature ,77.2 - 93.9 °C,171 - 201 °F,Average value: 87.0 °C Grade Count:11
+"UL RTI, Electrical ",50.0 °C,122 °F,Average value: 50.0 °C Grade Count:8
+"UL RTI, Mechanical with Impact ",50.0 °C,122 °F,Average value: 50.0 °C Grade Count:8
+"UL RTI, Mechanical without Impact ",50.0 °C,122 °F,Average value: 50.0 °C Grade Count:8
+"Flammability, UL94 ",HB - 5VA,HB - 5VA,Grade Count:311
+Flame Spread ,28.0 - 34.0 mm/min,1.10 - 1.34 in/min,Average value: 29.3 mm/min Grade Count:6
+Oxygen Index ,18.00%,18.00%,Average value: 18.0 % Grade Count:19
+Glow Wire Test ,650 - 960 °C,1200 - 1760 °F,Average value: 707 °C Grade Count:19
+,,,
+Optical Properties,Metric,English,Comments
+Haze ,1.00 - 30.0 %,1.00 - 30.0 %,Average value: 5.47 % Grade Count:12
+Gloss ,9.00 - 98.0 %,9.00 - 98.0 %,Average value: 67.4 % Grade Count:103
+"Transmission, Visible ",82.0 - 89.0 %,82.0 - 89.0 %,Average value: 86.6 % Grade Count:11
+,,,
+Processing Properties,Metric,English,Comments
+Processing Temperature ,95.6 - 280 °C,204 - 536 °F,Average value: 210 °C Grade Count:38
+Nozzle Temperature ,188 - 260 °C,370 - 500 °F,Average value: 221 °C Grade Count:26
+Die Temperature ,199 - 232 °C,390 - 450 °F,Average value: 216 °C Grade Count:8
+Melt Temperature ,80.0 - 300 °C,176 - 572 °F,Average value: 217 °C Grade Count:182
+Mold Temperature ,4.00 - 100 °C,39.2 - 212 °F,Average value: 49.2 °C Grade Count:150
+Injection Velocity ,200 mm/sec,7.87 in/sec,Average value: 200 mm/sec Grade Count:10
+Drying Temperature ,60.0 - 160 °C,140 - 320 °F,Average value: 79.4 °C Grade Count:54
+Moisture Content ,0.100 - 0.250 %,0.100 - 0.250 %,Average value: 0.194 % Grade Count:8
+Injection Pressure ,2.76 - 137 MPa,400 - 19900 psi,Average value: 77.7 MPa Grade Count:11

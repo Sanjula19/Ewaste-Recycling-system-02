@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------
+# R26-IT-015 Component 4 — Predictive Economic Valuation &
+# Strategic Disposition
+# ---------------------------------------------------------------
+
+# --- Python / backend ---
+backend/venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Node / frontend ---
+frontend/node_modules/
+frontend/dist/
+
+# --- Secrets & local config -------------------------------------
+# .env.example files ARE tracked (they are templates with no real
+# credentials). Real .env files hold InfluxDB tokens and must not be.
+.env
+.env.local
+.env.*.local
+
+# --- Runtime caches (regenerated automatically) -----------------
+backend/.fx_cache.json
+
+# --- Editors / OS -----------------------------------------------
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+desktop.ini
+.DS_Store
+
+# --- Arduino build output ---------------------------------------
+Mayashi-IOT-handoff/**/build/
