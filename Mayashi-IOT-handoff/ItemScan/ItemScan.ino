@@ -31,13 +31,26 @@
 // is this copper, or is it not? Copper is genuinely reddish; cardboard
 // and yellow both sit well below it on r/c and b/c (measured 26 Aug).
 //
-//   copper           r/c 0.569   b/c 0.248
-//   brown cardboard  r/c 0.515   b/c 0.197
-//   yellow           r/c 0.507   b/c 0.177
+//   material           r/c     g/c     b/c
+//   copper             0.569   0.293   0.248
+//   brown cardboard    0.515   0.295   0.197
+//   yellow             0.507   0.306   0.177
+//   bright neutral     0.569   0.477   0.462   <-- measured 27 Aug
+//
+// That last one matters. Its r/c is IDENTICAL to copper's, so a rule
+// built on r/c alone calls it copper -- a false positive. The physical
+// difference is that copper is red because red DOMINATES (green and
+// blue sit near 0.25-0.29), whereas a bright neutral surface has all
+// three channels close together and merely leans warm.
+//
+// So copper needs blue in a band, not merely above a floor: high enough
+// to separate it from cardboard and yellow, low enough to reject
+// anything bright and neutral.
 //
 // Re-measure with your own copper sample and adjust if needed.
 const float COPPER_MIN_RC = 0.55;   // red must dominate this strongly
-const float COPPER_MIN_BC = 0.22;   // and blue must not be too low
+const float COPPER_MIN_BC = 0.20;   // ...but blue not as low as cardboard/yellow
+const float COPPER_MAX_BC = 0.35;   // ...and not as high as a neutral surface
 
 // What each outcome means locally. Note the backend's live forecast
 // currently says copper = SELL NOW; this fixed rule deliberately
@@ -72,8 +85,8 @@ const int SCL_PIN = 17;   // board pin TX2 / GPIO17
 // bool irTriggered() { return digitalRead(IR_PIN) == LOW; }
 // -------------------------------------------------------------------
 
-const int LED_GREEN  = 19;   // SELL (and pyrolysis dispatch)
-const int LED_YELLOW = 23;   // HOLD / crushing
+const int LED_GREEN  = 21;   // D21 - SELL (and pyrolysis dispatch)
+const int LED_YELLOW = 22;   // D22 - HOLD / crushing
 const int LED_RED    = 4;    // BIN FULL - driven by the lockout, not by a scan
 
 // Weight is NOT measured here. Only Component 3 has a load cell; the
@@ -82,7 +95,11 @@ const int LED_RED    = 4;    // BIN FULL - driven by the lockout, not by a scan
 // runnable end to end.
 const float PLACEHOLDER_WEIGHT_KG = 2.5;
 
-const int   SETTLE_MS    = 300;   // let the item come to rest
+// 800 ms, not 300: the sensor's illuminator LED visibly ramps for about
+// a second after an item lands -- raw counts climbed 8,384 -> 13,000 over
+// the first 15 samples on 27 Aug. Reading too early classifies on a
+// half-lit item.
+const int   SETTLE_MS    = 800;   // let the item settle AND the LED reach full output
 const int   SAMPLES      = 5;     // average this many reads
 const float TRIGGER_DROP = 0.60;  // fire when Clear falls below 60% of baseline
 
@@ -159,7 +176,7 @@ bool looksLikeCopper(uint16_t r, uint16_t g, uint16_t b, uint16_t c) {
   if (c == 0) return false;                 // no light = no opinion
   float rc = (float)r / c;
   float bc = (float)b / c;
-  return (rc >= COPPER_MIN_RC) && (bc >= COPPER_MIN_BC);
+  return (rc >= COPPER_MIN_RC) && (bc >= COPPER_MIN_BC) && (bc <= COPPER_MAX_BC);
 }
 
 void postReading(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {

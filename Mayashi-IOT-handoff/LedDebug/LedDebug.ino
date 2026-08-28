@@ -12,8 +12,8 @@
 // to the board, so if IT blinks the sketch is definitely running and any
 // dark LED is a wiring problem, not a code problem.
 
-const int LED_GREEN  = 19;
-const int LED_YELLOW = 23;
+const int LED_GREEN  = 21;
+const int LED_YELLOW = 18;
 const int LED_RED    = 4;
 const int LED_ONBOARD = 2;   // soldered to the board - our reference
 
@@ -43,7 +43,7 @@ void pulse(int pin, const char *label) {
 }
 
 void loop() {
-  pulse(LED_GREEN,  "D19  (green / SELL)");
-  pulse(LED_YELLOW, "D23  (yellow / HOLD)");
+  pulse(LED_GREEN,  "D21  (green / SELL)");
+  pulse(LED_YELLOW, "D22  (yellow / HOLD)");
   pulse(LED_RED,    "D4   (red / BIN FULL)");
 }

@@ -1,8 +1,8 @@
 // Status LED test - Component 4
 //
 // Three status LEDs, per report section 6.1:
-//   GREEN  (D19) = SELL
-//   YELLOW (D23) = HOLD / crushing
+//   GREEN  (D21) = SELL
+//   YELLOW (D22) = HOLD / crushing
 //   RED    (D4)  = BIN FULL (lockout)
 //
 // Wiring for each LED:
@@ -15,8 +15,8 @@
 // whether any of them is wired wrong. Then type 1/2/3/0 in the Serial
 // Monitor to hold each state, the same way RoutingGateTest works.
 
-const int LED_GREEN  = 19;   // board pin D19 - SELL
-const int LED_YELLOW = 23;   // board pin D23 - HOLD / crushing
+const int LED_GREEN  = 21;   // board pin D21 - SELL
+const int LED_YELLOW = 22;   // board pin D22 - HOLD / crushing
 const int LED_RED    = 4;    // board pin D4  - BIN FULL
 
 void allOff() {
@@ -45,11 +45,11 @@ void setup() {
   // Startup self-test: each LED alone, then all three together.
   Serial.println("--- LED self test ---");
 
-  Serial.println("GREEN  (D19)");
+  Serial.println("GREEN  (D21)");
   showState(LED_GREEN, "SELL");
   delay(700);
 
-  Serial.println("YELLOW (D23)");
+  Serial.println("YELLOW (D22)");
   showState(LED_YELLOW, "HOLD");
   delay(700);
 
