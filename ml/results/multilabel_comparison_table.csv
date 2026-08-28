@@ -1,0 +1,4 @@
+Model,Hamming Loss,Jaccard (%),F1 Weighted (%),Exact Match (%),Train Time (s)
+MultiLabel RF (MultiOutput),0.0033,98.83,99.28,98.44,11.53
+MultiLabel RF (ChainOrder),0.0033,98.83,99.28,98.44,4.53
+MultiLabel DT (MultiOutput),0.0067,97.79,98.57,96.09,0.08

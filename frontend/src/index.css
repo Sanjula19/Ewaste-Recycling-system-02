@@ -1,0 +1,344 @@
+﻿/* =====================================================================
+   E-WASTE TOXIC GAS MONITOR — Dual Theme System
+   Dark  = chemical-lab / terminal aesthetic
+   Light = clean scientific / research-paper aesthetic
+   ===================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&display=swap");
+
+/* ─── DARK THEME (default) ─────────────────────────────────────────── */
+:root,
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-base:          #050c05;
+  --bg-surface:       #081408;
+  --bg-surface-2:     #0d1c0d;
+  --bg-surface-3:     #111f11;
+  --bg-nav:           #040904;
+  --bg-code:          #0c1a0c;
+
+  /* Borders */
+  --border-subtle:    rgba(0, 200, 83, 0.11);
+  --border-normal:    rgba(0, 200, 83, 0.22);
+  --border-accent:    rgba(0, 200, 83, 0.45);
+  --border-divider:   rgba(0, 200, 83, 0.08);
+
+  /* Text */
+  --text-primary:     #d0ead0;
+  --text-secondary:   #5a8a5a;
+  --text-muted:       #2a4a2a;
+  --text-accent:      #00c853;
+  --text-heading:     #e0f0e0;
+  --text-code:        #00c853;
+
+  /* Sensor value display */
+  --val-mq2:          #5ab8ff;
+  --val-mq7:          #ff7070;
+  --val-mq135:        #5ee882;
+  --val-temp:         #7ecfff;
+  --val-hum:          #b2eb5c;
+
+  /* Left-border accents on sensor cards */
+  --accent-mq2:       #40a9ff;
+  --accent-mq7:       #ff6b6b;
+  --accent-mq135:     #52e07c;
+  --accent-temp:      #74c0fc;
+  --accent-hum:       #a9e34b;
+
+  /* Value text-shadow glow */
+  --glow-mq2:         0 0 16px rgba(90,184,255,0.40);
+  --glow-mq7:         0 0 16px rgba(255,112,112,0.40);
+  --glow-mq135:       0 0 16px rgba(94,232,130,0.40);
+  --glow-temp:        0 0 12px rgba(126,207,255,0.35);
+  --glow-hum:         0 0 12px rgba(178,235,92,0.35);
+  --glow-accent:      0 0 14px rgba(0,200,83,0.50);
+
+  /* Dot indicator */
+  --dot-active-bg:    #39ff14;
+  --dot-active-glow:  0 0 8px #39ff14, 0 0 16px rgba(57,255,20,0.5);
+  --dot-inactive-bg:  #1e3a1e;
+
+  /* Nav */
+  --nav-accent-line:  linear-gradient(90deg, transparent, #00c853 30%, #39ff14 50%, #00c853 70%, transparent);
+  --nav-brand-color:  #39ff14;
+  --nav-sub-color:    #1a4a1a;
+  --nav-link-color:   #2a5a2a;
+  --nav-link-active:  #00c853;
+  --nav-link-bg:      rgba(0, 200, 83, 0.12);
+  --nav-link-border:  rgba(0, 200, 83, 0.35);
+  --nav-badge-bg:     rgba(0, 200, 83, 0.08);
+  --nav-badge-border: rgba(0, 200, 83, 0.22);
+  --nav-badge-color:  #00c853;
+  --nav-icon-bg:      linear-gradient(135deg, #003312, #006622);
+  --nav-icon-border:  rgba(0, 200, 83, 0.4);
+  --nav-icon-glow:    0 0 12px rgba(57,255,20,0.25);
+  --nav-border-bot:   rgba(0, 200, 83, 0.22);
+
+  /* Toggle button */
+  --toggle-bg:        #0c1a0c;
+  --toggle-border:    rgba(0, 200, 83, 0.3);
+  --toggle-color:     #00c853;
+  --toggle-icon:      "☀";
+
+  /* Alert colours */
+  --alert-danger-bg:      #081208;
+  --alert-danger-border:  #ff1744;
+  --alert-danger-stripe:  repeating-linear-gradient(45deg, rgba(255,23,68,0.05) 0px, rgba(255,23,68,0.05) 12px, transparent 12px, transparent 24px);
+  --alert-danger-label:   #3d0010;
+  --alert-danger-text:    #ff7070;
+  --alert-warn-border:    #ffd600;
+  --alert-warn-label:     #3a2e00;
+  --alert-warn-text:      #ffd600;
+
+  /* Cards / sections */
+  --section-label-color:  #1e4a1e;
+  --section-line-color:   rgba(0, 200, 83, 0.14);
+  --field-label-color:    #2a5a2a;
+  --field-mono-sub:       #1a3a1a;
+
+  /* Notice / warning banner */
+  --notice-bg:            #060e06;
+  --notice-border-color:  rgba(255, 214, 0, 0.15);
+  --notice-left-color:    rgba(255, 214, 0, 0.5);
+  --notice-text:          #5a4a00;
+  --notice-icon:          #ffd600;
+
+  /* Table */
+  --table-header-bg:      #040904;
+  --table-row-a:          #081408;
+  --table-row-b:          #060c06;
+  --table-divider:        rgba(0, 200, 83, 0.06);
+  --table-header-text:    #2a5a2a;
+
+  /* Chart */
+  --chart-grid:           rgba(0, 200, 83, 0.08);
+  --chart-axis:           rgba(0, 200, 83, 0.14);
+
+  /* Scrollbar */
+  --scroll-track:         #081408;
+  --scroll-thumb:         #0d3a0d;
+  --scroll-thumb-hover:   #00c853;
+
+  /* Shadows */
+  --shadow-card:          0 4px 28px rgba(0,0,0,0.60);
+  --shadow-sm:            0 2px 12px rgba(0,0,0,0.45);
+
+  /* Bg grid overlay */
+  --grid-color:           rgba(0, 200, 83, 0.025);
+}
+
+/* ─── LIGHT THEME ──────────────────────────────────────────────────── */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --bg-base:          #f2f7f3;
+  --bg-surface:       #ffffff;
+  --bg-surface-2:     #f7fcf8;
+  --bg-surface-3:     #eef7f0;
+  --bg-nav:           #ffffff;
+  --bg-code:          #f0f7f2;
+
+  /* Borders */
+  --border-subtle:    rgba(0, 120, 60, 0.10);
+  --border-normal:    rgba(0, 120, 60, 0.18);
+  --border-accent:    rgba(0, 120, 60, 0.38);
+  --border-divider:   rgba(0, 120, 60, 0.09);
+
+  /* Text */
+  --text-primary:     #0d1f12;
+  --text-secondary:   #3d6648;
+  --text-muted:       #7a9a82;
+  --text-accent:      #006e30;
+  --text-heading:     #0a1a0d;
+  --text-code:        #005c28;
+
+  /* Sensor values */
+  --val-mq2:          #1565c0;
+  --val-mq7:          #b71c1c;
+  --val-mq135:        #1b5e20;
+  --val-temp:         #0d47a1;
+  --val-hum:          #33691e;
+
+  /* Card left-border accents */
+  --accent-mq2:       #1976d2;
+  --accent-mq7:       #d32f2f;
+  --accent-mq135:     #388e3c;
+  --accent-temp:      #1976d2;
+  --accent-hum:       #558b2f;
+
+  /* No glow in light mode */
+  --glow-mq2:         none;
+  --glow-mq7:         none;
+  --glow-mq135:       none;
+  --glow-temp:        none;
+  --glow-hum:         none;
+  --glow-accent:      none;
+
+  /* Dot indicators */
+  --dot-active-bg:    #00a844;
+  --dot-active-glow:  0 0 5px rgba(0,168,68,0.4);
+  --dot-inactive-bg:  #c8d8c8;
+
+  /* Nav */
+  --nav-accent-line:  linear-gradient(90deg, transparent, #00a844 30%, #00c853 50%, #00a844 70%, transparent);
+  --nav-brand-color:  #006e30;
+  --nav-sub-color:    #a0c0a8;
+  --nav-link-color:   #5a7a62;
+  --nav-link-active:  #006e30;
+  --nav-link-bg:      rgba(0, 110, 48, 0.08);
+  --nav-link-border:  rgba(0, 110, 48, 0.22);
+  --nav-badge-bg:     rgba(0, 110, 48, 0.07);
+  --nav-badge-border: rgba(0, 110, 48, 0.18);
+  --nav-badge-color:  #006e30;
+  --nav-icon-bg:      linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  --nav-icon-border:  rgba(0, 120, 60, 0.3);
+  --nav-icon-glow:    0 2px 8px rgba(0,110,48,0.15);
+  --nav-border-bot:   rgba(0, 120, 60, 0.14);
+
+  /* Toggle */
+  --toggle-bg:        #f0f7f2;
+  --toggle-border:    rgba(0, 110, 48, 0.22);
+  --toggle-color:     #006e30;
+
+  /* Alert */
+  --alert-danger-bg:      #fff5f5;
+  --alert-danger-border:  #e53935;
+  --alert-danger-stripe:  repeating-linear-gradient(45deg, rgba(229,57,53,0.04) 0px, rgba(229,57,53,0.04) 12px, transparent 12px, transparent 24px);
+  --alert-danger-label:   #fce8e8;
+  --alert-danger-text:    #c62828;
+  --alert-warn-border:    #f9a825;
+  --alert-warn-label:     #fffde7;
+  --alert-warn-text:      #e65100;
+
+  /* Sections */
+  --section-label-color:  #7aaa88;
+  --section-line-color:   rgba(0, 120, 60, 0.12);
+  --field-label-color:    #5a8a68;
+  --field-mono-sub:       #8aaa98;
+
+  /* Notice */
+  --notice-bg:            #fffef0;
+  --notice-border-color:  rgba(200, 160, 0, 0.2);
+  --notice-left-color:    rgba(200, 140, 0, 0.5);
+  --notice-text:          #7a6000;
+  --notice-icon:          #e6a000;
+
+  /* Table */
+  --table-header-bg:      #f7fcf8;
+  --table-row-a:          #ffffff;
+  --table-row-b:          #f7fcf8;
+  --table-divider:        rgba(0, 120, 60, 0.07);
+  --table-header-text:    #3d6648;
+
+  /* Chart */
+  --chart-grid:           rgba(0, 120, 60, 0.08);
+  --chart-axis:           rgba(0, 120, 60, 0.18);
+
+  /* Scrollbar */
+  --scroll-track:         #eef6f0;
+  --scroll-thumb:         #c0dcc8;
+  --scroll-thumb-hover:   #00a844;
+
+  /* Shadows */
+  --shadow-card:          0 2px 16px rgba(0,0,0,0.07);
+  --shadow-sm:            0 1px 6px rgba(0,0,0,0.05);
+
+  /* Grid */
+  --grid-color:           rgba(0, 120, 60, 0.035);
+}
+
+/* ─── Global reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; }
+
+body {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Scanline — dark only */
+html[data-theme="dark"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.022) 0px, rgba(0,0,0,0.022) 1px,
+    transparent 1px, transparent 3px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scroll-track); }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+
+/* ─── Animations ────────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%,100% { box-shadow: var(--dot-active-glow); opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+@keyframes danger-pulse {
+  0%,100% { box-shadow: 0 0 14px rgba(255,23,68,0.4); }
+  50%      { box-shadow: 0 0 28px rgba(255,23,68,0.7); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Utility classes ───────────────────────────────────────────────── */
+.dot-active {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--dot-active-bg);
+  animation: pulse-dot 2.2s ease-in-out infinite;
+  box-shadow: var(--dot-active-glow);
+}
+.dot-inactive {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--dot-inactive-bg);
+}
+.mono { font-family: "JetBrains Mono", "Fira Code", monospace !important; }
+
+/* ─── Nav link active state ─────────────────────────────────────────── */
+a.nav-active {
+  color: var(--nav-link-active) !important;
+  background: var(--nav-link-bg) !important;
+  border-color: var(--nav-link-border) !important;
+}
+
+/* ─── Card transition ───────────────────────────────────────────────── */
+.lab-card {
+  background:    var(--bg-surface);
+  border-radius: 12px;
+  border:        1px solid var(--border-subtle);
+  box-shadow:    var(--shadow-card);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.lab-card:hover { border-color: var(--border-normal); }
+
+/* ─── Recharts overrides ────────────────────────────────────────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--chart-grid) !important;
+}
+.recharts-text { fill: var(--text-secondary) !important; }
