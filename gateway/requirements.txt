@@ -1,0 +1,6 @@
+﻿# gateway/requirements.txt
+# Gateway-only dependencies — do not merge with component requirements.txt files.
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv

@@ -2,10 +2,10 @@ from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    app_name: str = "E-Waste Gas Detection System"
+    app_name: str = "E-Waste Smart Process Optimization"
     app_version: str = "2.0.0"
     debug: bool = True
-    database_url: str = "sqlite+aiosqlite:///./ewaste_gas.db"
+    database_url: str = "sqlite+aiosqlite:///./component3_ewaste_gas.db"
     model_dir: str = "ml_models"
 
     # ── MQTT ──────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     app_name: str = "E-Waste Gas Detection System"
     app_version: str = "2.0.0"
     debug: bool = True
-    database_url: str = "sqlite+aiosqlite:///./ewaste_gas.db"
+    database_url: str = "sqlite+aiosqlite:///./component2_ewaste_gas.db"
     model_dir: str = "ml_models"
 
     # ── MQTT ──────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import os
 import csv
 import re
 import time
@@ -7,20 +8,28 @@ from pathlib import Path
 import requests
 import serial
 
+# Load .env file if present (python-dotenv).  Falls back to real
+# environment variables or the original defaults if .env is absent.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / "backend" / ".env")
+except ImportError:
+    pass  # python-dotenv not installed — plain os.environ only
+
 
 # ==================================================
 # CONFIGURATION
 # ==================================================
 
-SERIAL_PORT = "/dev/ttyACM0"
-BAUD_RATE = 9600
+SERIAL_PORT = os.getenv("SERIAL_PORT", "/dev/ttyACM0")
+BAUD_RATE   = int(os.getenv("BAUD_RATE", "9600"))
 
 # ESP32-CAM
-CAMERA_URL = "http://10.156.150.180/capture"
+CAMERA_URL = os.getenv("CAMERA_URL", "http://10.156.150.180/capture")
 
-# Mac FastAPI backend
-GENERAL_BACKEND_URL = "http://10.117.221.31:8000/waste/predict"
-EWASTE_BACKEND_URL = "http://10.117.221.31:8000/ewaste/analyze"
+# FastAPI backend (Component 1, port 8001)
+GENERAL_BACKEND_URL = os.getenv("GENERAL_BACKEND_URL", "http://localhost:8001/waste/predict")
+EWASTE_BACKEND_URL  = os.getenv("EWASTE_BACKEND_URL",  "http://localhost:8001/ewaste/analyze")
 
 # Weight thresholds
 TRIGGER_WEIGHT_G = 20.0
