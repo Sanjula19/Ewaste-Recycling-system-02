@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+
+frontend/node_modules/
+frontend/build/
+
+backend/app/firebase_key.json
+.env
+.env.*
+!.env.example
+
+# Local model artifacts and sensitive credentials
+*.pkl
+*.pem
+*.key
+*password*
+*secret*
+*credential*

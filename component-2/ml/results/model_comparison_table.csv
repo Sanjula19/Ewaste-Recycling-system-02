@@ -1,0 +1,5 @@
+Model,CV Acc (%),Test Acc (%),F1 Weighted (%),Train Time (s)
+Random Forest,51.91,58.76,58.52,4.41
+Decision Tree,47.35,49.93,51.1,0.06
+Naive Bayes,31.99,34.61,32.88,0.02
+SVM,27.27,31.52,29.65,5.61

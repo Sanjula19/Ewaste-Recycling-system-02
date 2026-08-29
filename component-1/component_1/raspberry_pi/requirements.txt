@@ -1,0 +1,5 @@
+requests
+pyserial
+pandas
+streamlit
+streamlit-autorefresh

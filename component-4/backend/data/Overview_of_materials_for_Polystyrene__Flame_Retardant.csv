@@ -1,0 +1,75 @@
+﻿Physical Properties,Metric,English,Comments
+Density ,0.950 - 1.20 g/cc,0.0343 - 0.0434 lb/in³,Average value: 1.13 g/cc Grade Count:118
+Water Absorption ,0.000 - 0.300 %,0.000 - 0.300 %,Average value: 0.0824 % Grade Count:37
+Moisture Absorption at Equilibrium ,0.0400 - 0.300 %,0.0400 - 0.300 %,Average value: 0.123 % Grade Count:6
+Particle Size ,90.0 - 1600 µm,90.0 - 1600 µm,Average value: 1070 µm Grade Count:4
+Maximum Moisture Content ,0.01,0.01,Average value: 0.0100 Grade Count:5
+,0.200 - 0.200,0.200 - 0.200,Average value: 0.200 Grade Count:2
+,@Temperature 120 - 120 °C,@Temperature 248 - 248 °F,
+,0.200 - 0.200,0.200 - 0.200,Average value: 0.200 Grade Count:2
+,@Time 299 - 299 sec,@Time 0.0830 - 0.0830 hour,
+Linear Mold Shrinkage ,0.00200 - 0.00800 cm/cm,0.00200 - 0.00800 in/in,Average value: 0.00512 cm/cm Grade Count:89
+"Linear Mold Shrinkage, Transverse ",0.00200 - 0.00600 cm/cm,0.00200 - 0.00600 in/in,Average value: 0.00350 cm/cm Grade Count:3
+Melt Flow ,2.50 - 25.0 g/10 min,2.50 - 25.0 g/10 min,Average value: 9.61 g/10 min Grade Count:112
+Spiral Flow ,34.0 - 56.0 cm,13.4 - 22.0 in,Average value: 45.8 cm Grade Count:5
+,@Temperature 220 - 260 °C,@Temperature 428 - 500 °F,
+,,,
+Mechanical Properties,Metric,English,Comments
+"Hardness, Rockwell L ",45.0 - 94.0,45.0 - 94.0,Average value: 61.1 Grade Count:8
+"Hardness, Rockwell M ",55.0 - 65.0,55.0 - 65.0,Average value: 59.2 Grade Count:6
+"Hardness, Rockwell R ",83.0 - 110,83.0 - 110,Average value: 94.7 Grade Count:18
+"Tensile Strength, Ultimate ",12.4 - 48.3 MPa,1800 - 7000 psi,Average value: 26.1 MPa Grade Count:63
+"Tensile Strength, Yield ",14.0 - 55.0 MPa,2030 - 7980 psi,Average value: 26.6 MPa Grade Count:79
+Elongation at Break ,1.00 - 80.0 %,1.00 - 80.0 %,Average value: 40.7 % Grade Count:109
+Elongation at Yield ,1.00 - 5.00 %,1.00 - 5.00 %,Average value: 2.69 % Grade Count:16
+Modulus of Elasticity ,1.38 - 3.45 GPa,200 - 500 ksi,Average value: 2.12 GPa Grade Count:31
+Flexural Yield Strength ,25.5 - 82.7 MPa,3700 - 12000 psi,Average value: 39.9 MPa Grade Count:72
+Flexural Modulus ,1.40 - 17.7 GPa,203 - 2560 ksi,Average value: 2.28 GPa Grade Count:103
+"Izod Impact, Notched ",0.107 - 1.71 J/cm,0.200 - 3.20 ft-lb/in,Average value: 1.01 J/cm Grade Count:81
+,0.600 - 0.800 J/cm,1.12 - 1.50 ft-lb/in,Average value: 0.468 J/cm Grade Count:4
+,@Temperature 0.000 - 0.000 °C,@Temperature 32.0 - 32.0 °F,
+,0.392266 - 0.490332 J/cm,0.734875 - 0.918594 ft-lb/in,Average value: 0.468 J/cm Grade Count:5
+,@Temperature -30.0 - -30.0 °C,@Temperature -22.0 - -22.0 °F,
+,0.392266 - 0.490332 J/cm,0.734875 - 0.918594 ft-lb/in,Average value: 0.468 J/cm Grade Count:5
+,@Thickness 3.20 - 6.40 mm,@Thickness 0.126 - 0.252 in,
+"Izod Impact, Notched (ISO) ",5.00 - 11.0 kJ/m²,2.38 - 5.23 ft-lb/in²,Average value: 7.04 kJ/m² Grade Count:24
+Charpy Impact Unnotched ,2.00 - 10.0 J/cm²,9.52 - 47.6 ft-lb/in²,Average value: 6.11 J/cm² Grade Count:13
+,4.00 - 8.00 J/cm²,19.0 - 38.1 ft-lb/in²,Average value: 5.71 J/cm² Grade Count:7
+,@Temperature -30.0 - -30.0 °C,@Temperature -22.0 - -22.0 °F,
+"Charpy Impact, Notched ",0.200 - 1.20 J/cm²,0.952 - 5.71 ft-lb/in²,Average value: 0.682 J/cm² Grade Count:16
+"Tensile Creep Modulus, 1 hour ",1600 - 2200 MPa,232000 - 319000 psi,Average value: 1930 MPa Grade Count:3
+"Tensile Creep Modulus, 1000 hours ",1200 - 1600 MPa,174000 - 232000 psi,Average value: 1400 MPa Grade Count:4
+,,,
+Electrical Properties,Metric,English,Comments
+Electrical Resistivity ,1.00e+12 - 1.00e+16 ohm-cm,1.00e+12 - 1.00e+16 ohm-cm,Average value: 7.90e+15 ohm-cm Grade Count:39
+Surface Resistance ,1.00e+12 - 1.00e+15 ohm,1.00e+12 - 1.00e+15 ohm,Average value: 1.04e+14 ohm Grade Count:22
+Dielectric Constant ,2.00 - 3.00,2.00 - 3.00,Average value: 2.42 Grade Count:17
+Dielectric Strength ,17.7 - 160 kV/mm,450 - 4060 kV/in,Average value: 69.6 kV/mm Grade Count:15
+Dissipation Factor ,0.000400 - 0.00500,0.000400 - 0.00500,Average value: 0.00110 Grade Count:15
+Arc Resistance ,60.0 - 180 sec,60.0 - 180 sec,Average value: 120 sec Grade Count:5
+Comparative Tracking Index ,225 - 600 V,225 - 600 V,Average value: 363 V Grade Count:18
+"Hot Wire Ignition, HWI ",7.00 - 30.0 sec,7.00 - 30.0 sec,Average value: 21.1 sec Grade Count:5
+"High Amp Arc Ignition, HAI ",60.0 - 120 arcs,60.0 - 120 arcs,Average value: 116 arcs Grade Count:5
+"High Voltage Arc-Tracking Rate, HVTR ",10.0 - 25.4 mm/min,0.394 - 1.00 in/min,Average value: 17.7 mm/min Grade Count:5
+,,,
+Thermal Properties,Metric,English,Comments
+"CTE, linear ",50.0 - 100 µm/m-°C,27.8 - 55.6 µin/in-°F,Average value: 80.4 µm/m-°C Grade Count:14
+Hot Ball Pressure Test ,75.0 - 85.0 °C,167 - 185 °F,Average value: 80.3 °C Grade Count:13
+Deflection Temperature at 0.46 MPa (66 psi) ,70.0 - 96.1 °C,158 - 205 °F,Average value: 84.6 °C Grade Count:20
+Deflection Temperature at 1.8 MPa (264 psi) ,60.0 - 91.0 °C,140 - 196 °F,Average value: 79.0 °C Grade Count:80
+Vicat Softening Point ,80.0 - 219 °C,176 - 426 °F,Average value: 94.2 °C Grade Count:93
+Heat Distortion Temperature ,78.9 - 94.0 °C,174 - 201 °F,Average value: 84.2 °C Grade Count:6
+"UL RTI, Electrical ",50.0 °C,122 °F,Average value: 50.0 °C Grade Count:5
+"UL RTI, Mechanical with Impact ",50.0 °C,122 °F,Average value: 50.0 °C Grade Count:5
+"UL RTI, Mechanical without Impact ",50.0 °C,122 °F,Average value: 50.0 °C Grade Count:5
+"Flammability, UL94 ",V-2 - 5VA,V-2 - 5VA,Grade Count:110
+Oxygen Index ,26.00%,26.00%,Average value: 26.0 % Grade Count:6
+Glow Wire Test ,650 - 960 °C,1200 - 1760 °F,Average value: 879 °C Grade Count:21
+,,,
+Processing Properties,Metric,English,Comments
+Processing Temperature ,160 - 250 °C,320 - 482 °F,Average value: 243 °C Grade Count:23
+Nozzle Temperature ,200 - 232 °C,392 - 450 °F,Average value: 213 °C Grade Count:9
+Melt Temperature ,160 - 300 °C,320 - 572 °F,Average value: 217 °C Grade Count:61
+Mold Temperature ,10.0 - 80.0 °C,50.0 - 176 °F,Average value: 46.2 °C Grade Count:53
+Drying Temperature ,60.0 - 90.0 °C,140 - 194 °F,Average value: 70.6 °C Grade Count:49
+Injection Pressure ,60.0 - 103 MPa,8700 - 15000 psi,Average value: 82.1 MPa Grade Count:4

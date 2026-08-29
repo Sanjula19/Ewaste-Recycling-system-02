@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EcoVision — E-Waste Valuation & Disposition</title>
+    <script>
+      // Set data-theme BEFORE first paint -- tokens.css only defines
+      // --color-* variables under [data-theme='light']/[data-theme='dark'],
+      // so without this the page would render with undefined CSS
+      // variables (broken styling) until React mounts and ThemeProvider's
+      // effect runs. Mirrors the same logic as ThemeContext.jsx.
+      (function () {
+        var saved = localStorage.getItem('ecovision.theme');
+        var theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Noto Serif / Noto Sans + their Sinhala and Tamil companions: chosen
+      because this app genuinely needs full multi-script coverage, not as
+      a decorative pairing. Headers use the Serif family for a civic,
+      institutional feel; body/UI text uses Sans for readability at small
+      sizes across all three scripts.
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;600;700&family=Noto+Serif+Sinhala:wght@500;600;700&family=Noto+Serif+Tamil:wght@500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

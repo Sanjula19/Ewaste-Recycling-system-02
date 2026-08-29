@@ -1,0 +1,1306 @@
+{
+  "info": {
+    "_postman_id": "70467df6-ec61-4afe-9688-e1734e268736",
+    "name": "Backend ",
+    "description": "Predictive Economic Valuation & Strategic Disposition Dashboard.\n\nRun 'Health' first to confirm the server's up, then work through the folders top to bottom. Each request has built-in tests (check the 'Test Results' tab after sending) so you can see pass/fail at a glance instead of eyeballing JSON.\n\nSet the {{base_url}} collection variable if your server isn't on the default http://localhost:8000.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Reports ok\", () => pm.response.json().status === \"ok\");",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Forecast (Predictive Economic Valuation)",
+      "item": [
+        {
+          "name": "Supported metals list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/supported-metals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast",
+                "supported-metals"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Exactly the 6 in-scope metals, no gold/silver\", () => {",
+                  "    pm.expect(body.metals.sort()).to.eql([\"aluminium\",\"copper\",\"lead\",\"nickel\",\"steel\",\"zinc\"]);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Copper",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"copper\",\n  \"weight_kg\": 15\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Recommendation is SELL NOW or HOLD\", () =>",
+                  "    [\"SELL NOW\", \"HOLD\"].includes(body.recommendation));",
+                  "pm.test(\"operator_action matches recommendation\", () => {",
+                  "    if (body.recommendation === \"HOLD\") pm.expect(body.operator_action).to.eql(\"CRUSH_AND_COMPRESS\");",
+                  "    if (body.recommendation === \"SELL NOW\") pm.expect(body.operator_action).to.eql(\"ROUTE_TO_MARKET_SALE\");",
+                  "});",
+                  "pm.test(\"Has 90 forecast points\", () => body.forecast_90d.length === 90);",
+                  "pm.test(\"Has both USD and LKR prices\", () => {",
+                  "    pm.expect(body.current_price).to.be.a(\"number\");",
+                  "    pm.expect(body.current_price_lkr).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"fx.source is live, cached, or fallback\", () =>",
+                  "    [\"live\", \"cached\", \"fallback\"].includes(body.fx.source));",
+                  "pm.test(\"MAPE and RMSE are numbers\", () => {",
+                  "    pm.expect(body.mape).to.be.a(\"number\");",
+                  "    pm.expect(body.rmse).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Aluminium",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"aluminium\",\n  \"weight_kg\": 30\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Recommendation is SELL NOW or HOLD\", () =>",
+                  "    [\"SELL NOW\", \"HOLD\"].includes(body.recommendation));",
+                  "pm.test(\"operator_action matches recommendation\", () => {",
+                  "    if (body.recommendation === \"HOLD\") pm.expect(body.operator_action).to.eql(\"CRUSH_AND_COMPRESS\");",
+                  "    if (body.recommendation === \"SELL NOW\") pm.expect(body.operator_action).to.eql(\"ROUTE_TO_MARKET_SALE\");",
+                  "});",
+                  "pm.test(\"Has 90 forecast points\", () => body.forecast_90d.length === 90);",
+                  "pm.test(\"Has both USD and LKR prices\", () => {",
+                  "    pm.expect(body.current_price).to.be.a(\"number\");",
+                  "    pm.expect(body.current_price_lkr).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"fx.source is live, cached, or fallback\", () =>",
+                  "    [\"live\", \"cached\", \"fallback\"].includes(body.fx.source));",
+                  "pm.test(\"MAPE and RMSE are numbers\", () => {",
+                  "    pm.expect(body.mape).to.be.a(\"number\");",
+                  "    pm.expect(body.rmse).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"lead\",\n  \"weight_kg\": 8\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Recommendation is SELL NOW or HOLD\", () =>",
+                  "    [\"SELL NOW\", \"HOLD\"].includes(body.recommendation));",
+                  "pm.test(\"operator_action matches recommendation\", () => {",
+                  "    if (body.recommendation === \"HOLD\") pm.expect(body.operator_action).to.eql(\"CRUSH_AND_COMPRESS\");",
+                  "    if (body.recommendation === \"SELL NOW\") pm.expect(body.operator_action).to.eql(\"ROUTE_TO_MARKET_SALE\");",
+                  "});",
+                  "pm.test(\"Has 90 forecast points\", () => body.forecast_90d.length === 90);",
+                  "pm.test(\"Has both USD and LKR prices\", () => {",
+                  "    pm.expect(body.current_price).to.be.a(\"number\");",
+                  "    pm.expect(body.current_price_lkr).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"fx.source is live, cached, or fallback\", () =>",
+                  "    [\"live\", \"cached\", \"fallback\"].includes(body.fx.source));",
+                  "pm.test(\"MAPE and RMSE are numbers\", () => {",
+                  "    pm.expect(body.mape).to.be.a(\"number\");",
+                  "    pm.expect(body.rmse).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Nickel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"nickel\",\n  \"weight_kg\": 5\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Recommendation is SELL NOW or HOLD\", () =>",
+                  "    [\"SELL NOW\", \"HOLD\"].includes(body.recommendation));",
+                  "pm.test(\"operator_action matches recommendation\", () => {",
+                  "    if (body.recommendation === \"HOLD\") pm.expect(body.operator_action).to.eql(\"CRUSH_AND_COMPRESS\");",
+                  "    if (body.recommendation === \"SELL NOW\") pm.expect(body.operator_action).to.eql(\"ROUTE_TO_MARKET_SALE\");",
+                  "});",
+                  "pm.test(\"Has 90 forecast points\", () => body.forecast_90d.length === 90);",
+                  "pm.test(\"Has both USD and LKR prices\", () => {",
+                  "    pm.expect(body.current_price).to.be.a(\"number\");",
+                  "    pm.expect(body.current_price_lkr).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"fx.source is live, cached, or fallback\", () =>",
+                  "    [\"live\", \"cached\", \"fallback\"].includes(body.fx.source));",
+                  "pm.test(\"MAPE and RMSE are numbers\", () => {",
+                  "    pm.expect(body.mape).to.be.a(\"number\");",
+                  "    pm.expect(body.rmse).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Steel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"steel\",\n  \"weight_kg\": 100\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Recommendation is SELL NOW or HOLD\", () =>",
+                  "    [\"SELL NOW\", \"HOLD\"].includes(body.recommendation));",
+                  "pm.test(\"operator_action matches recommendation\", () => {",
+                  "    if (body.recommendation === \"HOLD\") pm.expect(body.operator_action).to.eql(\"CRUSH_AND_COMPRESS\");",
+                  "    if (body.recommendation === \"SELL NOW\") pm.expect(body.operator_action).to.eql(\"ROUTE_TO_MARKET_SALE\");",
+                  "});",
+                  "pm.test(\"Has 90 forecast points\", () => body.forecast_90d.length === 90);",
+                  "pm.test(\"Has both USD and LKR prices\", () => {",
+                  "    pm.expect(body.current_price).to.be.a(\"number\");",
+                  "    pm.expect(body.current_price_lkr).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"fx.source is live, cached, or fallback\", () =>",
+                  "    [\"live\", \"cached\", \"fallback\"].includes(body.fx.source));",
+                  "pm.test(\"MAPE and RMSE are numbers\", () => {",
+                  "    pm.expect(body.mape).to.be.a(\"number\");",
+                  "    pm.expect(body.rmse).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Zinc",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"zinc\",\n  \"weight_kg\": 20\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Recommendation is SELL NOW or HOLD\", () =>",
+                  "    [\"SELL NOW\", \"HOLD\"].includes(body.recommendation));",
+                  "pm.test(\"operator_action matches recommendation\", () => {",
+                  "    if (body.recommendation === \"HOLD\") pm.expect(body.operator_action).to.eql(\"CRUSH_AND_COMPRESS\");",
+                  "    if (body.recommendation === \"SELL NOW\") pm.expect(body.operator_action).to.eql(\"ROUTE_TO_MARKET_SALE\");",
+                  "});",
+                  "pm.test(\"Has 90 forecast points\", () => body.forecast_90d.length === 90);",
+                  "pm.test(\"Has both USD and LKR prices\", () => {",
+                  "    pm.expect(body.current_price).to.be.a(\"number\");",
+                  "    pm.expect(body.current_price_lkr).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"fx.source is live, cached, or fallback\", () =>",
+                  "    [\"live\", \"cached\", \"fallback\"].includes(body.fx.source));",
+                  "pm.test(\"MAPE and RMSE are numbers\", () => {",
+                  "    pm.expect(body.mape).to.be.a(\"number\");",
+                  "    pm.expect(body.rmse).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Gold (expect rejected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "description": "Gold and silver are explicitly out of scope for this component -- should return 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"gold\",\n  \"weight_kg\": 10\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 400 (out of scope)\", () => pm.response.to.have.status(400));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecast - Silver (expect rejected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/forecast/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "forecast"
+              ]
+            },
+            "description": "Gold and silver are explicitly out of scope for this component -- should return 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metal\": \"silver\",\n  \"weight_kg\": 10\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 400 (out of scope)\", () => pm.response.to.have.status(400));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Sell/Hold valuation for the 6 in-scope metals. Uses your pretrained arima_*.pkl/lstm_*.h5 models if present in models/, otherwise fits ARIMA live."
+    },
+    {
+      "name": "Disposition (Strategic Disposition & Residual Pyrolysis Tracker)",
+      "item": [
+        {
+          "name": "Disposition - PVC Plastic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disposition/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disposition"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"PVC Plastic\",\n  \"weight_kg\": 42\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Classified as combustible\", () => body.thermal_classification === \"combustible\");",
+                  "pm.test(\"Energy recovery is positive\", () => body.energy_recovery_kwh > 0);",
+                  "pm.test(\"Route is Pyrolysis Processing\", () => body.disposition_route === \"Pyrolysis Processing\");",
+                  "pm.test(\"Nearest facility present\", () => body.nearest_treatment_facility !== null);",
+                  "pm.test(\"Revenue in both USD and LKR\", () => {",
+                  "    pm.expect(body.estimated_revenue_usd).to.be.a(\"number\");",
+                  "    pm.expect(body.estimated_revenue_lkr).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disposition - Polystyrene",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disposition/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disposition"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"Polystyrene\",\n  \"weight_kg\": 15\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Classified as combustible\", () => body.thermal_classification === \"combustible\");",
+                  "pm.test(\"Energy recovery is positive\", () => body.energy_recovery_kwh > 0);",
+                  "pm.test(\"Route is Pyrolysis Processing\", () => body.disposition_route === \"Pyrolysis Processing\");",
+                  "pm.test(\"Nearest facility present\", () => body.nearest_treatment_facility !== null);",
+                  "pm.test(\"Revenue in both USD and LKR\", () => {",
+                  "    pm.expect(body.estimated_revenue_usd).to.be.a(\"number\");",
+                  "    pm.expect(body.estimated_revenue_lkr).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disposition - Contaminated Glass (heat sink, negative kWh expected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disposition/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disposition"
+              ]
+            },
+            "description": "Glass doesn't combust -- expect a NEGATIVE energy_recovery_kwh. This is correct, not a bug.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"Contaminated Glass\",\n  \"weight_kg\": 15\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Classified as inert heat sink\", () => body.thermal_classification === \"inert_heat_sink\");",
+                  "pm.test(\"Energy recovery is negative (costs energy, doesn't yield any)\", () =>",
+                  "    body.energy_recovery_kwh < 0);",
+                  "pm.test(\"Gross energy is zero (glass doesn't combust)\", () => body.gross_energy_kwh === 0);",
+                  "pm.test(\"Wasted energy is positive\", () => body.wasted_energy_kwh > 0);",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disposition - PVC near Karadiyana (facility routing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disposition/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disposition"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"PVC Plastic\",\n  \"weight_kg\": 25,\n  \"latitude\": 6.85,\n  \"longitude\": 79.9\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Classified as combustible\", () => body.thermal_classification === \"combustible\");",
+                  "pm.test(\"Energy recovery is positive\", () => body.energy_recovery_kwh > 0);",
+                  "pm.test(\"Route is Pyrolysis Processing\", () => body.disposition_route === \"Pyrolysis Processing\");",
+                  "pm.test(\"Nearest facility present\", () => body.nearest_treatment_facility !== null);",
+                  "pm.test(\"Revenue in both USD and LKR\", () => {",
+                  "    pm.expect(body.estimated_revenue_usd).to.be.a(\"number\");",
+                  "    pm.expect(body.estimated_revenue_lkr).to.be.a(\"number\");",
+                  "});",
+                  "",
+                  "pm.test(\"Nearest facility is Karadiyana\", () =>",
+                  "    pm.response.json().nearest_treatment_facility.name.includes(\"Karadiyana\"));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disposition - Copper (recyclable metal, should redirect)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disposition/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disposition"
+              ]
+            },
+            "description": "Recyclable metals sent here still get a valid response, but are flagged to use /api/forecast instead.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"copper\",\n  \"weight_kg\": 10\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"is_recyclable is true\", () => body.is_recyclable === true);",
+                  "pm.test(\"Route redirects to /forecast\", () => body.disposition_route.includes(\"/api/forecast\"));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disposition - EPS (expect rejected, out of narrowed scope)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/disposition/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "disposition"
+              ]
+            },
+            "description": "Only PVC Plastic, Polystyrene, and Contaminated Glass are in scope now -- sub-grades like EPS were removed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"EPS\",\n  \"weight_kg\": 5\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 400 (out of scope)\", () => pm.response.to.have.status(400));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Energy recovery for the 3 in-scope residual materials, nearest-facility routing, and revenue estimation."
+    },
+    {
+      "name": "IoT (pre-hardware contract)",
+      "item": [
+        {
+          "name": "IoT Ingest - known_material override (PVC)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/iot/ingest",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "ingest"
+              ]
+            },
+            "description": "Simulates an operator or Component 1/2 classifier already knowing the material -- the recommended path until real hardware exists.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"esp32-bench-test\",\n  \"weight_kg\": 42,\n  \"known_material\": \"PVC Plastic\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Routed to disposition endpoint\", () => body.endpoint === \"disposition\");",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IoT Ingest - known_material override (Copper)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/iot/ingest",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "ingest"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"esp32-bench-test\",\n  \"weight_kg\": 10,\n  \"known_material\": \"copper\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Routed to forecast endpoint\", () => body.endpoint === \"forecast\");",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IoT Ingest - reddish color (should classify as copper)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/iot/ingest",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "ingest"
+              ]
+            },
+            "description": "Matches your design doc's example: TCS34725 verifying reddish Copper.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"esp32-bench-test\",\n  \"weight_kg\": 5,\n  \"color\": {\n    \"r\": 200,\n    \"g\": 90,\n    \"b\": 60,\n    \"lux\": 300\n  }\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Routed to forecast endpoint\", () => body.endpoint === \"forecast\");",
+                  "",
+                  "pm.test(\"Classified as copper from color\", () => pm.response.json().classified_as === \"copper\");",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IoT Ingest - ambiguous color (expect 422, asks for known_material)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/iot/ingest",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "ingest"
+              ]
+            },
+            "description": "Three color channels can't reliably distinguish most materials -- this deliberately fails closed instead of guessing wrong.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"esp32-bench-test\",\n  \"weight_kg\": 5,\n  \"color\": {\n    \"r\": 50,\n    \"g\": 120,\n    \"b\": 200,\n    \"lux\": 300\n  }\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 422 (ambiguous color, no known_material)\", () => pm.response.to.have.status(422));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IoT Bin Status - not full",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/iot/bin-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "bin-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bin_id\": \"bin-01\",\n  \"distance_cm\": 25.0,\n  \"full_threshold_cm\": 5.0\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Not locked\", () => pm.response.json().locked === false);",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IoT Bin Status - full (triggers lockout)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/iot/bin-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "bin-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bin_id\": \"bin-01\",\n  \"distance_cm\": 3.0,\n  \"full_threshold_cm\": 5.0\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Locked\", () => body.locked === true);",
+                  "pm.test(\"Message mentions manifest\", () => body.message.includes(\"manifest\"));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IoT Bin Status - check current state",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/iot/bin-status/bin-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "iot",
+                "bin-status",
+                "bin-01"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "The ESP32 hardware hasn't been built yet -- these define the contract it will POST to once it exists. known_material override is the path to actually use for testing."
+    },
+    {
+      "name": "Manifest (Tonnage Manifest & Disposal Invoice)",
+      "item": [
+        {
+          "name": "Manifest Summary (current cycle)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/manifest/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "manifest",
+                "summary"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Has cycle_id\", () => typeof body.cycle_id === \"number\");",
+                  "pm.test(\"Diversion rate is 0 or 100\", () =>",
+                  "    [0, 100].includes(body.landfill_diversion_rate_pct));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Manifest Cycles (full audit history)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/manifest/cycles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "manifest",
+                "cycles"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returns a cycles array\", () => Array.isArray(pm.response.json().cycles));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Manifest PDF (current cycle, downloads a file)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/manifest/pdf?facility_name=Colombo%20Pilot%20E-Waste%20Centre",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "manifest",
+                "pdf"
+              ],
+              "query": [
+                {
+                  "key": "facility_name",
+                  "value": "Colombo Pilot E-Waste Centre"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Content-Type is application/pdf\", () =>",
+                  "    pm.response.headers.get(\"Content-Type\").includes(\"application/pdf\"));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Manifest Reset (closes cycle, does NOT delete it)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/manifest/reset",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "manifest",
+                "reset"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Reports closed and new cycle ids\", () => {",
+                  "    pm.expect(body.closed_cycle_id).to.be.a(\"number\");",
+                  "    pm.expect(body.new_cycle_id).to.eql(body.closed_cycle_id + 1);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Manifest Summary - re-check closed cycle 1 still exists",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/manifest/summary?cycle_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "manifest",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "cycle_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Closed cycle 1 is still readable (nothing deleted)\", () =>",
+                  "    pm.response.json().cycle_id === 1);",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "SQLite-backed ledger. Run the Forecast/Disposition requests above first so there's something to summarize, then run this folder top to bottom."
+    }
+  ]
+}

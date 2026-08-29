@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component 4 — IoT Architecture, Step by Step</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#F3F5F1; --surface:#FFFFFF; --surface-alt:#EAEDE7;
+  --border:#D8DED2; --border-strong:#BFC9BB;
+  --ink:#16231F; --ink-muted:#56645C; --ink-faint:#7C8A80;
+  --teal:#0F3D3E; --teal-soft:#DDEAE8;
+  --copper:#A8622B; --copper-soft:#F1E1D2;
+  --ok:#3F7D4C; --ok-soft:#E4F0E5;
+  --warn:#A9761F; --warn-soft:#FBF0DD;
+  --stop:#A8433A; --stop-soft:#F8E6E3;
+  --sans:'IBM Plex Sans',ui-sans-serif,system-ui,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --measure:66ch; --radius:4px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1A19; --surface:#142826; --surface-alt:#1B332F;
+    --border:#274541; --border-strong:#3E6560;
+    --ink:#E8EFEA; --ink-muted:#9FB3AC; --ink-faint:#7E948C;
+    --teal:#6FBBB8; --teal-soft:#1C3A38;
+    --copper:#D89A5D; --copper-soft:#33241A;
+    --ok:#7FBE8C; --ok-soft:#1D3324;
+    --warn:#E0B15E; --warn-soft:#3A2E14;
+    --stop:#E28A81; --stop-soft:#3A1E1B;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1A19; --surface:#142826; --surface-alt:#1B332F;
+  --border:#274541; --border-strong:#3E6560;
+  --ink:#E8EFEA; --ink-muted:#9FB3AC; --ink-faint:#7E948C;
+  --teal:#6FBBB8; --teal-soft:#1C3A38;
+  --copper:#D89A5D; --copper-soft:#33241A;
+  --ok:#7FBE8C; --ok-soft:#1D3324;
+  --warn:#E0B15E; --warn-soft:#3A2E14;
+  --stop:#E28A81; --stop-soft:#3A1E1B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+     font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px 90px}
+p,ul,ol{max-width:var(--measure)}
+
+header.page{padding:64px 0 36px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.14em;
+         text-transform:uppercase;color:var(--copper);margin:0 0 16px}
+h1{font-size:clamp(2rem,5vw,2.9rem);line-height:1.06;font-weight:700;
+   letter-spacing:-.025em;text-wrap:balance;margin:0 0 18px}
+.standfirst{font-size:1.06rem;color:var(--ink-muted);max-width:var(--measure);margin:0}
+
+section{padding-top:56px}
+h2{font-size:1.5rem;font-weight:700;letter-spacing:-.015em;text-wrap:balance;margin:0 0 10px}
+h3{font-size:1.02rem;font-weight:600;margin:26px 0 8px;text-wrap:balance}
+.lede{color:var(--ink-muted);max-width:var(--measure);margin:0 0 24px}
+a{color:var(--teal);text-underline-offset:3px}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-alt);
+     border:1px solid var(--border);border-radius:3px;padding:1px 5px}
+
+.step{border-top:1px solid var(--border);padding:34px 0}
+.step:first-of-type{border-top:2px solid var(--ink)}
+.step-head{display:flex;gap:18px;align-items:baseline;margin-bottom:6px}
+.step-num{font-family:var(--mono);font-size:1.6rem;font-weight:600;color:var(--copper);
+          line-height:1;font-variant-numeric:tabular-nums}
+.step-head h3{margin:0;font-size:1.25rem}
+
+figure{margin:22px 0 0;background:var(--surface);border:1px solid var(--border);
+       border-radius:var(--radius);padding:20px 18px}
+figure svg{display:block;width:100%;height:auto}
+figcaption{margin-top:14px;padding-top:12px;border-top:1px dashed var(--border-strong);
+           font-size:.85rem;color:var(--ink-muted);max-width:none}
+
+.ah{fill:var(--border-strong)}
+.ahc{fill:var(--copper)}
+.aht{fill:var(--teal)}
+.bx{fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5}
+.bx-esp{fill:var(--teal-soft);stroke:var(--teal);stroke-width:2}
+.bx-act{fill:var(--surface);stroke:var(--copper);stroke-width:1.5}
+.bx-srv{fill:var(--surface-alt);stroke:var(--border-strong);stroke-width:1.5}
+.bx-stop{fill:var(--stop-soft);stroke:var(--stop);stroke-width:1.5}
+.bx-ok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.5}
+.band{fill:none;stroke:var(--border-strong);stroke-width:1;stroke-dasharray:5 4}
+.w{stroke:var(--border-strong);stroke-width:1.5;fill:none}
+.wc{stroke:var(--copper);stroke-width:1.5;fill:none}
+.wt{stroke:var(--teal);stroke-width:2;fill:none}
+.t{fill:var(--ink);font-family:var(--sans);font-size:13px;font-weight:600}
+.ts{fill:var(--ink-muted);font-family:var(--sans);font-size:11px}
+.tp{fill:var(--teal);font-family:var(--mono);font-size:10.5px}
+.tc{fill:var(--copper);font-family:var(--mono);font-size:10.5px}
+.tw{fill:var(--ink-faint);font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+.tb{fill:var(--ink-faint);font-family:var(--mono);font-size:10px;letter-spacing:.14em}
+
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 0}
+.lg{display:flex;gap:11px;align-items:flex-start;font-size:.86rem;color:var(--ink-muted)}
+.sw{width:26px;height:18px;border-radius:3px;flex-shrink:0;margin-top:2px}
+.sw.s1{background:var(--teal-soft);border:2px solid var(--teal)}
+.sw.s2{background:var(--surface);border:1.5px solid var(--border-strong)}
+.sw.s3{background:var(--surface);border:1.5px solid var(--copper)}
+.sw.s4{background:var(--surface-alt);border:1.5px solid var(--border-strong)}
+.lg b{color:var(--ink);display:block;font-weight:600}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);
+           margin:20px 0;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;min-width:560px}
+th{text-align:left;font-family:var(--mono);font-size:.66rem;letter-spacing:.11em;
+   text-transform:uppercase;color:var(--ink-faint);font-weight:500;padding:11px 15px;
+   border-bottom:1px solid var(--border-strong);background:var(--surface-alt);white-space:nowrap}
+td{padding:10px 15px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.pin{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--teal);
+       white-space:nowrap;font-weight:500}
+
+ol.flow{counter-reset:f;list-style:none;padding:0;margin:20px 0;max-width:var(--measure)}
+ol.flow li{counter-increment:f;position:relative;padding:12px 0 12px 46px;
+           border-bottom:1px solid var(--border)}
+ol.flow li::before{content:counter(f);position:absolute;left:0;top:12px;
+  width:28px;height:28px;border-radius:50%;background:var(--teal-soft);color:var(--teal);
+  font-family:var(--mono);font-size:.8rem;font-weight:600;display:flex;
+  align-items:center;justify-content:center}
+ol.flow li b{display:block;font-weight:600}
+ol.flow li span{font-size:.88rem;color:var(--ink-muted)}
+
+dl.gloss{margin:20px 0;max-width:var(--measure)}
+dl.gloss dt{font-family:var(--mono);font-size:.84rem;font-weight:600;color:var(--teal);
+            margin-top:16px}
+dl.gloss dd{margin:3px 0 0;font-size:.9rem;color:var(--ink-muted)}
+
+.note{background:var(--warn-soft);border-left:3px solid var(--warn);padding:13px 16px;
+      margin:20px 0;max-width:var(--measure);font-size:.89rem;border-radius:0 4px 4px 0}
+
+footer.page{margin-top:64px;padding-top:22px;border-top:1px solid var(--border);
+            font-size:.82rem;color:var(--ink-faint);max-width:var(--measure)}
+@media (max-width:620px){
+  .step-head{flex-direction:column;gap:4px}
+  header.page{padding-top:44px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" class="ah"/></marker>
+<marker id="arc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" class="ahc"/></marker>
+<marker id="art" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" class="aht"/></marker>
+</defs></svg>
+
+<div class="wrap">
+
+<header class="page">
+  <p class="eyebrow">R26-IT-015 &middot; Component 4 &middot; Architecture</p>
+  <h1>How Component&nbsp;4 Works, One Piece at a Time</h1>
+  <p class="standfirst">
+    Your terminal weighs a piece of waste, looks at its colour, asks a program on your
+    laptop what to do with it, and then physically moves it to the right bin. This page
+    builds that picture up one block at a time &mdash; starting from a single chip and ending
+    with the whole system &mdash; so you can see where every wire and every message goes.
+  </p>
+</header>
+
+<section>
+  <h2>Before the diagrams: how to read them</h2>
+  <p class="lede">
+    Every diagram on this page uses the same four shapes and the same arrow rule. Learn
+    these once and the rest follows.
+  </p>
+  <div class="legend">
+    <div class="lg"><span class="sw s1"></span><span><b>Teal box</b>The ESP32 &mdash; the small computer that runs your code.</span></div>
+    <div class="lg"><span class="sw s2"></span><span><b>Plain box</b>An input &mdash; a sensor that measures something.</span></div>
+    <div class="lg"><span class="sw s3"></span><span><b>Copper box</b>An output &mdash; something that moves, lights up, or beeps.</span></div>
+    <div class="lg"><span class="sw s4"></span><span><b>Grey box</b>Software &mdash; code running on your laptop, not on the bench.</span></div>
+  </div>
+  <p style="margin-top:22px">
+    <b>Arrows show which way information travels.</b> An arrow from a sensor into the ESP32
+    means the sensor is telling the ESP32 something. An arrow out of the ESP32 into a servo
+    means the ESP32 is giving an order.
+  </p>
+</section>
+
+<section>
+  <h2>Building it up, step by step</h2>
+  <p class="lede">Six steps. Each one adds a single new idea to the diagram before it.</p>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">01</span><h3>Start with the brain</h3></div>
+    <p>
+      The <b>ESP32</b> is a small chip on a board about the size of a stick of gum. It is a
+      complete little computer: it runs a program you write (called <b>firmware</b>), it has
+      metal pins along both edges that wires connect to, and it has built-in Wi-Fi.
+    </p>
+    <p>
+      Those pins are called <b>GPIO</b> pins &mdash; General Purpose Input/Output. "GPIO 21"
+      just means "pin number 21". Every sensor and every motor in your build connects to
+      specific numbered pins, and your code refers to them by those numbers.
+    </p>
+
+    <figure>
+      <svg viewBox="0 0 720 190" role="img" aria-label="The ESP32 board on its own, showing that it has GPIO pins and built-in Wi-Fi">
+        <rect x="255" y="55" width="210" height="90" rx="5" class="bx-esp"/>
+        <text x="360" y="92" text-anchor="middle" class="t">ESP32 DevKit</text>
+        <text x="360" y="112" text-anchor="middle" class="ts">runs your firmware</text>
+        <text x="360" y="130" text-anchor="middle" class="tp">the brain</text>
+        <path d="M255,80 H150" class="w" marker-end="url(#ar)"/>
+        <text x="145" y="76" text-anchor="end" class="ts">GPIO pins in</text>
+        <path d="M465,80 H570" class="w" marker-end="url(#ar)"/>
+        <text x="575" y="76" class="ts">GPIO pins out</text>
+        <path d="M360,55 V28" class="wt"/>
+        <text x="360" y="20" text-anchor="middle" class="tp">Wi-Fi</text>
+        <text x="360" y="175" text-anchor="middle" class="tb">STEP 1 &mdash; THE CONTROLLER</text>
+      </svg>
+      <figcaption>
+        On its own the ESP32 does nothing useful. Everything else in this build is either
+        something plugged into its pins, or something it talks to over Wi-Fi.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">02</span><h3>Add the senses</h3></div>
+    <p>Three sensors feed the ESP32. Each answers one question about the item on the plate.</p>
+    <ul>
+      <li><b>TCS34725</b> &mdash; a colour sensor. It reports red, green and blue levels plus
+        overall brightness. When something is placed on the plate it blocks the light,
+        brightness drops, and that drop is how the terminal knows an item has arrived.</li>
+      <li><b>Load cell + HX711</b> &mdash; a scale. The load cell bends very slightly under
+        weight; the HX711 is a small amplifier board that turns that tiny bend into a number
+        the ESP32 can read.</li>
+      <li><b>HC-SR04</b> &mdash; an ultrasonic distance sensor. It chirps and times the echo,
+        like a bat. Pointed down into the storage bin, a short distance means it is nearly full.</li>
+    </ul>
+
+    <figure>
+      <svg viewBox="0 0 720 290" role="img" aria-label="Three sensors connected by their GPIO pins into the ESP32">
+        <rect x="20" y="20" width="235" height="64" rx="4" class="bx"/>
+        <text x="36" y="42" class="t">TCS34725</text>
+        <text x="36" y="59" class="ts">colour + item detection</text>
+        <text x="36" y="75" class="tp">SDA 21 &middot; SCL 22</text>
+
+        <rect x="20" y="108" width="235" height="64" rx="4" class="bx"/>
+        <text x="36" y="130" class="t">Load cell + HX711</text>
+        <text x="36" y="147" class="ts">how heavy is it</text>
+        <text x="36" y="163" class="tp">DOUT 27 &middot; SCK 14</text>
+
+        <rect x="20" y="196" width="235" height="64" rx="4" class="bx"/>
+        <text x="36" y="218" class="t">HC-SR04</text>
+        <text x="36" y="235" class="ts">how full is the bin</text>
+        <text x="36" y="251" class="tp">TRIG 5 &middot; ECHO 18</text>
+
+        <rect x="480" y="95" width="205" height="90" rx="5" class="bx-esp"/>
+        <text x="582" y="132" text-anchor="middle" class="t">ESP32</text>
+        <text x="582" y="151" text-anchor="middle" class="ts">reads all three</text>
+
+        <path d="M255,52 H370 V120 H480" class="w" marker-end="url(#ar)"/>
+        <path d="M255,140 H480" class="w" marker-end="url(#ar)"/>
+        <path d="M255,228 H370 V160 H480" class="w" marker-end="url(#ar)"/>
+        <text x="360" y="278" text-anchor="middle" class="tb">STEP 2 &mdash; INPUTS</text>
+      </svg>
+      <figcaption>
+        All three arrows point <em>into</em> the ESP32: these devices only report, they never
+        get told anything.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">03</span><h3>Send the readings to your laptop</h3></div>
+    <p>
+      The ESP32 is deliberately not smart. It does not know metal prices and cannot run a
+      forecasting model. So it packs its readings into a short text message and sends it over
+      Wi-Fi to the <b>backend</b> &mdash; the Python program already running on your laptop.
+    </p>
+    <p>
+      The message format is <b>JSON</b>: labelled values in curly braces. Sending it is an
+      <b>HTTP POST</b>, the same kind of request your browser makes when you submit a form.
+      The backend replies on the same connection with its decision.
+    </p>
+
+    <figure>
+      <svg viewBox="0 0 720 235" role="img" aria-label="The ESP32 sending a JSON reading over Wi-Fi to the backend and receiving a decision back">
+        <rect x="30" y="70" width="195" height="95" rx="5" class="bx-esp"/>
+        <text x="127" y="105" text-anchor="middle" class="t">ESP32</text>
+        <text x="127" y="124" text-anchor="middle" class="ts">on the bench</text>
+        <text x="127" y="143" text-anchor="middle" class="tp">Wi-Fi client</text>
+
+        <rect x="490" y="70" width="200" height="95" rx="5" class="bx-srv"/>
+        <text x="590" y="105" text-anchor="middle" class="t">FastAPI backend</text>
+        <text x="590" y="124" text-anchor="middle" class="ts">Python, on your laptop</text>
+        <text x="590" y="143" text-anchor="middle" class="tp">port 8000</text>
+
+        <path d="M225,100 H490" class="wt" marker-end="url(#art)"/>
+        <text x="357" y="80" text-anchor="middle" class="tp">POST /api/iot/ingest</text>
+        <text x="357" y="94" text-anchor="middle" class="ts">colour, weight, device id</text>
+
+        <path d="M490,140 H225" class="wt" marker-end="url(#art)"/>
+        <text x="357" y="160" text-anchor="middle" class="tp">the reply</text>
+        <text x="357" y="174" text-anchor="middle" class="ts">SELL or HOLD, where to send it</text>
+
+        <text x="357" y="42" text-anchor="middle" class="tw">Wi-Fi &mdash; same network</text>
+        <text x="360" y="220" text-anchor="middle" class="tb">STEP 3 &mdash; THE UPLINK</text>
+      </svg>
+      <figcaption>
+        Two arrows, opposite directions: the ESP32 asks a question, the backend answers it.
+        Nothing is decided on the bench.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      Both devices must be on the <b>same Wi-Fi network</b>, and the backend must be started so
+      it accepts connections from other devices rather than only from the laptop itself. That
+      is the <code>--host 0.0.0.0</code> setting.
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">04</span><h3>The backend decides</h3></div>
+    <p>
+      This is your actual research contribution &mdash; the part that is not wiring. When a
+      reading arrives, the backend sorts the item into one of two worlds and answers a
+      different question for each.
+    </p>
+
+    <figure>
+      <svg viewBox="0 0 720 330" role="img" aria-label="The backend splitting an incoming reading into a metal branch and a plastic branch">
+        <rect x="255" y="15" width="210" height="52" rx="4" class="bx-srv"/>
+        <text x="360" y="38" text-anchor="middle" class="t">Reading arrives</text>
+        <text x="360" y="55" text-anchor="middle" class="ts">colour + weight</text>
+
+        <rect x="255" y="100" width="210" height="52" rx="4" class="bx-srv"/>
+        <text x="360" y="123" text-anchor="middle" class="t">Metal, or plastic?</text>
+        <text x="360" y="140" text-anchor="middle" class="ts">material lookup</text>
+
+        <path d="M360,67 V100" class="w" marker-end="url(#ar)"/>
+
+        <rect x="20" y="200" width="310" height="94" rx="4" class="bx-ok"/>
+        <text x="38" y="224" class="t">Metal &mdash; worth money</text>
+        <text x="38" y="244" class="ts">Aluminium, copper, steel, lead,</text>
+        <text x="38" y="260" class="ts">nickel, zinc. A 90-day price</text>
+        <text x="38" y="276" class="ts">forecast answers: sell, or wait?</text>
+
+        <rect x="390" y="200" width="310" height="94" rx="4" class="bx-ok"/>
+        <text x="408" y="224" class="t">Plastic &mdash; worth energy</text>
+        <text x="408" y="244" class="ts">PVC and similar. Cannot be sold,</text>
+        <text x="408" y="260" class="ts">so it calculates recoverable heat</text>
+        <text x="408" y="276" class="ts">and picks the nearest plant.</text>
+
+        <path d="M300,152 V176 H175 V200" class="w" marker-end="url(#ar)"/>
+        <path d="M420,152 V176 H545 V200" class="w" marker-end="url(#ar)"/>
+        <text x="210" y="171" text-anchor="middle" class="tp">metal</text>
+        <text x="512" y="171" text-anchor="middle" class="tp">plastic</text>
+        <text x="360" y="320" text-anchor="middle" class="tb">STEP 4 &mdash; THE DECISION</text>
+      </svg>
+      <figcaption>
+        Left branch produces <b>SELL</b> or <b>HOLD</b>. Right branch produces an energy figure
+        and a destination plant. Either way, one short answer travels back to the ESP32.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">05</span><h3>Act on the answer</h3></div>
+    <p>
+      Now the ESP32 has an instruction, and the outputs do the physical work. A <b>servo</b> is
+      a motor that turns to a specific angle and holds it &mdash; you tell it "go to 30 degrees"
+      and it goes there, which is exactly what a sorting gate needs.
+    </p>
+
+    <figure>
+      <svg viewBox="0 0 720 290" role="img" aria-label="The ESP32 driving the gate servo, crusher servo, status LEDs and buzzer">
+        <rect x="35" y="95" width="200" height="90" rx="5" class="bx-esp"/>
+        <text x="135" y="132" text-anchor="middle" class="t">ESP32</text>
+        <text x="135" y="151" text-anchor="middle" class="ts">gives the orders</text>
+
+        <rect x="450" y="20" width="250" height="64" rx="4" class="bx-act"/>
+        <text x="466" y="42" class="t">SG90 &mdash; routing gate</text>
+        <text x="466" y="59" class="ts">swings to the correct bin</text>
+        <text x="466" y="75" class="tc">PWM 12</text>
+
+        <rect x="450" y="108" width="250" height="64" rx="4" class="bx-act"/>
+        <text x="466" y="130" class="t">MG996R &mdash; crusher</text>
+        <text x="466" y="147" class="ts">compacts metal on HOLD</text>
+        <text x="466" y="163" class="tc">PWM 15</text>
+
+        <rect x="450" y="196" width="250" height="64" rx="4" class="bx-act"/>
+        <text x="466" y="218" class="t">LEDs + buzzer</text>
+        <text x="466" y="235" class="ts">green sell &middot; yellow hold &middot; red full</text>
+        <text x="466" y="251" class="tc">19 &middot; 23 &middot; 4 &middot; buzzer 13</text>
+
+        <path d="M235,120 H350 V52 H450" class="wc" marker-end="url(#arc)"/>
+        <path d="M235,140 H450" class="wc" marker-end="url(#arc)"/>
+        <path d="M235,160 H350 V228 H450" class="wc" marker-end="url(#arc)"/>
+        <text x="360" y="278" text-anchor="middle" class="tb">STEP 5 &mdash; OUTPUTS</text>
+      </svg>
+      <figcaption>
+        Every arrow now points <em>away</em> from the ESP32. These devices never report back
+        &mdash; they are told what to do.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      Those two servos pull far more electrical current than the ESP32 can supply. They need
+      their own 5&ndash;6&nbsp;V power adapter, with its ground wire joined to the ESP32's
+      ground. Powering them from the ESP32 itself makes the board restart every time the
+      crusher moves.
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">06</span><h3>Watch the bin, and stop when it is full</h3></div>
+    <p>
+      One loop runs continuously in the background, separate from the sorting cycle. The
+      ultrasonic sensor keeps measuring the distance down into the storage bin. When rubbish
+      piles up past the safety line, the terminal refuses to accept anything more until the bin
+      is emptied &mdash; the <b>lockout</b>.
+    </p>
+
+    <figure>
+      <svg viewBox="0 0 720 250" role="img" aria-label="The bin monitoring loop: ultrasonic to ESP32 to backend, and back as a lockout that lights the red LED">
+        <rect x="20" y="90" width="165" height="70" rx="4" class="bx"/>
+        <text x="102" y="118" text-anchor="middle" class="t">HC-SR04</text>
+        <text x="102" y="136" text-anchor="middle" class="ts">distance to rubbish</text>
+
+        <rect x="250" y="90" width="150" height="70" rx="5" class="bx-esp"/>
+        <text x="325" y="122" text-anchor="middle" class="t">ESP32</text>
+        <text x="325" y="140" text-anchor="middle" class="ts">reports it</text>
+
+        <rect x="465" y="90" width="235" height="70" rx="4" class="bx-srv"/>
+        <text x="582" y="114" text-anchor="middle" class="t">Backend decides</text>
+        <text x="582" y="132" text-anchor="middle" class="ts">below 5 cm = bin full</text>
+        <text x="582" y="149" text-anchor="middle" class="tp">/api/iot/bin-status</text>
+
+        <path d="M185,125 H250" class="w" marker-end="url(#ar)"/>
+        <path d="M400,110 H465" class="w" marker-end="url(#ar)"/>
+        <path d="M582,160 V195 H325 V163" class="w" marker-end="url(#ar)"/>
+        <text x="455" y="212" text-anchor="middle" class="tp">LOCKED &mdash; refuse new items</text>
+
+        <rect x="20" y="15" width="165" height="52" rx="4" class="bx-stop"/>
+        <text x="102" y="38" text-anchor="middle" class="t">Red LED + alarm</text>
+        <text x="102" y="55" text-anchor="middle" class="ts">operator must empty it</text>
+        <path d="M280,90 V41 H188" class="w" marker-end="url(#ar)"/>
+        <text x="360" y="240" text-anchor="middle" class="tb">STEP 6 &mdash; THE SAFETY LOOP</text>
+      </svg>
+      <figcaption>
+        This is a loop, not a line: the reading goes out, the lockout comes back, and it repeats
+        every few seconds whether or not anything is being sorted.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <h2>The whole thing at once</h2>
+  <p class="lede">
+    The same six steps assembled into one picture. The dashed frames separate what sits on your
+    bench from what runs on your laptop.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 880 630" role="img" aria-label="Complete Component 4 architecture: sensors and actuators around the ESP32 on the edge layer, FastAPI backend with forecast and disposition branches, and the operator dashboard">
+
+      <rect x="10" y="26" width="860" height="252" rx="6" class="band"/>
+      <text x="24" y="20" class="tb">EDGE LAYER &mdash; ON THE BENCH</text>
+
+      <rect x="28" y="46" width="196" height="56" rx="4" class="bx"/>
+      <text x="42" y="68" class="t">TCS34725</text>
+      <text x="42" y="86" class="tp">SDA 21 &middot; SCL 22</text>
+
+      <rect x="28" y="124" width="196" height="56" rx="4" class="bx"/>
+      <text x="42" y="146" class="t">Load cell + HX711</text>
+      <text x="42" y="164" class="tp">DOUT 27 &middot; SCK 14</text>
+
+      <rect x="28" y="202" width="196" height="56" rx="4" class="bx"/>
+      <text x="42" y="224" class="t">HC-SR04</text>
+      <text x="42" y="242" class="tp">TRIG 5 &middot; ECHO 18</text>
+
+      <rect x="352" y="112" width="176" height="86" rx="5" class="bx-esp"/>
+      <text x="440" y="145" text-anchor="middle" class="t">ESP32 DevKit</text>
+      <text x="440" y="164" text-anchor="middle" class="ts">firmware loop</text>
+      <text x="440" y="182" text-anchor="middle" class="tp">Wi-Fi</text>
+
+      <path d="M224,74 H296 V140 H352" class="w" marker-end="url(#ar)"/>
+      <path d="M224,152 H352" class="w" marker-end="url(#ar)"/>
+      <path d="M224,230 H296 V172 H352" class="w" marker-end="url(#ar)"/>
+
+      <rect x="656" y="46" width="196" height="56" rx="4" class="bx-act"/>
+      <text x="670" y="68" class="t">SG90 gate</text>
+      <text x="670" y="86" class="tc">PWM 12</text>
+
+      <rect x="656" y="124" width="196" height="56" rx="4" class="bx-act"/>
+      <text x="670" y="146" class="t">MG996R crusher</text>
+      <text x="670" y="164" class="tc">PWM 15</text>
+
+      <rect x="656" y="202" width="196" height="56" rx="4" class="bx-act"/>
+      <text x="670" y="224" class="t">LEDs + buzzer</text>
+      <text x="670" y="242" class="tc">19 &middot; 23 &middot; 4 &middot; 13</text>
+
+      <path d="M528,140 H592 V74 H656" class="wc" marker-end="url(#arc)"/>
+      <path d="M528,155 H656" class="wc" marker-end="url(#arc)"/>
+      <path d="M528,172 H592 V230 H656" class="wc" marker-end="url(#arc)"/>
+
+      <path d="M424,198 V330" class="wt" marker-end="url(#art)"/>
+      <text x="414" y="255" text-anchor="end" class="tp">POST reading</text>
+      <path d="M456,330 V198" class="wt" marker-end="url(#art)"/>
+      <text x="466" y="255" class="tp">decision back</text>
+
+      <rect x="10" y="330" width="860" height="196" rx="6" class="band"/>
+      <text x="24" y="322" class="tb">BACKEND &mdash; ON YOUR LAPTOP</text>
+
+      <rect x="250" y="346" width="380" height="52" rx="4" class="bx-srv"/>
+      <text x="440" y="368" text-anchor="middle" class="t">FastAPI</text>
+      <text x="440" y="386" text-anchor="middle" class="tp">/api/iot/ingest &middot; /api/iot/bin-status</text>
+
+      <rect x="40" y="436" width="240" height="72" rx="4" class="bx-ok"/>
+      <text x="56" y="459" class="t">Price forecast</text>
+      <text x="56" y="477" class="ts">ARIMA / LSTM, 90 days</text>
+      <text x="56" y="494" class="ts">gives SELL or HOLD</text>
+
+      <rect x="320" y="436" width="240" height="72" rx="4" class="bx-ok"/>
+      <text x="336" y="459" class="t">Energy recovery</text>
+      <text x="336" y="477" class="ts">mass &times; LHV &times; 67%</text>
+      <text x="336" y="494" class="ts">gives nearest plant</text>
+
+      <rect x="600" y="436" width="240" height="72" rx="4" class="bx-srv"/>
+      <text x="616" y="459" class="t">Manifest ledger</text>
+      <text x="616" y="477" class="ts">logs every batch, and</text>
+      <text x="616" y="494" class="ts">prints the PDF invoice</text>
+
+      <path d="M330,398 V420 H160 V436" class="w" marker-end="url(#ar)"/>
+      <path d="M440,398 V436" class="w" marker-end="url(#ar)"/>
+      <path d="M550,398 V420 H720 V436" class="w" marker-end="url(#ar)"/>
+
+      <rect x="10" y="562" width="860" height="54" rx="6" class="band"/>
+      <text x="24" y="555" class="tb">OPERATOR</text>
+      <rect x="300" y="574" width="280" height="36" rx="4" class="bx-srv"/>
+      <text x="440" y="597" text-anchor="middle" class="t">Web dashboard</text>
+
+      <path d="M720,508 V593 H580" class="w" marker-end="url(#ar)"/>
+    </svg>
+    <figcaption>
+      Note there is no screen on the bench. Your report replaced the physical OLED with the web
+      dashboard at the bottom, which reads the same backend the ESP32 talks to.
+    </figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>One item, start to finish</h2>
+  <p class="lede">What actually happens, in order, when a single piece of scrap is dropped in.</p>
+  <ol class="flow">
+    <li><b>Something lands on the plate</b><span>The colour sensor sees brightness drop sharply. That is the trigger &mdash; nothing happens until it does.</span></li>
+    <li><b>Wait half a second</b><span>The scale is still wobbling. Reading it too early gives a wrong weight.</span></li>
+    <li><b>Measure</b><span>Take several weight samples and average them; read red, green, blue and brightness.</span></li>
+    <li><b>Ask the backend</b><span>Pack the numbers into JSON, POST them over Wi-Fi, beep once so the operator knows the scan registered.</span></li>
+    <li><b>Backend answers</b><span>Metal goes to the price forecast; plastic goes to the energy calculation. A short decision comes back.</span></li>
+    <li><b>Show it</b><span>Green LED for SELL, yellow for HOLD.</span></li>
+    <li><b>Move it</b><span>The gate servo swings to the matching bin. On HOLD, the crusher servo runs its compaction stroke first.</span></li>
+    <li><b>Log it</b><span>The backend has already recorded the batch in the manifest, so it appears on the dashboard and in the end-of-cycle PDF.</span></li>
+    <li><b>Reset</b><span>Wait for the plate to clear, then go back to waiting. Meanwhile the bin check keeps running in the background.</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2>Pin reference</h2>
+  <p class="lede">Every connection in one table &mdash; from &sect;6.1 of your IoT report.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Device</th><th>Pins</th><th>Direction</th><th>What it is for</th></tr></thead>
+      <tbody>
+        <tr><td>TCS34725 colour</td><td class="pin">SDA 21 &middot; SCL 22</td><td>In</td><td>Detects arrival, reads colour</td></tr>
+        <tr><td>Load cell + HX711</td><td class="pin">DOUT 27 &middot; SCK 14</td><td>In</td><td>Weight of the item</td></tr>
+        <tr><td>HC-SR04</td><td class="pin">TRIG 5 &middot; ECHO 18</td><td>In</td><td>Bin fill level</td></tr>
+        <tr><td>SG90 routing gate</td><td class="pin">PWM 12</td><td>Out</td><td>Sends item to the right bin</td></tr>
+        <tr><td>MG996R crusher</td><td class="pin">PWM 15</td><td>Out</td><td>Compacts metal on HOLD</td></tr>
+        <tr><td>Green LED</td><td class="pin">19</td><td>Out</td><td>SELL</td></tr>
+        <tr><td>Yellow LED</td><td class="pin">23</td><td>Out</td><td>HOLD / crushing</td></tr>
+        <tr><td>Red LED</td><td class="pin">4</td><td>Out</td><td>Bin full</td></tr>
+        <tr><td>Active buzzer</td><td class="pin">13</td><td>Out</td><td>Scan beep, lockout alarm</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Words you will keep meeting</h2>
+  <dl class="gloss">
+    <dt>Firmware</dt><dd>The program that runs on the ESP32 itself. You write it in Arduino IDE and upload it over the USB cable.</dd>
+    <dt>GPIO</dt><dd>A numbered pin on the ESP32. Wires from sensors and motors connect to these, and your code names them by number.</dd>
+    <dt>I2C</dt><dd>A way for chips to talk over just two shared wires, SDA and SCL. Your colour sensor uses it.</dd>
+    <dt>PWM</dt><dd>Rapid on-off pulsing. Servos read the pulse length as the angle they should turn to.</dd>
+    <dt>Library</dt><dd>Ready-made code someone else wrote for a specific part &mdash; the ones you already installed.</dd>
+    <dt>JSON</dt><dd>A plain-text way of writing labelled values, used for the message the ESP32 sends.</dd>
+    <dt>HTTP POST</dt><dd>Sending data to a program over the network and getting a reply &mdash; the same mechanism a web form uses.</dd>
+    <dt>Backend</dt><dd>The FastAPI program on your laptop that holds all the intelligence.</dd>
+    <dt>Endpoint</dt><dd>One specific address the backend answers on, such as <code>/api/iot/ingest</code>.</dd>
+    <dt>Lockout</dt><dd>The state where the bin is full and the terminal refuses new items until it is emptied.</dd>
+  </dl>
+</section>
+
+<footer class="page">
+  Component 4 &mdash; Predictive Economic Valuation &amp; Strategic Disposition Terminal.
+  Research Project R26-IT-015, SLIIT. Pin assignments and component roles follow &sect;6 of the
+  Proposed IoT System report.
+</footer>
+
+</div>
+</body>
+</html>

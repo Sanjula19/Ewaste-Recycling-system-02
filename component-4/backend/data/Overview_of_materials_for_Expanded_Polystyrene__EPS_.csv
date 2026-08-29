@@ -1,0 +1,63 @@
+﻿Physical Properties,Metric,English,Comments
+Density ,0.00310 - 3.50 g/cc,0.000112 - 0.126 lb/in³,Average value: 0.212 g/cc Grade Count:385
+Filler Content ,0.300 - 10.5 %,0.300 - 10.5 %,Average value: 5.17 % Grade Count:37
+Water Absorption ,0.0300 - 9.00 %,0.0300 - 9.00 %,Average value: 0.397 % Grade Count:50
+Particle Size ,100 - 3150 µm,100 - 3150 µm,Average value: 983 µm Grade Count:95
+Water Vapor Transmission ,50.0 - 200 g/m²/day,3.22 - 12.9 g/100 in²/day,Average value: 126 g/m²/day Grade Count:6
+Viscosity ,1.65 - 1.70 cP,1.65 - 1.70 cP,Average value: 1.67 cP Grade Count:9
+Permeability ,0.500 - 3.50,0.500 - 3.50,Average value: 1.79 Grade Count:19
+Maximum Moisture Content ,0.200 - 0.500,0.200 - 0.500,Average value: 0.403 Grade Count:40
+Melt Flow ,1.80 - 4.00 g/10 min,1.80 - 4.00 g/10 min,Average value: 2.53 g/10 min Grade Count:3
+Outgassing - Total Mass Loss ,1.00 - 2.50 %,1.00 - 2.50 %,Average value: 1.39 % Grade Count:7
+Vapor Pressure ,0.685 bar,514 torr,Average value: 0.685 bar Grade Count:9
+,,,
+Mechanical Properties,Metric,English,Comments
+"Tensile Strength, Ultimate ",0.0800 - 1.10 MPa,11.6 - 160 psi,Average value: 0.464 MPa Grade Count:47
+"Tensile Strength, Yield ",47.1 - 51.0 MPa,6830 - 7400 psi,Average value: 48.4 MPa Grade Count:3
+Elongation at Break ,5.00 - 13.4 %,5.00 - 13.4 %,Average value: 8.45 % Grade Count:21
+Creep Strength ,0.0600 - 0.300 MPa,8.70 - 43.5 psi,Average value: 0.156 MPa Grade Count:6
+Modulus of Elasticity ,0.00650 - 2.65 GPa,0.943 - 384 ksi,Average value: 0.484 GPa Grade Count:8
+Flexural Yield Strength ,0.0750 - 3.00 MPa,10.9 - 435 psi,Average value: 0.433 MPa Grade Count:142
+Flexural Modulus ,0.00628 - 0.0342 GPa,0.911 - 4.96 ksi,Average value: 0.0153 GPa Grade Count:20
+Flexural Strain at Break ,6.90 - 14.1 %,6.90 - 14.1 %,Average value: 10.8 % Grade Count:16
+Compressive Yield Strength ,0.0392 - 10.9 MPa,5.69 - 1580 psi,Average value: 0.461 MPa Grade Count:156
+Compressive Modulus ,0.00500 - 0.0400 GPa,0.725 - 5.80 ksi,Average value: 0.0177 GPa Grade Count:6
+Shear Strength ,0.200 - 0.300 MPa,29.0 - 43.5 psi,Average value: 0.290 MPa Grade Count:5
+Adhesive Bond Strength ,0.100 - 0.400 MPa,14.5 - 58.0 psi,Average value: 0.165 MPa Grade Count:5
+"Izod Impact, Notched ",0.216 - 0.245 J/cm,0.404 - 0.459 ft-lb/in,Average value: 0.235 J/cm Grade Count:3
+Puncture Energy ,41.4 - 316 J,30.5 - 233 ft-lb,Average value: 103 J Grade Count:16
+Tear Strength ,1.05 - 6.10 kN/m,5.99 - 34.8 pli,Average value: 2.74 kN/m Grade Count:17
+K Factor (Wear Factor) ,54.0 - 59.0,54.0 - 59.0,Average value: 56.8 Grade Count:13
+Compression Set ,32.2 - 45.7 %,32.2 - 45.7 %,Average value: 41.1 % Grade Count:20
+,,,
+Electrical Properties,Metric,English,Comments
+Surface Resistance ,1.00e+10 - 1.00e+12 ohm,1.00e+10 - 1.00e+12 ohm,Average value: 2.44e+11 ohm Grade Count:5
+,,,
+Thermal Properties,Metric,English,Comments
+"CTE, linear ",63.0 - 80.0 µm/m-°C,35.0 - 44.4 µin/in-°F,Average value: 66.3 µm/m-°C Grade Count:33
+"CTE, linear, Transverse to Flow ",60.0 µm/m-°C,33.3 µin/in-°F,Average value: 60.0 µm/m-°C Grade Count:6
+Thermal Conductivity ,0.0270 - 0.0450 W/m-K,0.187 - 0.312 BTU-in/hr-ft²-°F,Average value: 0.0353 W/m-K Grade Count:106
+,0.0240 - 0.0370 W/m-K,0.167 - 0.257 BTU-in/hr-ft²-°F,Average value: 0.0312 W/m-K Grade Count:5
+,@Temperature -80.0 - 50.0 °C,@Temperature -112 - 122 °F,
+,0.0240 - 0.0370 W/m-K,0.167 - 0.257 BTU-in/hr-ft²-°F,Average value: 0.0312 W/m-K Grade Count:1
+,@Temperature -80.0 - 50.0 °C,@Temperature -112 - 122 °F,
+,0.0240 - 0.0370 W/m-K,0.167 - 0.257 BTU-in/hr-ft²-°F,Average value: 0.0312 W/m-K Grade Count:1
+,@Thickness 50.0 - 50.0 mm,@Thickness 1.97 - 1.97 in,
+Insulation R Value ,3.66 - 20.0,3.66 - 20.0,Average value: 8.05 Grade Count:7
+,>= 5.40,>= 5.40,Average value: 9.35 Grade Count:3
+,@Temperature -3.89 - 4.44 °C,@Temperature 25.0 - 40.0 °F,
+,>= 5.40,>= 5.40,Average value: 9.35 Grade Count:3
+,@Thickness 25.4 - 76.2 mm,@Thickness 1.00 - 3.00 in,
+"Maximum Service Temperature, Air ",70.0 - 118 °C,158 - 244 °F,Average value: 83.7 °C Grade Count:53
+Vicat Softening Point ,99.0 - 104 °C,210 - 219 °F,Average value: 101 °C Grade Count:3
+Softening Point ,70.0 °C,158 °F,Average value: 70.0 °C Grade Count:26
+Decomposition Temperature ,220 °C,428 °F,Average value: 220 °C Grade Count:26
+Flame Spread ,1.20 - 136 mm/min,0.0472 - 5.35 in/min,Average value: 53.6 mm/min Grade Count:13
+Flash Point ,-56.0 °C,-68.8 °F,Average value: -56.0 °C Grade Count:26
+Ignition Temperature ,285 °C,545 °F,Average value: 285 °C Grade Count:26
+,,,
+Optical Properties,Metric,English,Comments
+"Transmission, Visible ",90.00%,90.00%,Average value: 90.0 % Grade Count:3
+,,,
+Processing Properties,Metric,English,Comments
+Moisture Content ,0.500 - 3.00 %,0.500 - 3.00 %,Average value: 1.06 % Grade Count:37

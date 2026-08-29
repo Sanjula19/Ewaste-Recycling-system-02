@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Environment variables (NEVER commit these)
+.env
+*.env.local
+firebase-service-account.json
+firebase-adminsdk*.json
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# ML Models (large files — use Git LFS or store separately)
+*.pkl
+*.joblib
+*.h5
+
+# Node.js
+node_modules/
+.next/
+dist/
+.cache/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arduino
+*.elf
+*.hex
+build/
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Large datasets (reference externally)
+ml/datasets/raw/
+ml/datasets/processed/
+data/*.csv
+
+# Keep these placeholder files
+!ml/datasets/raw/.gitkeep
+!ml/datasets/processed/.gitkeep
+!ml/datasets/collected/.gitkeep

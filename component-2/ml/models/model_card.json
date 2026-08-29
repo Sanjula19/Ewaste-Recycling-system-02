@@ -1,0 +1,150 @@
+{
+  "model_name": "EWaste Toxic Gas Detection System \u2014 ML Pipeline",
+  "version": "v2.0_no_mercury",
+  "description": "Gas classification without MQ-303 sensor (Mercury unavailable in Sri Lanka)",
+  "features": [
+    "mq2_ppm",
+    "mq7_ppm",
+    "mq135_ppm",
+    "mq136_ppm",
+    "temperature_c",
+    "humidity_pct"
+  ],
+  "feature_count": 6,
+  "gas_classes": [
+    "AMMONIA",
+    "BENZENE",
+    "CLEAN",
+    "CO",
+    "H2S",
+    "LPG"
+  ],
+  "class_count": 6,
+  "single_label": {
+    "best_model": "Random Forest",
+    "algorithm": "RandomForestClassifier(n_estimators=200, class_weight=balanced)",
+    "accuracy_pct": 100.0,
+    "f1_weighted_pct": 100.0,
+    "precision_pct": 100.0,
+    "recall_pct": 100.0,
+    "cv_mean_pct": 97.93,
+    "cv_std_pct": 4.14,
+    "confusion_matrix": [
+      [
+        6,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        6,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        6,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        6,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        6
+      ]
+    ],
+    "comparison": [
+      {
+        "model": "Random Forest",
+        "accuracy_pct": 100.0,
+        "f1_weighted_pct": 100.0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "cv_mean_pct": 97.93,
+        "cv_std_pct": 4.14
+      },
+      {
+        "model": "Decision Tree",
+        "accuracy_pct": 97.22,
+        "f1_weighted_pct": 97.2,
+        "precision_pct": 97.62,
+        "recall_pct": 97.22,
+        "cv_mean_pct": 94.46,
+        "cv_std_pct": 4.13
+      },
+      {
+        "model": "SVM",
+        "accuracy_pct": 97.22,
+        "f1_weighted_pct": 97.2,
+        "precision_pct": 97.62,
+        "recall_pct": 97.22,
+        "cv_mean_pct": 95.84,
+        "cv_std_pct": 2.57
+      },
+      {
+        "model": "Naive Bayes",
+        "accuracy_pct": 100.0,
+        "f1_weighted_pct": 100.0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "cv_mean_pct": 97.93,
+        "cv_std_pct": 4.14
+      }
+    ]
+  },
+  "multi_label": {
+    "algorithm": "MultiOutputClassifier(RandomForestClassifier(n_estimators=200))",
+    "hamming_loss": 0.0033,
+    "jaccard_score_pct": 99.02,
+    "f1_weighted_pct": 99.4,
+    "exact_match_pct": 99.02,
+    "per_label_f1": {
+      "AMMONIA": 98.36,
+      "BENZENE": 98.59,
+      "CLEAN": 100.0,
+      "CO": 100.0,
+      "H2S": 100.0,
+      "LPG": 100.0
+    },
+    "supported_mixtures": [
+      "CO+H2S",
+      "CO+BENZENE",
+      "H2S+BENZENE",
+      "AMMONIA+CO",
+      "AMMONIA+H2S"
+    ]
+  },
+  "artifacts": {
+    "single_label_model": "random_forest_v1.pkl",
+    "multi_label_model": "multilabel_rf_v1.pkl",
+    "scaler": "scaler.pkl",
+    "label_encoder": "label_encoder.pkl",
+    "multilabel_binarizer": "multilabel_binarizer.pkl"
+  }
+}

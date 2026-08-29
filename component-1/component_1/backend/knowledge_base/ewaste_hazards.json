@@ -1,0 +1,109 @@
+{
+  "Smartphone": {
+    "screening_hazard_level": "MEDIUM",
+    "possible_components": [
+      "Lithium-ion battery",
+      "Printed circuit board",
+      "Glass display"
+    ],
+    "possible_hazards": [
+      "Battery fire or thermal runaway if damaged",
+      "Possible chemical exposure if battery leaks or vents",
+      "Cuts from broken glass",
+      "Potential exposure to hazardous electronic materials during dismantling"
+    ],
+    "recommended_ppe": [
+      "Safety glasses",
+      "Protective gloves appropriate to the task"
+    ],
+    "handling_instructions": [
+      "Do not crush, puncture or bend the device",
+      "Inspect for swelling, heat, leakage or physical battery damage",
+      "Keep damaged devices away from heat and ignition sources",
+      "Send to an approved electronics recycling stream"
+    ],
+    "escalation_rule": "If swollen, hot, leaking, smoking or severely damaged, treat as HIGH risk.",
+    "certainty_note": "Associated hazards based on device type. Chemical composition is not visually confirmed."
+  },
+
+  "Laptop": {
+    "screening_hazard_level": "MEDIUM",
+    "possible_components": [
+      "Lithium-ion battery pack",
+      "Printed circuit boards",
+      "Electronic components"
+    ],
+    "possible_hazards": [
+      "Battery fire or thermal runaway if damaged",
+      "Possible chemical exposure from damaged battery cells",
+      "Potential hazardous material exposure during dismantling"
+    ],
+    "recommended_ppe": [
+      "Safety glasses",
+      "Protective gloves appropriate to the task"
+    ],
+    "handling_instructions": [
+      "Do not crush or puncture the laptop or battery pack",
+      "Check for battery swelling, leakage or overheating",
+      "Keep damaged battery-containing devices isolated",
+      "Send to an approved electronics recycling stream"
+    ],
+    "escalation_rule": "If battery swelling, heat, leakage, smoke or severe damage is observed, treat as HIGH risk.",
+    "certainty_note": "Associated hazards based on device type. Chemical composition is not visually confirmed."
+  },
+
+  "Battery": {
+    "screening_hazard_level": "HIGH",
+    "possible_components": [
+      "Lithium-ion cell or battery pack",
+      "Electrolyte",
+      "Stored electrical energy"
+    ],
+    "possible_hazards": [
+      "Thermal runaway",
+      "Fire or explosion",
+      "Electrical short circuit",
+      "Chemical exposure if leaking or venting"
+    ],
+    "recommended_ppe": [
+      "Safety glasses or suitable eye protection",
+      "Protective gloves selected for the handling task"
+    ],
+    "handling_instructions": [
+      "Do not crush, puncture, bend or open the battery",
+      "Keep away from heat and ignition sources",
+      "Keep terminals from contacting conductive materials",
+      "Separate damaged batteries from other waste",
+      "Send to a designated battery or hazardous-waste recycling facility"
+    ],
+    "escalation_rule": "Swelling, heat, leakage, venting, smoke or fire requires immediate HIGH-risk handling and trained response.",
+    "certainty_note": "Battery type and chemistry must be confirmed separately when possible."
+  },
+
+  "PCB": {
+    "screening_hazard_level": "MEDIUM",
+    "possible_components": [
+      "Printed circuit board substrate",
+      "Solder",
+      "Electronic components",
+      "Metal-containing components"
+    ],
+    "possible_hazards": [
+      "Possible lead, cadmium or other metal exposure during processing",
+      "Dust or particulate exposure during cutting, grinding or shredding",
+      "Sharp edges and component-related injury"
+    ],
+    "recommended_ppe": [
+      "Safety glasses",
+      "Protective gloves appropriate to the task"
+    ],
+    "handling_instructions": [
+      "Avoid uncontrolled cutting, grinding or burning",
+      "Minimize dust generation",
+      "Handle sharp or broken boards carefully",
+      "Send to an appropriate electronics recycling process"
+    ],
+    "escalation_rule": "Processing that generates dust, fumes or heat requires additional hazard controls and site-specific PPE assessment.",
+    "certainty_note": "Hazardous substances are possible, not visually confirmed by the detection model."
+  }
+}
