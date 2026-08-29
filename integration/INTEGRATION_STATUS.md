@@ -1,6 +1,6 @@
 # Integration Status — E-Waste Recycling System
 
-Last updated: 2026-08-29
+Last updated: 2026-08-29 (Step 5B)
 
 ---
 
@@ -12,11 +12,31 @@ Last updated: 2026-08-29
 | STEP 2 | Service map / conflict analysis | COMPLETE |
 | STEP 3 | Port isolation (C1:8001, C2:8002, C3:8003, C4:8004) | COMPLETE |
 | STEP 4 | API Gateway (routing only, port 8080) | COMPLETE |
-| STEP 5 | C1 → C3 → C4 orchestration | **BLOCKED** — real Component 3 backend is not present in this repository |
+| STEP 5A/5B | Real Component 3 backend installed, Docker-configured, and verified | COMPLETE |
+| STEP 5 | C1 → C3 → C4 orchestration | **NOT STARTED** — no longer blocked, but not yet built |
 
 ---
 
-## Why Step 5 is blocked
+## Component 3 — now real (updated Step 5A/5B)
+
+The previous blocker is resolved. `component-3/backend/` now runs the real
+Smart Process Optimization implementation (Decision Tree + MCDM + rule-based
+safety engine, persisted to Firestore) — not the toxic-gas-detection copy
+that was there before. This was directly tested and confirmed working:
+`GET /api/health`, `GET /api/materials`, and `POST /api/optimize` all
+return real, non-fabricated responses. See
+[contracts/component3-contract.md](contracts/component3-contract.md) for the
+confirmed contract and `component-3/REAL-COMPONENT-3.md` for full structure,
+environment, Docker/credential handling, and known gaps (a missing training
+CSV, a scikit-learn version mismatch, and some harmless leftover code —
+none of which block the documented endpoints).
+
+`component-3/frontend/` was already built against this real contract and
+required no changes.
+
+---
+
+## Why Step 5 (orchestration) is still not built
 
 The main workflow is:
 
@@ -24,30 +44,19 @@ The main workflow is:
 Component 1 (AI Waste Assessment) → Component 3 (Smart Process Optimization) → Component 4 (Economic Valuation)
 ```
 
-Component 1 and Component 4 have confirmed, working, real APIs — see
-[contracts/component1-contract.md](contracts/component1-contract.md) and
+All three components now have confirmed, working, real APIs — see
+[contracts/component1-contract.md](contracts/component1-contract.md),
+[contracts/component3-contract.md](contracts/component3-contract.md), and
 [contracts/component4-contract.md](contracts/component4-contract.md).
 
-Component 3 does **not** currently have a real Smart Process Optimization
-backend in this repository:
-
-- `component-3/backend/` is a copy of Component 2's toxic-gas-detection
-  backend (`/api/v1/health`, `/api/v1/readings`, `/api/v1/predict` for gas
-  classification, etc.) — unrelated to process optimization.
-- `component-3/frontend/` already expects the real contract
-  (`/api/optimize`, `/api/materials`, `/api/history`, `/api/health`) but
-  nothing on the backend implements it.
-- The intended real backend,
-  `https://github.com/visuddika/Recerch_Smart-process-optimization-System.git`
-  (branch `main`), exists on GitHub but is currently **empty** (0 commits).
-
-See [contracts/component3-contract.md](contracts/component3-contract.md) for
-the expected-but-unimplemented interface.
-
-Orchestration code (`integration/orchestrator/`) will not be built until a
-real Component 3 backend is available to inspect and integrate against —
-building it now would require fabricating Component 3's behavior, which is
-explicitly out of scope.
+However, **no orchestration code exists yet.** There is no service that
+calls Component 1, maps its output to Component 3's `/api/optimize` request,
+calls Component 3, maps its output to Component 4's `/api/forecast` or
+`/api/disposition` request, and calls Component 4. Building this
+(`integration/orchestrator/`, a `/api/integration/process` endpoint, etc.)
+is a distinct, not-yet-requested piece of work — the three contracts above
+are now all real and stable enough to build it against whenever that work is
+scoped.
 
 ---
 
@@ -59,13 +68,12 @@ NOT PART OF THE C1 → C3 → C4 WORKFLOW.**
 It is not called by, and does not call, any other component or the
 orchestrator. The API Gateway proxies to it (`/api/component2/*`) purely as
 pass-through routing, per `gateway/app/main.py`. No change to this component
-or its isolation is planned or permitted as part of Step 5.
+or its isolation has been made at any point in this integration.
 
 ---
 
 ## Next action required
 
-Confirm with Wisu whether the real Smart Process Optimization backend exists
-somewhere not yet pushed to the repository above (different branch, local
-machine, different repo name), or is still to be built. Step 5 resumes once
-real Component 3 code can be inspected.
+Scope and build the C1 → C3 → C4 orchestration layer whenever that work is
+requested. All three real contracts it would depend on are now documented
+and verified.

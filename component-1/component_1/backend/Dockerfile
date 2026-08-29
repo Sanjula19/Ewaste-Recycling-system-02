@@ -4,13 +4,14 @@
 # tensorflow, ultralytics/YOLOv8, and pillow used by app.py).
 # Entry point: app.py -> FastAPI instance named `app` (uvicorn app:app).
 #
-# KNOWN ISSUE — see integration-analysis.md / integration/INTEGRATION_STATUS.md:
 # app.py loads resnet50_waste_type_final.keras and resnet50_condition_final.keras
-# at MODULE IMPORT TIME (not lazily). These two files are NOT present in
-# models/ in this repository (only ewaste_yolov8n_best.pt is). The image
-# builds successfully, but the container WILL CRASH on startup with
-# FileNotFoundError until both .keras files are placed in models/ before
-# building, or volume-mounted into the container at that path.
+# at MODULE IMPORT TIME (not lazily). Both files, plus ewaste_yolov8n_best.pt,
+# must be present in models/ before building — the COPY below brings in
+# whatever is in that directory at build time, whole. As of the model files
+# being added to models/ (see integration/INTEGRATION_STATUS.md), both
+# .keras files are present and get included in the image. If either is ever
+# removed from models/, the build will still succeed but the container will
+# crash on startup with FileNotFoundError.
 #
 # The Raspberry Pi hardware acquisition script (raspberry_pi/weight_camera.py)
 # is intentionally NOT included here — it runs on the physical Pi, outside

@@ -1,74 +1,136 @@
 # Component 3 Contract — Smart Process Optimization (Wisu)
 
-> **EXPECTED C3 CONTRACT — implementation currently unavailable in this repository.**
->
-> Everything below describes the interface Component 3 is *supposed* to expose,
-> as specified for Step 5 integration and as already assumed by Component 3's
-> own frontend code (`component-3/frontend/src/services/api.js`,
-> `component-3/frontend/src/components/InputForm.jsx`). **No backend in this
-> repository implements it.**
->
-> The code currently sitting at `component-3/backend/` is a copy of the
-> Component 2 toxic-gas-detection backend (`/api/v1/health`,
-> `/api/v1/readings`, `/api/v1/predict` for gas classification, etc.) and is
-> **not** the Smart Process Optimization service. Do not call it expecting
-> the contract below — it will 404 or return unrelated gas-sensor data.
->
-> The real implementation is intended to live at
-> `https://github.com/visuddika/Recerch_Smart-process-optimization-System.git`
-> (branch `main`), but as of this writing that repository is empty (no
-> commits). Step 5 orchestration cannot be built against Component 3 until
-> real code exists there.
+**Status: CONFIRMED REAL** — extracted from and verified against the actual
+running backend at `component-3/backend/app/`, replaced in Step 5A and
+Docker-configured in Step 5B. See `component-3/REAL-COMPONENT-3.md` for the
+full structure, environment, and known gaps.
 
-Base URL (local, once real): `http://localhost:8003`
+> History: this file previously documented an *expected but unimplemented*
+> contract, because the backend that was in place at the time was a copy of
+> Component 2's toxic-gas-detection service. That backend has been replaced
+> with the real Smart Process Optimization implementation. This document now
+> describes the real, running service.
+
+Base URL (local): `http://localhost:8003`
 
 ---
 
-## GET /api/health *(expected)*
+## GET /api/health
 
-Expected to return a simple service-alive payload, analogous to Component 1/4's health checks. Exact shape unconfirmed.
+**Response (200) — actually observed:**
+```json
+{
+  "status": "ok",
+  "component": "Component 3 - Smart Process Optimization Engine",
+  "student": "IT22277640",
+  "version": "1.0.0"
+}
+```
 
 ---
 
-## GET /api/materials *(expected)*
+## GET /api/materials
 
-Expected to return the list of materials the optimization engine actually supports (used by the frontend's material picker). Exact shape unconfirmed — must be used to validate `material_name` before calling `/api/optimize` once real.
+**Response (200) — actually observed:**
+```json
+{
+  "total": 8,
+  "materials": [
+    { "name": "Newspapers",        "waste_type": "Paper",   "category": "Paper",   "toxicity": "Low" },
+    { "name": "Cardboard Boxes",   "waste_type": "Paper",   "category": "Paper",   "toxicity": "Low" },
+    { "name": "Office Paper",      "waste_type": "Paper",   "category": "Paper",   "toxicity": "Low" },
+    { "name": "PET Water Bottles", "waste_type": "Plastic", "category": "Plastic", "toxicity": "Low" },
+    { "name": "Food Containers",   "waste_type": "Plastic", "category": "Plastic", "toxicity": "Low" },
+    { "name": "Plastic Bags",      "waste_type": "Plastic", "category": "Plastic", "toxicity": "Low" },
+    { "name": "Glass Bottles",     "waste_type": "Glass",   "category": "Glass",   "toxicity": "Low" },
+    { "name": "Glass Jars",        "waste_type": "Glass",   "category": "Glass",   "toxicity": "Low" }
+  ]
+}
+```
+This list is hardcoded in `app/api/routes/materials.py`, not derived from a database.
 
 ---
 
-## POST /api/optimize *(expected)*
+## POST /api/optimize
 
-**Expected request:**
+**Request (`OptimizeRequest`):**
 ```json
 {
   "material_name": "PET Water Bottles",
   "weight_kg": 5.0,
-  "moisture_condition": "Wet"
+  "moisture_condition": "Wet",
+  "waste_type": "Plastic",
+  "moisture_pct": 50.0,
+  "processing_priority": "balanced",
+  "operator_id": null,
+  "batch_id": null
 }
 ```
+Only `material_name`, `weight_kg`, `moisture_condition` are required by the schema. **In practice, also supply `waste_type`** — the Decision Tree step encodes it and will error on `None` (see `component-3/REAL-COMPONENT-3.md`, Known Gaps).
 
-| Field | Type | Notes |
-|---|---|---|
-| `material_name` | string | Must be a value returned by `/api/materials` — not to be invented |
-| `weight_kg` | float | Unit assumed kg per the field name; unconfirmed against real implementation |
-| `moisture_condition` | string | Expected values seen in the existing frontend: `"Dry"` / `"Wet"` (`InputForm.jsx`) |
+For `waste_type == "Plastic"` specifically, the backend overrides `moisture_condition` with a live SHEF sensor reading if one has been posted to `POST /api/sensor/moisture` — the response's `moisture_source` field tells you which value was actually used.
 
-**Expected response:** unconfirmed. The existing frontend (`ResultCard.jsx`) implies a "process recipe" style result, but the exact field names have not been confirmed against a real backend.
+**Response (200) — actually observed** (for `material_name: "PET Water Bottles"`, `waste_type: "Plastic"`, `weight_kg: 5.0`, `moisture_condition: "Wet"`):
+```json
+{
+  "material_name": "PET Water Bottles",
+  "waste_type": "Plastic",
+  "weight_kg": 5.0,
+  "moisture_condition": "Wet",
+  "recommended_method": "Thermal",
+  "optimal_temp_c": 265.0,
+  "processing_time_min": 45.0,
+  "energy_kwh": 5.0,
+  "recycling_efficiency_pct": 82.0,
+  "safety_status": "WARNING",
+  "pre_drying_required": true,
+  "toxicity_level": "Low",
+  "pre_drying_temp_c": 106.0,
+  "pre_drying_time_min": 13.5,
+  "pre_drying_action": "Apply controlled heat to remove moisture content",
+  "chemical_agent": "None",
+  "chemical_concentration": "None",
+  "chemical_purpose": "No chemical required - Thermal melting",
+  "handling_note": "Ensure proper ventilation during thermal processing",
+  "cooling_time_min": 11.2,
+  "cooling_method": "Controlled Cooling",
+  "target_temp_c": 30.0,
+  "batch_id": null,
+  "timestamp": "2026-08-29T11:03:37.548308",
+  "doc_id": "KjZuq4EpKOYwdrOiXxFb"
+}
+```
+Field set is fixed by `app/schemas/output_schema.py` — values above are one real example, not a schema definition; see that file for which fields are always present vs. optional. `doc_id` is only populated when the Firestore write succeeds (see Storage below).
 
 ---
 
-## GET /api/history *(expected)*
+## GET /api/history
 
-Expected to return previously computed optimization results. Exact shape unconfirmed.
+**Query param:** `limit` (default 20).
+
+**Response (200):** `{"count": <int>, "results": [...]}` — each result is a previously saved `/api/optimize` response (plus a Firestore document `id`), read from the `optimization_results` Firestore collection. Returns `{"count": 0, "results": []}` if Firestore isn't connected — does not error.
 
 ---
 
-## Open questions (cannot be answered without the real implementation)
+## POST /api/sensor/moisture
 
-- How is `moisture_condition` obtained — supplied by the caller, or read internally from a physical moisture/SHEF sensor?
-- Exact response schema of `/api/optimize` (recipe fields, decision logic outputs, MCDM/rule-engine results, etc.)
-- Database/storage used for `/api/history`
-- Required environment variables
-- Whether the current `component-3/frontend/` is actually compatible with the real backend once it exists, or was built against a differently-shaped assumed contract
+ESP32 (SHEF capacitive moisture sensor) pushes readings here.
 
-These must be re-inspected once real Component 3 code is available, per `integration/INTEGRATION_STATUS.md`.
+**Request:** `{"moisture_status": "Wet" | "Dry", "raw_value": <int>}`
+**Response:** `{"status": "received", "data": {"moisture_status": ..., "raw_value": ..., "timestamp": "..."}}`
+
+State is in-memory only — resets on server restart.
+
+## GET /api/sensor/moisture/latest
+
+**Response:** `{"moisture_status": "Dry", "raw_value": null, "timestamp": null}` until a reading has been posted.
+
+---
+
+## Storage
+
+**Firestore** (Google Cloud), not SQLite/any local database. Requires a real service-account key at `app/firebase_key.json` (gitignored, never committed — see `component-3/REAL-COMPONENT-3.md` for the safe runtime-mount approach used in Docker). Without it, Firebase init fails gracefully at startup and `/api/optimize` still returns a full result, just without `doc_id`/history persistence.
+
+## Known gaps
+
+See `component-3/REAL-COMPONENT-3.md` for the full list (missing training CSV, a scikit-learn version mismatch warning, duplicate route registration in `main.py`, a stray inert `.js` file inside the backend). None of these prevent the endpoints above from working as documented.

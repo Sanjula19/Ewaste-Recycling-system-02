@@ -11,10 +11,9 @@
 # is not referenced by, and does not call, component1/3/4. The gateway only
 # proxies to it, same as the others.
 #
-# Component 3's container currently packages the WRONG backend (a copy of
-# Component 2's toxic-gas service) — see
-# integration/contracts/component3-contract.md. It is included here so the
-# stack is uniform, but its /api/optimize etc. do not exist yet.
+# Component 3 (Step 5B) now runs the REAL Smart Process Optimization
+# backend — see component-3/REAL-COMPONENT-3.md. It uses Firestore, not
+# SQLite, so it has no database volume of its own (unlike Component 2).
 
 networks:
   ewaste-net:
@@ -22,7 +21,6 @@ networks:
 
 volumes:
   component2-db-data:
-  component3-db-data:
 
 services:
   # -------------------------------------------------------------------------
@@ -53,9 +51,9 @@ services:
 
   # -------------------------------------------------------------------------
   # Component 1 — AI Waste Assessment (Shehan)
-  # NOTE: will crash on startup until the two missing ResNet50 .keras model
-  # files are placed in component-1/component_1/backend/models/ — see that
-  # Dockerfile's header comment and integration-analysis.md.
+  # Both resnet50_waste_type_final.keras and resnet50_condition_final.keras
+  # are present in component-1/component_1/backend/models/ — see that
+  # Dockerfile's header comment.
   component1:
     build:
       context: ./component-1/component_1/backend
@@ -94,22 +92,31 @@ services:
     restart: unless-stopped
 
   # -------------------------------------------------------------------------
-  # Component 3 — "Smart Process Optimization" (Wisu) — CURRENT BACKEND STATE
-  # See the Dockerfile header: this is not the real optimization backend yet.
+  # Component 3 — Smart Process Optimization (Wisu) — REAL backend
+  # Uses Firestore for persistence, not a local database — no SQLite volume
+  # or DATABASE_URL here (that was stale config from the old, wrong backend).
+  #
+  # Firestore credential: app/config.py reads app/firebase_key.json from a
+  # fixed relative path — it takes no environment variables. That file is a
+  # real Firebase service-account key, is gitignored, and is excluded from
+  # the image by .dockerignore. The bind mount below supplies it at runtime
+  # ONLY if it already exists on your machine at that path — never commit
+  # it, and never bake it into the image.
+  #
+  # If the file does not exist locally, Docker will create an empty
+  # directory at the mount target instead of failing the mount. The
+  # backend's own Firebase-init code already handles that failure
+  # gracefully (logs an error, disables persistence) — /api/optimize still
+  # returns a full result, /api/history just returns nothing. See
+  # component-3/REAL-COMPONENT-3.md for details.
   component3:
     build:
       context: ./component-3/backend
       dockerfile: Dockerfile
     ports:
       - "8003:8003"
-    env_file:
-      # Same optional-file strategy as component2 — see comment above.
-      - path: ./component-3/backend/.env
-        required: false
-    environment:
-      DATABASE_URL: sqlite+aiosqlite:////data/component3_ewaste_gas.db
     volumes:
-      - component3-db-data:/data
+      - ./component-3/backend/app/firebase_key.json:/app/app/firebase_key.json:ro
     networks:
       - ewaste-net
     restart: unless-stopped

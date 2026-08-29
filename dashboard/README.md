@@ -74,9 +74,8 @@ each section) is unchanged. `Header.jsx`, `Sidebar.jsx`, `ComponentCard.jsx`,
 and `ComponentDetail.jsx` were removed and replaced by `Navbar.jsx`,
 `FlowDiagram.jsx`, `StageCard.jsx`, and `StageDetail.jsx`.
 
-## Process limitation
+## Process status
 
-The real Process backend is not present in this repository yet (see
-`integration/INTEGRATION_STATUS.md`). The `/process` page shows an explicit
-warning about this and still links to the existing frontend — this
-dashboard does not fabricate or fake any Process result.
+The real Smart Process Optimization backend was installed and verified in
+Step 5A/5B (see `component-3/REAL-COMPONENT-3.md`) — the `/process` page no
+longer shows a "not deployed" warning.

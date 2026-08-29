@@ -43,8 +43,6 @@ export const STAGES = [
       'Recycling and process optimization using material and moisture information, to route each batch through the right treatment.',
     openUrl: import.meta.env.VITE_COMPONENT3_FRONTEND_URL || 'http://localhost:3000',
     openLabel: 'Open Process',
-    limitation:
-      'The real process-optimization backend is not yet deployed here. This opens the existing interface, but its live calls will not resolve until that backend is in place.',
   },
   {
     id: 'recover',

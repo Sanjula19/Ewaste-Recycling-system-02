@@ -158,13 +158,21 @@ curl http://localhost:8080/api/component2/api/v1/alerts
 ### Component 3 — Smart Process Optimization (Wisu)
 ```bash
 # Health
-curl http://localhost:8080/api/component3/api/v1/health
+curl http://localhost:8080/api/component3/api/health
 
-# Dashboard stats
-curl http://localhost:8080/api/component3/api/v1/dashboard/stats
+# Supported materials
+curl http://localhost:8080/api/component3/api/materials
 
-# Latest sensor reading
-curl http://localhost:8080/api/component3/api/v1/readings/latest
+# Generate a process recipe
+curl -X POST http://localhost:8080/api/component3/api/optimize \
+     -H "Content-Type: application/json" \
+     -d '{"material_name": "PET Water Bottles", "waste_type": "Plastic", "weight_kg": 5.0, "moisture_condition": "Wet"}'
+
+# Past optimization results
+curl http://localhost:8080/api/component3/api/history
+
+# Latest SHEF moisture sensor reading
+curl http://localhost:8080/api/component3/api/sensor/moisture/latest
 ```
 
 ### Component 4 — Economic Valuation (Mayashi)
