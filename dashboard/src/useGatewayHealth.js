@@ -11,6 +11,7 @@ export function useGatewayHealth() {
     loading: true,
     gatewayReachable: false,
     services: {},
+    overallStatus: 'unknown',
     error: null,
   });
 
@@ -27,6 +28,7 @@ export function useGatewayHealth() {
             loading: false,
             gatewayReachable: true,
             services: data.services || {},
+            overallStatus: data.overall_status || 'unknown',
             error: null,
           });
         }
@@ -36,6 +38,7 @@ export function useGatewayHealth() {
             loading: false,
             gatewayReachable: false,
             services: {},
+            overallStatus: 'unreachable',
             error: err.message,
           });
         }

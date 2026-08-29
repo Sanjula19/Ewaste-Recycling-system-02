@@ -1,24 +1,36 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Header from './components/Header.jsx';
-import Sidebar from './components/Sidebar.jsx';
+import Navbar from './components/Navbar.jsx';
 import Home from './pages/Home.jsx';
-import ComponentDetail from './pages/ComponentDetail.jsx';
-import { COMPONENTS } from './config.js';
+import StageDetail from './pages/StageDetail.jsx';
+import History from './pages/History.jsx';
+import { STAGES } from './config.js';
+
+// Legacy paths from the previous (Step 6) shell, kept as redirects so old
+// links/bookmarks still land somewhere sensible.
+const LEGACY_REDIRECTS = {
+  '/dashboard': '/',
+  '/component1': '/detect',
+  '/component2': '/protect',
+  '/component3': '/process',
+  '/component4': '/recover',
+};
 
 export default function App() {
   return (
     <div className="app-shell">
-      <Header />
-      <Sidebar />
+      <Navbar />
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Home />} />
-          {COMPONENTS.map((c) => (
-            <Route key={c.id} path={c.path} element={<ComponentDetail component={c} />} />
+          <Route path="/" element={<Home />} />
+          {STAGES.map((stage) => (
+            <Route key={stage.id} path={stage.path} element={<StageDetail stage={stage} />} />
           ))}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/history" element={<History />} />
+          {Object.entries(LEGACY_REDIRECTS).map(([from, to]) => (
+            <Route key={from} path={from} element={<Navigate to={to} replace />} />
+          ))}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
