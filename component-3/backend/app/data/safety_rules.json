@@ -1,0 +1,37 @@
+{
+  "rules": {
+    "moisture_toxicity_matrix": {
+      "Wet": {
+        "Low"   : "WARNING",
+        "Medium": "WARNING",
+        "High"  : "CRITICAL"
+      },
+      "Dry": {
+        "Low"   : "SECURE",
+        "Medium": "SECURE",
+        "High"  : "WARNING"
+      }
+    },
+    "material_toxicity_map": {
+      "Newspapers"       : "Low",
+      "Cardboard Boxes"  : "Low",
+      "Office Paper"     : "Low",
+      "PET Water Bottles": "Low",
+      "Food Containers"  : "Low",
+      "Plastic Bags"     : "Low",
+      "Glass Bottles"    : "Low",
+      "Glass Jars"       : "Low",
+      "Old Clothes"      : "Low",
+      "Fabric Scraps"    : "Low",
+      "Old Tires"        : "Medium",
+      "Rubber Footwear"  : "Low",
+      "Wooden Pallets"   : "Low",
+      "Furniture Scraps" : "Low"
+    },
+    "safety_actions": {
+      "CRITICAL": { "actions": ["Stop processing", "Full PPE required", "Supervisor approval needed"] },
+      "WARNING" : { "actions": ["Pre-drying required", "Standard PPE", "Monitor temperature"] },
+      "SECURE"  : { "actions": ["Normal processing", "Standard safety"] }
+    }
+  }
+}

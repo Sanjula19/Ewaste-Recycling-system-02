@@ -1,0 +1,18 @@
+{
+  "chemical_agents": {
+    "Newspapers"        : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Standard safety - dust mask recommended" },
+    "Cardboard Boxes"   : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Standard safety - dust mask recommended" },
+    "Office Paper"      : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Standard safety" },
+    "PET Water Bottles" : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Thermal melting", "handling_note": "Ensure proper ventilation during thermal processing" },
+    "Food Containers"   : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Thermal melting", "handling_note": "Clean before processing - remove food residue" },
+    "Plastic Bags"      : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Thermal melting", "handling_note": "Ensure proper ventilation during thermal processing" },
+    "Glass Bottles"     : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical crushing", "handling_note": "Safety gloves required - sharp edges" },
+    "Glass Jars"        : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical crushing", "handling_note": "Safety gloves required - sharp edges" },
+    "Old Clothes"       : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Standard safety" },
+    "Fabric Scraps"     : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Standard safety" },
+    "Old Tires"         : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Thermal pyrolysis", "handling_note": "Full PPE required - toxic fumes possible during pyrolysis" },
+    "Rubber Footwear"   : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Thermal processing", "handling_note": "Proper ventilation required" },
+    "Wooden Pallets"    : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Dust mask recommended" },
+    "Furniture Scraps"  : { "chemical_agent": "None", "chemical_concentration": "None", "chemical_purpose": "No chemical required - Mechanical shredding", "handling_note": "Check for metal components before processing" }
+  }
+}

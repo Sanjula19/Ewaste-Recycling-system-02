@@ -1,86 +1,64 @@
-﻿"""
-FastAPI Application -- E-Waste Toxic Gas Detection System
-=========================================================
-Startup sequence:
-  1. Create DB tables (if not exists)
-  2. Load ML models
-  3. Start MQTT subscriber background thread
 """
-from contextlib import asynccontextmanager
+Component 3 - Smart Process Optimization Engine
+FastAPI Main Application
+IT22277640 - SLIIT
+"""
+
 from fastapi import FastAPI
-import logging
-
-from app.config import settings
-from app.middleware.cors import add_cors_middleware
-from app.api.v1.router import api_router
-from app.services.ml_service import ml_service
-from app.services.mqtt_subscriber import mqtt_subscriber
-from app.db.database import init_db
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # ---- Startup ----
-    logger.info("=" * 60)
-    logger.info("E-Waste Toxic Gas Detection System -- Starting up")
-    logger.info("=" * 60)
-
-    # 1. Initialise DB tables
-    logger.info("Initialising database...")
-    await init_db()
-    logger.info("Database ready.")
-
-    # 2. Load ML models
-    logger.info("Loading ML models...")
-    ml_service.load_models()
-    if ml_service.is_loaded:
-        logger.info(f"ML models loaded (version: {ml_service.version})")
-    else:
-        logger.warning("ML models NOT loaded -- predictions will return error responses")
-
-    # 3. Start real MQTT subscriber
-    logger.info(f"Starting MQTT subscriber -> {settings.mqtt_broker}:{settings.mqtt_port}")
-    logger.info(f"Subscribing to topic: {settings.mqtt_topic}")
-    mqtt_subscriber.start()
-
-    logger.info("Startup complete. Waiting for ESP32 MQTT messages...")
-    logger.info("=" * 60)
-
-    yield
-
-    # ---- Shutdown ----
-    logger.info("Shutting down -- stopping MQTT subscriber...")
-    mqtt_subscriber.stop()
-    logger.info("Shutdown complete.")
-
+from fastapi.middleware.cors import CORSMiddleware
+from app.models.material_model.load_models import load_all_models
+from app.api.routes import optimize, history, health, materials
+from app.config import initialize_firebase
 
 app = FastAPI(
-    title=settings.app_name,
-    description=(
-        "E-Waste Toxic Gas Detection System Backend API. "
-        "Receives real sensor data from ESP32 via MQTT. "
-        "No simulated or hardcoded data."
-    ),
-    version=settings.app_version,
-    lifespan=lifespan,
+    title="Component 3 - Smart Process Optimization Engine",
+    description="AI-powered waste recycling process optimizer - IT22277640",
+    version="1.0.0"
 )
 
-add_cors_middleware(app)
-app.include_router(api_router, prefix="/api/v1")
+# CORS - allow React frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routes
+app.include_router(optimize.router,  prefix="/api", tags=["Optimize"])
+app.include_router(history.router,   prefix="/api", tags=["History"])
+app.include_router(health.router,    prefix="/api", tags=["Health"])
+app.include_router(materials.router, prefix="/api", tags=["Materials"])
+
+from app.api.routes import optimize, history, health, materials, sensor  # ← "sensor" මෙතනට add කරන්න
+
+app.include_router(optimize.router, tags=["optimize"])
+app.include_router(history.router, tags=["history"])
+app.include_router(health.router, tags=["health"])
+app.include_router(materials.router, tags=["materials"])
+app.include_router(sensor.router, tags=["sensor"])  # ← add New  sensor router here
+
+@app.on_event("startup")
+async def startup_event():
+    """Load models and initialize Firebase on startup."""
+    load_all_models()
+    initialize_firebase()
+    print("=" * 50)
+    print("  Component 3 API Started!")
+    print("  POST /api/optimize")
+    print("  GET  /api/history")
+    print("  GET  /api/health")
+    print("  Docs: http://localhost:8000/docs")
+    print("=" * 50)
 
 
 @app.get("/")
-async def root():
+def root():
     return {
-        "message": "E-Waste Toxic Gas Detection System API",
-        "docs": "/docs",
-        "health": "/api/v1/health",
-        "mqtt_status": "/api/v1/mqtt/status",
-        "latest_reading": "/api/v1/readings/latest",
+        "component" : "Component 3 - Smart Process Optimization Engine",
+        "student"   : "IT22277640",
+        "status"    : "running",
+        "version"   : "1.0.0",
+        "docs"      : "http://localhost:8000/docs"
     }

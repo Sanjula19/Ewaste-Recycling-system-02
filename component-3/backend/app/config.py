@@ -1,31 +1,45 @@
-from typing import List
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import firebase_admin
+from firebase_admin import credentials, firestore
+import os
 
-class Settings(BaseSettings):
-    app_name: str = "E-Waste Smart Process Optimization"
-    app_version: str = "2.0.0"
-    debug: bool = True
-    database_url: str = "sqlite+aiosqlite:///./component3_ewaste_gas.db"
-    model_dir: str = "ml_models"
+db = None
+_initialized = False
 
-    # ── MQTT ──────────────────────────────────────────────────────────
-    mqtt_broker: str = "8c22931e95374473bea07f2ce5b65093.s1.eu.hivemq.cloud"
-    mqtt_port: int = 8883
-    mqtt_topic: str = "ewaste/esp32/sensors"
-    mqtt_user: str = "hivemq.webclient.1786954284059"
-    mqtt_password: str = "3yFM1cjfifMAV4UzzbReWpykGepk9cCO"
 
-    raw_adc_alert_thresholds_json: str = ""
-    cors_origins: List[str] = []
-    jwt_secret_key: str = "ewaste-gas-detection-super-secret-key-2024"
-    jwt_algorithm: str = "HS256"
-    jwt_expiry_hours: int = 24
-    default_api_key: str = "esp32-device-key-001"
+def initialize_firebase():
+    global db, _initialized
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        protected_namespaces=()
-    )
+    if _initialized:
+        return
 
-settings = Settings()
+    try:
+        # firebase_key.json path
+        key_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "firebase_key.json"
+        )
+
+        if not os.path.exists(key_path):
+            print(f"  firebase_key.json not found at: {key_path}")
+            return
+
+        cred = credentials.Certificate(key_path)
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+        _initialized = True
+        print("  Firebase connected!")
+
+    except Exception as e:
+        print(f"  Firebase error: {e}")
+
+
+def get_db():
+    return db
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
+RECYCLING_BENCHMARK_PATH = os.path.join(DATA_DIR, "recycling_benchmark.csv")
+SAFETY_RULES_PATH        = os.path.join(DATA_DIR, "safety_rules.json")
+CHEMICAL_AGENT_MAP_PATH  = os.path.join(DATA_DIR, "chemical_agent_map.json")

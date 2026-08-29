@@ -17,3 +17,12 @@ backend/app/firebase_key.json
 *password*
 *secret*
 *credential*
+
+# Exception: these four are the real, required Smart Process Optimization
+# runtime artifacts (Decision Tree + encoders + scaler) — the backend
+# crashes on startup without them. Only these exact paths are allowed
+# through the blanket *.pkl rule above; all other .pkl files stay ignored.
+!backend/app/models/material_model/model.pkl
+!backend/app/models/material_model/encoders.pkl
+!backend/app/models/material_model/scaler.pkl
+!backend/app/models/material_model/target_encoder.pkl
