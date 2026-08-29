@@ -9,9 +9,20 @@
 # unreachable, per component-4/backend/.env.example. This Dockerfile does not
 # require an InfluxDB container to run.
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
+
+# STEP 7 FIX: some Docker Desktop network setups block plain-HTTP egress and
+# return "403 Forbidden" for the default http://deb.debian.org mirror. Forcing
+# both the classic sources.list and the newer deb822 sources.list.d format to
+# HTTPS fixes `apt-get update` without changing which packages are installed.
+RUN if [ -f /etc/apt/sources.list ]; then \
+        sed -i 's|http://deb.debian.org|https://deb.debian.org|g; s|http://security.debian.org|https://security.debian.org|g' /etc/apt/sources.list; \
+    fi; \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i 's|http://deb.debian.org|https://deb.debian.org|g; s|http://security.debian.org|https://security.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
+    fi
 
 # libgomp1: required by tensorflow's CPU runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends \

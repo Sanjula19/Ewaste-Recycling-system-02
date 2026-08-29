@@ -75,7 +75,14 @@ services:
     ports:
       - "8002:8002"
     env_file:
-      - ./component-2/backend/.env
+      # Optional: component-2/backend/.env holds real MQTT/JWT secrets and
+      # is intentionally untracked (see .env.example next to it). Compose
+      # must still parse/build/run when it's absent — `required: false`
+      # (Compose v2.24+) skips it instead of failing. If missing, the
+      # container falls back to the defaults already baked into
+      # app/config.py, same as running `uvicorn` directly without a .env.
+      - path: ./component-2/backend/.env
+        required: false
     environment:
       # Override the .env's relative sqlite path so data survives container
       # recreation via the named volume mounted below.
@@ -96,7 +103,9 @@ services:
     ports:
       - "8003:8003"
     env_file:
-      - ./component-3/backend/.env
+      # Same optional-file strategy as component2 — see comment above.
+      - path: ./component-3/backend/.env
+        required: false
     environment:
       DATABASE_URL: sqlite+aiosqlite:////data/component3_ewaste_gas.db
     volumes:
