@@ -1,0 +1,43 @@
+# Root .gitignore for the integration repository.
+# Each component also has its own .gitignore for concerns specific to that
+# component (component-2/3/4/.gitignore) — this file covers the gateway,
+# dashboard, component-1 frontend, and top-level integration artifacts,
+# plus repo-wide catch-alls so these mistakes can't recur.
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+env/
+ml_env/
+*.egg-info/
+pip-report.json
+
+# --- Node ---
+node_modules/
+dist/
+build/
+.vite/
+
+# --- Environment / secrets (NEVER commit real values) ---
+.env
+.env.*
+!.env.example
+
+# --- Local databases (SQLite files must not be committed) ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/settings.json
+.idea/
+*.swp
+
+# --- Logs ---
+*.log
