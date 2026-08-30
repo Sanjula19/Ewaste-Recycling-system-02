@@ -1,0 +1,10 @@
+* [33m7546800[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mintegration[m[33m, [m[1;31morigin/integration[m[33m)[m feat: complete e-waste system integration
+* [33m3a91e85[m feat: integrate four e-waste system components
+* [33m8240f3e[m frontend dashboard
+* [33mf6da315[m updated
+* [33mf0adedc[m dockerization
+* [33m37940ee[m dashboard
+* [33m35af2e2[m updated
+* [33mc222fd1[m updated
+* [33m72d67da[m chore: add four components to integration workspace
+* [33m461cc40[m Initial commit
