@@ -18,6 +18,7 @@ export const METALS = [
 export const RESIDUALS = [
   { key: 'PVC Plastic', cssVar: '--mat-pvc', i18nKey: 'materials.pvc plastic' },
   { key: 'Polystyrene', cssVar: '--mat-polystyrene', i18nKey: 'materials.polystyrene' },
+  { key: 'pp', cssVar: '--mat-pp', i18nKey: 'materials.pp' },
   { key: 'Contaminated Glass', cssVar: '--mat-glass', i18nKey: 'materials.contaminated glass' },
 ];
 

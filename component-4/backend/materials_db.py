@@ -45,7 +45,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-Route = Literal["pyrolysis", "thermal_recovery", "recyclable_metal"]
+Route = Literal["pyrolysis", "thermal_recovery", "mechanical_recycling", "recyclable_metal"]
+
+# Which of the two treatment processes a residual goes through.
+#
+#   pyrolysis  -- thermal. Heat the material in the absence of oxygen and
+#                 recover bio-oil / syngas / char. Applies to polystyrene
+#                 and polypropylene; contaminated glass rides this route
+#                 too but as an inert heat sink (it consumes energy
+#                 rather than yielding it -- see is_heat_sink).
+#
+#   mechanical -- physical. Shred, wash and granulate back into feedstock.
+#                 No combustion, so no energy recovery figure exists for
+#                 it at all: reporting 0 kWh here is the honest answer,
+#                 not a gap in the model. PVC goes this way.
+RecyclingMethod = Literal["pyrolysis", "mechanical"]
 
 # ---------------------------------------------------------------------------
 # Recyclable metals -> handled by /forecast, not /disposition.
@@ -68,23 +82,38 @@ class MaterialProfile:
     oil_frac: float
     gas_frac: float
     char_frac: float
+    recycling_method: RecyclingMethod = "pyrolysis"  # see RecyclingMethod above
     density_g_cc: float = 0.0        # only meaningful for heat-sink materials
     specific_heat_j_g_c: float = 0.0  # only meaningful for heat-sink materials
     source_db_key: str = ""          # matching key in thermodynamic_properties_db.json
 
 
 NON_RECYCLABLES: dict[str, MaterialProfile] = {
+    # PVC is routed to MECHANICAL recycling, not pyrolysis. The LHV and
+    # yield fractions below are retained from the source datasheet for
+    # reference only -- nothing on the mechanical route reads them, since
+    # shredding and granulating releases no energy to account for.
     "pvc plastic": MaterialProfile(
         is_heat_sink=False, lhv_mj_kg=20.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        recycling_method="mechanical",
         source_db_key="Vycom VINTEC I (R) PVC Polyvinyl Chloride (PVC)",
     ),
     "pvc": MaterialProfile(
         is_heat_sink=False, lhv_mj_kg=20.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        recycling_method="mechanical",
         source_db_key="Vycom VINTEC I (R) PVC Polyvinyl Chloride (PVC)",
     ),
     "polystyrene": MaterialProfile(
         is_heat_sink=False, lhv_mj_kg=40.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
         source_db_key="Overview of materials for Expanded Polystyrene (EPS)",
+    ),
+    "pp": MaterialProfile(
+        is_heat_sink=False, lhv_mj_kg=42.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        source_db_key="Polypropylene (PP) Scrap",
+    ),
+    "polypropylene": MaterialProfile(
+        is_heat_sink=False, lhv_mj_kg=42.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        source_db_key="Polypropylene (PP) Scrap",
     ),
     "contaminated glass": MaterialProfile(
         is_heat_sink=True, lhv_mj_kg=0.0, oil_frac=0.0, gas_frac=0.0, char_frac=1.0,
@@ -116,7 +145,12 @@ def resolve_material(waste_type: str) -> tuple[Route, "MaterialProfile | None"]:
         return "recyclable_metal", None
     if key in NON_RECYCLABLES:
         profile = NON_RECYCLABLES[key]
-        route = "thermal_recovery" if profile.is_heat_sink else "pyrolysis"
+        if profile.recycling_method == "mechanical":
+            route = "mechanical_recycling"
+        elif profile.is_heat_sink:
+            route = "thermal_recovery"
+        else:
+            route = "pyrolysis"
         return route, profile
     raise KeyError(
         f"Unrecognised waste_type '{waste_type}'. Known non-recyclables: "
@@ -132,8 +166,14 @@ def resolve_material(waste_type: str) -> tuple[Route, "MaterialProfile | None"]:
 PYROLYSIS_EFFICIENCY = 0.67          # eta in E_rec = M x LHV x eta
 PYROLYSIS_TEMP_CELSIUS = 500.0       # process temperature the heat-sink calc heats material to
 AMBIENT_TEMP_CELSIUS = 25.0          # assumed intake temperature
-JOULES_TO_KWH = 2.77778e-7           # 1 J = 2.77778e-7 kWh
-MJ_TO_KWH = 0.277778                 # 1 MJ = 0.277778 kWh (equivalently, /3.6)
+# Exact, not the truncated decimals these are usually quoted as. The
+# conversion is definitional -- 1 kWh IS 3.6 MJ -- so writing 0.277778
+# throws away precision for no reason. The rounded forms (2.77778e-7 and
+# 0.277778) are what your strategic_disposition.py notebook printed and
+# remain correct to 6 s.f.; these just avoid compounding that truncation
+# across a whole cycle's worth of batches.
+JOULES_TO_KWH = 1.0 / 3.6e6          # 1 J  = 2.777778e-7 kWh
+MJ_TO_KWH = 1.0 / 3.6                # 1 MJ = 0.2777778 kWh
 
 # kg CO2 avoided per kWh of grid electricity displaced.
 # Sri Lanka Sustainable Energy Authority, "Sri Lanka Energy Balance 2022":

@@ -147,18 +147,51 @@ def backtest(series: pd.Series, holdout: int = BACKTEST_HOLDOUT_DAYS) -> tuple[f
 # Sell / Hold decision + HOLD Command Upgrade
 # ---------------------------------------------------------------------------
 
-def generate_recommendation(current_price: float, path: ForecastPath, last_date: pd.Timestamp) -> dict:
+def generate_recommendation(
+    current_price: float,
+    path: ForecastPath,
+    last_date: pd.Timestamp,
+    mape: float = 0.0,
+) -> dict:
+    """
+    Sell/Hold, judged against the model's own demonstrated reliability
+    rather than one flat number.
+
+    Two rules, both aimed at not calling a decision on noise:
+
+    1. The bar a predicted gain has to clear is the LARGER of the fixed
+       hold threshold and this metal's backtested MAPE. Steel backtests
+       at ~3.5% error, so a 2% predicted rise there is well inside the
+       model's own margin -- reporting that as HOLD dresses up noise as
+       a decision. Copper backtests near 1.2%, so its bar stays at the
+       2% floor.
+
+    2. The comparison uses the forecast's LOWER confidence bound, not
+       the mean. HOLD therefore means "even on the pessimistic path,
+       waiting still beats selling today" -- a claim worth acting on,
+       where "the midpoint might beat today" is not.
+
+    The effect is fewer HOLDs, each better founded. Every figure behind
+    the call is in recommendation_reason so it can be defended.
+    """
     peak_idx = int(np.argmax(path.mean))
     peak_price = float(path.mean[peak_idx])
+    confident_peak = float(path.lower[peak_idx])   # pessimistic case at the peak
     peak_date = (last_date + timedelta(days=peak_idx + 1)).strftime("%Y-%m-%d")
 
-    if peak_price > current_price * (1 + HOLD_THRESHOLD_PCT / 100):
+    threshold_pct = max(HOLD_THRESHOLD_PCT, mape)
+    required_price = current_price * (1 + threshold_pct / 100)
+    basis = "model error (MAPE)" if mape > HOLD_THRESHOLD_PCT else "fixed floor"
+
+    if confident_peak > required_price:
         return {
             "recommendation": "HOLD",
             "recommendation_reason": (
-                f"Prices are projected to rise {((peak_price / current_price) - 1) * 100:.1f}% "
-                f"to ~{peak_price:.2f} USD/kg by {peak_date}, above the {HOLD_THRESHOLD_PCT}% "
-                f"hold threshold."
+                f"Even the lower confidence bound of the 90-day forecast reaches "
+                f"~{confident_peak:.2f} USD/kg by {peak_date} "
+                f"({((confident_peak / current_price) - 1) * 100:.1f}% above today's "
+                f"{current_price:.2f}), clearing the {threshold_pct:.2f}% bar set by "
+                f"{basis}. Holding is worth the wait."
             ),
             "expected_peak_price": round(peak_price, 4),
             "expected_peak_date": peak_date,
@@ -173,9 +206,10 @@ def generate_recommendation(current_price: float, path: ForecastPath, last_date:
     return {
         "recommendation": "SELL NOW",
         "recommendation_reason": (
-            f"90-day forecast shows no rise beyond the {HOLD_THRESHOLD_PCT}% hold threshold "
-            f"(projected peak ~{peak_price:.2f} USD/kg vs current {current_price:.2f} USD/kg) "
-            f"-- liquidate at today's price."
+            f"No confident rise in the 90-day forecast: the pessimistic case peaks at "
+            f"~{confident_peak:.2f} USD/kg (mean ~{peak_price:.2f}) against today's "
+            f"{current_price:.2f}, short of the {threshold_pct:.2f}% bar set by {basis}. "
+            f"Any projected gain sits inside the model's own error -- liquidate at today's price."
         ),
         "expected_peak_price": None,
         "expected_peak_date": None,
@@ -319,7 +353,7 @@ def calculate_forecast(req: ForecastRequest) -> ForecastResponse:
             )
         )
 
-    rec = generate_recommendation(current_price, path, last_date)
+    rec = generate_recommendation(current_price, path, last_date, mape)
     if rec["recommendation"] == "SELL NOW":
         rec["profit_if_sell"] = round(current_price * req.weight_kg, 2)
 

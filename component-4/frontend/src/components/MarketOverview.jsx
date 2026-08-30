@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
@@ -104,7 +105,12 @@ function MarketCard({ item, t, intlTag }) {
   const asOfDate = new Date(item.data_as_of).toLocaleDateString(intlTag, { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <div className="market-card" style={{ '--chip-color': materialColorVar(item.metal) }}>
+    <Link
+      to={`/forecast?metal=${encodeURIComponent(item.metal)}`}
+      className="market-card"
+      style={{ '--chip-color': materialColorVar(item.metal) }}
+      aria-label={`${materialLabel(item.metal, t)} — ${t('dashboard.valueThisMetal')}`}
+    >
       <div className="market-card-top">
         <span className="market-card-name">{materialLabel(item.metal, t)}</span>
         <Badge variant={isSell ? 'success' : 'warning'}>
@@ -130,6 +136,6 @@ function MarketCard({ item, t, intlTag }) {
           <span className="market-card-asof"><Clock size={12} /> {t('dashboard.dataAsOf')} {asOfDate}</span>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
