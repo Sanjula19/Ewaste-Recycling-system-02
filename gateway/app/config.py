@@ -15,10 +15,10 @@ class Settings:
     gateway_port: int = int(os.getenv("GATEWAY_PORT", "8080"))
 
     # Upstream component URLs
-    component1_url: str = os.getenv("COMPONENT1_URL", "http://localhost:8001")
-    component2_url: str = os.getenv("COMPONENT2_URL", "http://localhost:8002")
-    component3_url: str = os.getenv("COMPONENT3_URL", "http://localhost:8003")
-    component4_url: str = os.getenv("COMPONENT4_URL", "http://localhost:8004")
+    component1_url: str = os.getenv("COMPONENT1_URL", "http://127.0.0.1:8001")
+    component2_url: str = os.getenv("COMPONENT2_URL", "http://127.0.0.1:8002")
+    component3_url: str = os.getenv("COMPONENT3_URL", "http://127.0.0.1:8003")
+    component4_url: str = os.getenv("COMPONENT4_URL", "http://127.0.0.1:8004")
 
     # Timeouts (seconds)
     proxy_timeout: float = float(os.getenv("PROXY_TIMEOUT", "30"))

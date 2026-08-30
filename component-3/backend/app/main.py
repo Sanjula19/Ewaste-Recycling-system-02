@@ -7,7 +7,7 @@ IT22277640 - SLIIT
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models.material_model.load_models import load_all_models
-from app.api.routes import optimize, history, health, materials
+from app.api.routes import optimize, history, health, materials, sensor, detections, reports
 from app.config import initialize_firebase
 
 app = FastAPI(
@@ -30,14 +30,9 @@ app.include_router(optimize.router,  prefix="/api", tags=["Optimize"])
 app.include_router(history.router,   prefix="/api", tags=["History"])
 app.include_router(health.router,    prefix="/api", tags=["Health"])
 app.include_router(materials.router, prefix="/api", tags=["Materials"])
-
-from app.api.routes import optimize, history, health, materials, sensor  # ← "sensor" මෙතනට add කරන්න
-
-app.include_router(optimize.router, tags=["optimize"])
-app.include_router(history.router, tags=["history"])
-app.include_router(health.router, tags=["health"])
-app.include_router(materials.router, tags=["materials"])
-app.include_router(sensor.router, tags=["sensor"])  # ← add New  sensor router here
+app.include_router(sensor.router, tags=["Sensor"])  # sensor routes already carry the /api prefix
+app.include_router(detections.router, tags=["Detections"])  # also carries the /api prefix
+app.include_router(reports.router, tags=["Reports"])  # also carries the /api prefix
 
 @app.on_event("startup")
 async def startup_event():

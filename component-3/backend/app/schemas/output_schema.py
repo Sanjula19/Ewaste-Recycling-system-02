@@ -47,3 +47,8 @@ class OptimizeResponse(BaseModel):
     batch_id  : Optional[str] = None
     timestamp : Optional[str] = None
     doc_id    : Optional[str] = None
+
+    # IoT moisture provenance ("sensor" or "manual")
+    moisture_source : Optional[str]   = None
+    sensor_raw_value: Optional[int]   = None
+    sensor_timestamp: Optional[str]   = None

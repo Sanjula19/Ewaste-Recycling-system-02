@@ -4,12 +4,15 @@
   "description": "Component 3 - Smart Process Optimization Engine Frontend",
   "private": true,
   "dependencies": {
+    "axios": "^1.4.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.4.0"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
+    "dev": "react-scripts start",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { optimizeProcess, getHistory, getHealth, getLatestMoisture } from "../services/api";
+import { optimizeProcess, getHistory, getHealth, getLatestMoisture, getPendingDetections } from "../services/api";
 import translations from "../translations";
+import { F, G, GL, GLL, GB, CAT_ICONS, CAT_COLORS, SAFETY_META, METHOD_META } from "../theme";
+import { Donut, BarChart, HBar, Radar } from "../components/Charts";
+import NotificationBell from "../components/NotificationBell";
+import { IconRecycle, NAV_ICONS } from "../components/Icons";
+import HeroCarousel from "../components/HeroCarousel";
+import { logActivity } from "../activityLog";
+import Reports from "./Reports";
 
 // ── Scope: Plastic + Paper + Glass only (Textile/Rubber/Wood removed) ──
 const MATERIALS = [
@@ -14,116 +21,23 @@ const MATERIALS = [
   { name:"Glass Jars",        category:"Glass",   waste_type:"Glass",   toxicity:"Low", defaultWeight:"4", defaultMoisture:"Dry" },
 ];
 
-const CAT_ICONS  = { Paper:"📄", Plastic:"🧴", Glass:"🫙" };
-const CAT_COLORS = {
-  Paper:   { main:"#2A9D70", light:"#EAF8F1", bar:"#62C69B" },
-  Plastic: { main:"#D97706", light:"#FFF5DF", bar:"#F2A93B" },
-  Glass:   { main:"#16817A", light:"#E3F6F2", bar:"#55BDB2" },
+// Component 1's /waste/predict returns broad classes (Plastic/Glass/Metal/
+// Paper/Cardboard) — map each to one of this dashboard's specific materials
+// so an incoming detection can be added to the batch. Metal has no mapping:
+// this component doesn't process it (not in MATERIALS above).
+const DETECTION_MATERIAL_MAP = {
+  Plastic  : MATERIALS.find(m=>m.name==="PET Water Bottles"),
+  Glass    : MATERIALS.find(m=>m.name==="Glass Bottles"),
+  Paper    : MATERIALS.find(m=>m.name==="Newspapers"),
+  Cardboard: MATERIALS.find(m=>m.name==="Cardboard Boxes"),
+  Metal    : null,
 };
-const SAFETY_META = {
-  CRITICAL:{ color:"#C62828", light:"#FFEBEE", border:"#EF9A9A", icon:"🚨", label:"Critical Risk" },
-  WARNING: { color:"#D97706", light:"#FFF5DF", border:"#F3C878", icon:"⚠️", label:"Warning"       },
-  SECURE:  { color:"#176B4D", light:"#EAF8F1", border:"#9ADDBB", icon:"✅", label:"Secure"        },
-};
-const METHOD_META = {
-  Mechanical:{ icon:"⚙️", color:"#2A9D70", light:"#EAF8F1", desc:"Shred & Crush"    },
-  Thermal:   { icon:"🔥", color:"#C65D24", light:"#FFF0E7", desc:"Melt & Pyrolysis"  },
-  Chemical:  { icon:"🧪", color:"#4A148C", light:"#F3E5F5", desc:"Chemical Treatment"},
-};
+
 const LANG_OPTIONS = [
   { code:"EN", label:"English", flag:"🇬🇧" },
   { code:"SI", label:"සිංහල",   flag:"🇱🇰" },
   { code:"TA", label:"தமிழ்",   flag:"🇱🇰" },
 ];
-
-// Light botanical theme
-const G  = "#176B4D";   // deep teal green
-const GL = "#2A9D70";   // fresh green
-const GLL= "#62C69B";   // mint accent
-const GB = "#EAF8F1";   // soft mint background
-
-function Donut({ pct, color, size=110, label }) {
-  const r=40, cx=size/2, cy=size/2, circ=2*Math.PI*r;
-  const dash=circ*Math.min(pct/100,1);
-  return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-      <svg width={size} height={size}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#EEEEEE" strokeWidth={9}/>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={9}
-          strokeDasharray={`${dash} ${circ-dash}`} strokeDashoffset={circ*0.25}
-          strokeLinecap="round" style={{transition:"stroke-dasharray 1.2s ease"}}/>
-        <text x={cx} y={cy-4} textAnchor="middle" style={{fontSize:15,fontWeight:700,fill:color,fontFamily:"Times New Roman"}}>{Math.round(pct)}%</text>
-        <text x={cx} y={cy+13} textAnchor="middle" style={{fontSize:9,fill:"#9E9E9E",fontFamily:"Times New Roman"}}>of max</text>
-      </svg>
-      <div style={{fontSize:11,color:"#757575",fontFamily:"Times New Roman",textAlign:"center"}}>{label}</div>
-    </div>
-  );
-}
-
-function BarChart({ data, height=140 }) {
-  const maxVal=Math.max(...data.map(d=>d.value),1);
-  const barW=36, gap=14, total=data.length*(barW+gap)-gap;
-  return (
-    <svg width={total+40} height={height+40} style={{overflow:"visible"}}>
-      {[0,25,50,75,100].map(g=>{
-        const y=10+height-(g/100)*height;
-        return <g key={g}>
-          <line x1={20} y1={y} x2={total+20} y2={y} stroke="#F0F0F0" strokeWidth={1}/>
-          <text x={16} y={y+4} textAnchor="end" style={{fontSize:8,fill:"#BDBDBD",fontFamily:"Times New Roman"}}>{g}%</text>
-        </g>;
-      })}
-      {data.map((d,i)=>{
-        const x=20+i*(barW+gap), barH=(d.value/maxVal)*height, y=10+height-barH;
-        return <g key={i}>
-          <rect x={x} y={y} width={barW} height={barH} rx={4} fill={d.color} opacity={0.85}/>
-          <text x={x+barW/2} y={y-5} textAnchor="middle" style={{fontSize:9,fontWeight:700,fill:d.color,fontFamily:"Times New Roman"}}>{d.display}</text>
-          <text x={x+barW/2} y={height+26} textAnchor="middle" style={{fontSize:9,fill:"#757575",fontFamily:"Times New Roman"}}>{d.label}</text>
-        </g>;
-      })}
-    </svg>
-  );
-}
-
-function HBar({ value, max, color, label, unit, delay=0 }) {
-  const [w, setW] = useState(0);
-  useEffect(()=>{const t=setTimeout(()=>setW((value/max)*100),delay+120);return()=>clearTimeout(t);},[value,max,delay]);
-  return (
-    <div style={{marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-        <span style={{fontSize:12,color:"#555",fontFamily:"Times New Roman"}}>{label}</span>
-        <span style={{fontSize:12,fontWeight:700,color,fontFamily:"Times New Roman"}}>{value}{unit}</span>
-      </div>
-      <div style={{height:8,background:"#EEEEEE",borderRadius:4,overflow:"hidden"}}>
-        <div style={{height:"100%",width:`${w}%`,background:color,borderRadius:4,transition:"width 1.3s ease"}}/>
-      </div>
-    </div>
-  );
-}
-
-function Radar({ data, size=180 }) {
-  const cx=size/2, cy=size/2, r=size*0.36, n=data.length;
-  const ang=(i)=>(Math.PI*2*i/n)-Math.PI/2;
-  const pt=(i,v)=>({x:cx+r*Math.cos(ang(i))*v,y:cy+r*Math.sin(ang(i))*v});
-  const gridPts=(v)=>data.map((_,i)=>pt(i,v));
-  return (
-    <svg width={size} height={size}>
-      {[0.25,0.5,0.75,1].map(v=>(
-        <polygon key={v} points={gridPts(v).map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="#E8E8E8" strokeWidth={0.8}/>
-      ))}
-      {data.map((_,i)=>{const e=pt(i,1);return<line key={i} x1={cx} y1={cy} x2={e.x} y2={e.y} stroke="#E8E8E8" strokeWidth={0.8}/>;}) }
-      <polygon points={data.map((d,i)=>{const p=pt(i,d.value);return`${p.x},${p.y}`;}).join(" ")}
-        fill="rgba(46,125,50,0.15)" stroke={GL} strokeWidth={2}/>
-      {data.map((d,i)=>{
-        const p=pt(i,d.value),lp=pt(i,1.22);
-        return <g key={i}>
-          <circle cx={p.x} cy={p.y} r={4} fill={GL}/>
-          <text x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle"
-            style={{fontSize:9,fill:"#555",fontFamily:"Times New Roman"}}>{d.label}</text>
-        </g>;
-      })}
-    </svg>
-  );
-}
 
 const SIDEBAR_W = 220;
 
@@ -139,6 +53,12 @@ export default function Dashboard() {
   const [error,setError]                       = useState(null);
   const [history,setHistory]                   = useState([]);
   const [apiStatus,setApiStatus]               = useState("checking");
+  const [batchQueue,setBatchQueue]             = useState([]);
+  const [batchResults,setBatchResults]         = useState([]);
+  const [batchLoading,setBatchLoading]         = useState(false);
+  const [batchProgress,setBatchProgress]       = useState({done:0,total:0});
+  const [mobileNavOpen,setMobileNavOpen]       = useState(false);
+  const [incomingDetections,setIncomingDetections] = useState([]); // waiting on Component 1, needs weight confirm
   const [activeTab,setActiveTab]               = useState("home");
   const [darkMode,setDarkMode]                 = useState(() => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
 
@@ -148,7 +68,6 @@ export default function Dashboard() {
   const isAutoMoisture = selectedMaterial.category === "Plastic";
 
   const t = translations[lang];
-  const F = "Times New Roman, Georgia, serif";
 
   useEffect(()=>{getHealth().then(()=>setApiStatus("online")).catch(()=>setApiStatus("offline"));},[]);
 
@@ -177,6 +96,22 @@ export default function Dashboard() {
     if (isAutoMoisture && sensorMoisture) setMoisture(sensorMoisture);
   },[isAutoMoisture, sensorMoisture]);
 
+  // ── Poll Component 1 for newly classified items (waste_type + condition/grade) ──
+  useEffect(()=>{
+    const poll=()=>getPendingDetections().then(data=>{
+      if(data.detections && data.detections.length>0){
+        setIncomingDetections(prev=>[
+          ...prev,
+          ...data.detections.map(d=>({...d, id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`, weightInput:""})),
+        ]);
+        data.detections.forEach(d=>logActivity("detection",`New item detected from Component 1: ${d.waste_type} (Grade ${d.final_grade})`));
+      }
+    }).catch(()=>{});
+    poll();
+    const timer=setInterval(poll,4000);
+    return ()=>clearInterval(timer);
+  },[]);
+
   const handleGenerate=async()=>{
     setLoading(true); setError(null);
     const batchId=`BATCH-${Date.now()}`;
@@ -191,6 +126,7 @@ export default function Dashboard() {
         batch_id:batchId,
       });
       setResult(data); setActiveTab("result");
+      logActivity("optimize",`${selectedMaterial.name} optimized — ${data.recommended_method}, ${data.safety_status}`);
     } catch(e){ setError(t.errorMsg); }
     setLoading(false);
   };
@@ -198,6 +134,68 @@ export default function Dashboard() {
   const handleHistory=async()=>{
     try{const d=await getHistory();setHistory(d.results||[]);}catch{setHistory([]);}
     setActiveTab("history");
+  };
+
+  // ── Batch: queue up several materials, then generate them all in one go ──
+  const addToBatch=()=>{
+    setBatchQueue(q=>[...q,{
+      id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+      material:selectedMaterial,
+      weight:parseFloat(weight)||1,
+      moisture,
+      wasteType,
+      grade,
+    }]);
+  };
+
+  const removeFromBatch=(id)=>setBatchQueue(q=>q.filter(i=>i.id!==id));
+  const clearBatch=()=>{setBatchQueue([]);setBatchResults([]);};
+
+  // ── Detections arriving from Component 1: confirm a real weight, then queue ──
+  const setDetectionWeight=(id,val)=>setIncomingDetections(list=>list.map(d=>d.id===id?{...d,weightInput:val}:d));
+  const dismissDetection=(id)=>setIncomingDetections(list=>list.filter(d=>d.id!==id));
+  const addDetectionToBatch=(detection)=>{
+    const mat=DETECTION_MATERIAL_MAP[detection.waste_type];
+    const w=parseFloat(detection.weightInput);
+    if(!mat||!w||w<=0) return;
+    setBatchQueue(q=>[...q,{
+      id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+      material:mat,
+      weight:w,
+      moisture:mat.defaultMoisture,
+      wasteType:mat.waste_type,
+      grade:detection.final_grade,
+    }]);
+    dismissDetection(detection.id);
+  };
+
+  const handleGenerateAll=async()=>{
+    if(batchQueue.length===0) return;
+    setBatchLoading(true); setError(null);
+    setBatchProgress({done:0,total:batchQueue.length});
+    const results=[];
+    for(const item of batchQueue){
+      try{
+        const data=await optimizeProcess({
+          material_name:item.material.name,
+          waste_type:item.wasteType,
+          weight_kg:item.weight,
+          moisture_condition:item.moisture,
+          condition: item.grade==="A"?"Clean":item.grade==="B"?"Contaminated":"Damaged",
+          grade:item.grade,
+          batch_id:`BATCH-${Date.now()}-${item.id}`,
+        });
+        results.push({item,result:data,error:null});
+      }catch(e){
+        results.push({item,result:null,error:t.errorMsg});
+      }
+      setBatchProgress(p=>({...p,done:p.done+1}));
+    }
+    setBatchResults(results);
+    setBatchLoading(false);
+    setActiveTab("batch");
+    const okCount=results.filter(r=>r.result&&!r.error).length;
+    logActivity("batch",`Batch generated — ${okCount}/${results.length} items processed successfully`);
   };
 
   const getSM=(s)=>SAFETY_META[s]||SAFETY_META.SECURE;
@@ -247,8 +245,10 @@ export default function Dashboard() {
   const NAV = [
     {id:"home",    icon:"🏠", label:t.tabHome},
     {id:"optimize",icon:"⚡", label:t.tabOptimize},
+    {id:"batch",   icon:"📦", label:t.tabBatch},
     {id:"result",  icon:"📊", label:t.tabResult},
     {id:"history", icon:"📜", label:t.tabHistory},
+    {id:"reports", icon:"📄", label:t.tabReports},
   ];
 
   return (
@@ -260,12 +260,30 @@ export default function Dashboard() {
         select option{background:#FFFFFF;color:#1A1A1A;}
         input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
         input[type=range]{accent-color:${GL};}
-        .card{transition:box-shadow 0.2s;} .card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.09)!important;}
-        .mat-btn{transition:all 0.15s;} .mat-btn:hover{background:#F1F8E9!important;}
-        .nav-btn{transition:all 0.18s;} .gen-btn{transition:all 0.2s;}
-        .gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(46,125,50,0.35);}
+        .card{transition:box-shadow 0.25s ease,transform 0.25s ease;}
+        .card:hover{box-shadow:0 10px 28px rgba(47,122,92,0.14)!important;transform:translateY(-3px);}
+        .mat-btn{transition:all 0.15s;} .mat-btn:hover{background:#F1F8E9!important;transform:translateX(2px);}
+        .nav-btn{transition:all 0.18s;position:relative;}
+        .nav-btn:hover{background:rgba(255,255,255,0.12)!important;}
+        .gen-btn{transition:all 0.2s;}
+        .gen-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 26px rgba(46,125,50,0.4);}
         .hist-row{transition:background 0.12s;} .hist-row:hover{background:#F9FBF9!important;}
         .lang-btn{transition:all 0.15s;}
+        .stat-card{position:relative;overflow:hidden;transition:box-shadow 0.25s ease,transform 0.25s ease;}
+        .stat-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,${GL});opacity:0.85;}
+        .stat-card:hover{transform:translateY(-4px) scale(1.01);box-shadow:0 14px 30px rgba(47,122,92,0.16)!important;}
+        .stat-icon{transition:transform 0.3s ease;}
+        .stat-card:hover .stat-icon{transform:scale(1.12) rotate(-4deg);}
+        .hero-banner{position:relative;overflow:hidden;}
+        .hero-banner-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(135deg,rgba(47,122,92,0.62),rgba(76,174,132,0.48) 65%,rgba(63,191,143,0.34));}
+        .hero-cta{transition:all 0.2s ease;}
+        .hero-cta:hover{background:rgba(255,255,255,0.28)!important;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.18);}
+        .hero-carousel{position:absolute;inset:0;}
+        .hero-carousel-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s ease;}
+        .hero-carousel-slide.active{opacity:1;}
+        .hero-carousel-dots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:6px;z-index:2;}
+        .hero-carousel-dot{width:7px;height:7px;padding:0;border-radius:50%;border:none;background:rgba(255,255,255,0.5);cursor:pointer;transition:background 0.2s,transform 0.2s;}
+        .hero-carousel-dot.active{background:#FFFFFF;transform:scale(1.3);}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp 0.4s ease forwards;}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}} .pulse{animation:pulse 1.1s ease infinite;}
@@ -276,15 +294,33 @@ export default function Dashboard() {
         .theme-dark input,.theme-dark select{background:#20332B!important;color:#F0F7F3!important;border-color:#477563!important;}
         .theme-dark .card div[style*="color: rgb(26, 26, 26)"],.theme-dark .card span[style*="color: rgb(26, 26, 26)"],.theme-dark .card strong{color:#F0F7F3!important;}
         .theme-dark .card div[style*="color: rgb(117, 117, 117)"],.theme-dark .card span[style*="color: rgb(117, 117, 117)"],.theme-dark .card div[style*="color: rgb(85, 85, 85)"]{color:#B8C9C1!important;}
-        .theme-dark .card div[style*="background: rgb(250, 250, 250)"],.theme-dark .card div[style*="background: rgb(245, 245, 245)"]{background:#20332B!important;border-color:#315348!important;}
+        .theme-dark .card div[style*="background: rgb(250, 250, 250)"],.theme-dark .card div[style*="background: rgb(245, 245, 245)"],.theme-dark .card div[style*="background: rgb(255, 255, 255)"]{background:#20332B!important;border-color:#315348!important;}
         .theme-dark .card div[style*="color: rgb(158, 158, 158)"],.theme-dark .card span[style*="color: rgb(158, 158, 158)"]{color:#9BB2A8!important;}
         @media (prefers-color-scheme: dark){body{background:#101815;}}
+        .hamburger-btn{display:none;}
+        .sidebar-backdrop{display:none;}
+        @media (max-width:900px){
+          .app-sidebar{transform:translateX(-100%);transition:transform 0.25s ease;}
+          .app-sidebar.open{transform:translateX(0);}
+          .app-main{margin-left:0!important;}
+          .hamburger-btn{display:flex!important;}
+          .sidebar-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:49;}
+          header{padding:0 14px!important;}
+          header>div{height:auto!important;min-height:56px;flex-wrap:wrap;gap:8px 0;padding:8px 0;}
+          .header-title{font-size:13px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;}
+        }
+        @media (max-width:700px){
+          [style*="grid-template-columns"]{grid-template-columns:1fr!important;}
+          body{overflow-x:hidden;}
+        }
       `}</style>
 
       <div className={darkMode?"theme-dark":"theme-light"} style={{display:"flex",minHeight:"100vh",background:darkMode?"#101815":"linear-gradient(135deg,#F7FCF9 0%,#F1FAF6 52%,#FFF9F0 100%)"}}>
 
+        <div className={`sidebar-backdrop${mobileNavOpen?" open":""}`} onClick={()=>setMobileNavOpen(false)}/>
+
         {/* ══ SIDEBAR ══ */}
-        <aside style={{
+        <aside className={`app-sidebar${mobileNavOpen?" open":""}`} style={{
           width:SIDEBAR_W, minHeight:"100vh",
           background:G, position:"fixed", top:0, left:0, bottom:0,
           display:"flex", flexDirection:"column",
@@ -293,9 +329,10 @@ export default function Dashboard() {
           {/* Logo */}
           <div style={{padding:"24px 20px 20px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:42,height:42,background:"rgba(255,255,255,0.15)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>♻</div>
+              <div style={{width:42,height:42,background:"rgba(255,255,255,0.16)",borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 0 1px rgba(255,255,255,0.15),0 4px 14px rgba(0,0,0,0.18)"}}><IconRecycle size={22} color="#FFFFFF"/></div>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:"#FFFFFF",fontFamily:F,lineHeight:1.3}}>EcoProcess AI</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontFamily:F,marginTop:1}}>Waste Optimization</div>
               </div>
             </div>
           </div>
@@ -303,9 +340,11 @@ export default function Dashboard() {
           {/* Nav items */}
           <nav style={{flex:1,padding:"16px 12px",display:"flex",flexDirection:"column",gap:4}}>
             <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",fontFamily:F,fontWeight:700,padding:"4px 8px 8px"}}>MAIN MENU</div>
-            {NAV.map(n=>(
+            {NAV.map(n=>{
+              const NavIcon=NAV_ICONS[n.id];
+              return (
               <button key={n.id} className="nav-btn"
-                onClick={()=>n.id==="history"?handleHistory():setActiveTab(n.id)}
+                onClick={()=>{n.id==="history"?handleHistory():setActiveTab(n.id);setMobileNavOpen(false);}}
                 style={{
                   display:"flex",alignItems:"center",gap:12,
                   padding:"11px 14px",borderRadius:10,border:"none",
@@ -315,11 +354,13 @@ export default function Dashboard() {
                   background:activeTab===n.id?"rgba(255,255,255,0.2)":"transparent",
                   color:activeTab===n.id?"#FFFFFF":"rgba(255,255,255,0.65)",
                   borderLeft:activeTab===n.id?"3px solid #A5D6A7":"3px solid transparent",
+                  boxShadow:activeTab===n.id?"0 4px 12px rgba(0,0,0,0.12)":"none",
                 }}>
-                <span style={{fontSize:18}}>{n.icon}</span>
-                {n.label.replace(/[🏠⚡📊📜]\s*/,"")}
+                <NavIcon size={18} color={activeTab===n.id?"#FFFFFF":"rgba(255,255,255,0.65)"}/>
+                {n.label.replace(/[🏠⚡📦📊📜📄]\s*/u,"")}
               </button>
-            ))}
+              );
+            })}
           </nav>
 
           {/* Language switcher */}
@@ -355,7 +396,7 @@ export default function Dashboard() {
         </aside>
 
         {/* ══ MAIN CONTENT ══ */}
-        <div style={{marginLeft:SIDEBAR_W,flex:1,display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.24)"}}>
+        <div className="app-main" style={{marginLeft:SIDEBAR_W,flex:1,display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.24)",minWidth:0}}>
 
           {/* Top bar */}
           <header style={{
@@ -364,10 +405,16 @@ export default function Dashboard() {
             boxShadow:"0 2px 8px rgba(0,0,0,0.05)",
           }}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-              <div>
-                <div style={{fontSize:17,fontWeight:700,color:G,fontFamily:F}}>{t.systemTitle}</div>
+              <div style={{display:"flex",alignItems:"center",gap:14}}>
+                <button className="hamburger-btn" onClick={()=>setMobileNavOpen(true)}
+                  aria-label="Open menu" title="Open menu"
+                  style={{display:"none",alignItems:"center",justifyContent:"center",width:36,height:36,borderRadius:8,border:`1px solid ${GLL}60`,background:GB,color:G,cursor:"pointer",fontSize:16,flexShrink:0}}>
+                  ☰
+                </button>
+                <div className="header-title" style={{fontSize:17,fontWeight:700,color:G,fontFamily:F}}>{t.systemTitle}</div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <NotificationBell darkMode={darkMode}/>
                 <button
                   type="button"
                   onClick={()=>setDarkMode(mode=>!mode)}
@@ -378,8 +425,9 @@ export default function Dashboard() {
                   <span style={{fontSize:16}}>{darkMode?"☀️":"🌙"}</span>
                   <span>{darkMode?"Light":"Dark"}</span>
                 </button>
-                <div style={{padding:"4px 14px",borderRadius:20,background:GB,border:`1px solid ${GLL}40`,fontSize:12,color:GL,fontWeight:600,fontFamily:F}}>
-                  {NAV.find(n=>n.id===activeTab)?.icon} {NAV.find(n=>n.id===activeTab)?.label.replace(/[🏠⚡📊📜]\s*/,"")}
+                <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:20,background:GB,border:`1px solid ${GLL}40`,fontSize:12,color:GL,fontWeight:600,fontFamily:F}}>
+                  {(()=>{const ActiveIcon=NAV_ICONS[activeTab];return ActiveIcon?<ActiveIcon size={14} color={GL}/>:null;})()}
+                  {NAV.find(n=>n.id===activeTab)?.label.replace(/[🏠⚡📦📊📜📄]\s*/u,"")}
                 </div>
               </div>
             </div>
@@ -397,15 +445,17 @@ export default function Dashboard() {
             {/* HOME TAB */}
             {activeTab==="home"&&(
               <div className="fade-up">
-                <div style={{background:`linear-gradient(135deg,${G},${GL})`,borderRadius:12,padding:"28px 36px",marginBottom:24,color:"#FFFFFF",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:22,fontWeight:700,fontFamily:F,marginBottom:14}}>{t.welcomeTitle}</div>
-                    <button onClick={()=>setActiveTab("optimize")}
-                      style={{padding:"10px 24px",borderRadius:6,border:"1px solid rgba(255,255,255,0.5)",background:"rgba(255,255,255,0.15)",color:"#FFFFFF",fontFamily:F,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                <div className="hero-banner" style={{background:`linear-gradient(135deg,${G},${GL} 65%,#3FBF8F)`,borderRadius:16,padding:"32px 40px",marginBottom:24,color:"#FFFFFF",minHeight:200,display:"flex",alignItems:"center",boxShadow:"0 10px 30px rgba(47,122,92,0.28)"}}>
+                  <HeroCarousel/>
+                  <div className="hero-banner-overlay"/>
+                  <div style={{position:"relative",zIndex:2}}>
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.14em",color:"rgba(255,255,255,0.9)",fontFamily:F,marginBottom:8,textShadow:"0 1px 6px rgba(0,0,0,0.45)"}}>SMART WASTE OPTIMIZATION</div>
+                    <div style={{fontSize:24,fontWeight:700,fontFamily:F,marginBottom:16,textShadow:"0 2px 10px rgba(0,0,0,0.45)"}}>{t.welcomeTitle}</div>
+                    <button className="hero-cta" onClick={()=>setActiveTab("optimize")}
+                      style={{padding:"11px 26px",borderRadius:8,border:"1px solid rgba(255,255,255,0.6)",background:"rgba(0,0,0,0.22)",color:"#FFFFFF",fontFamily:F,fontSize:13,fontWeight:700,cursor:"pointer",textShadow:"0 1px 4px rgba(0,0,0,0.4)"}}>
                       {t.startBtn}
                     </button>
                   </div>
-                  <div style={{fontSize:80,opacity:0.12}}>♻</div>
                 </div>
 
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}}>
@@ -415,9 +465,9 @@ export default function Dashboard() {
                     {val:"3", sub:t.statSubMod,  label:t.statModels,    icon:"🧠",col:"#6A1B9A",bg:"#F3E5F5"},
                     {val:"6K",sub:t.statSubRows, label:t.statRows,      icon:"📊",col:"#E65100",bg:"#FFF3E0"},
                   ].map(s=>(
-                    <div key={s.label} className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #E8E8E8",padding:"20px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-                      <div style={{width:40,height:40,borderRadius:8,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,marginBottom:12}}>{s.icon}</div>
-                      <div style={{fontSize:28,fontWeight:700,color:s.col,fontFamily:F}}>{s.val}</div>
+                    <div key={s.label} className="card stat-card" style={{"--accent":s.col,background:"#FFFFFF",borderRadius:12,border:"1px solid #E8E8E8",padding:"20px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                      <div className="stat-icon" style={{width:44,height:44,borderRadius:10,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,marginBottom:14,boxShadow:`0 4px 10px ${s.col}22`}}>{s.icon}</div>
+                      <div style={{fontSize:29,fontWeight:700,color:s.col,fontFamily:F}}>{s.val}</div>
                       <div style={{fontSize:13,fontWeight:600,color:"#1A1A1A",fontFamily:F,marginTop:2}}>{s.label}</div>
                       <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F,marginTop:2}}>{s.sub}</div>
                     </div>
@@ -425,12 +475,12 @@ export default function Dashboard() {
                 </div>
 
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
-                  <div className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #E8E8E8",padding:"22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                  <div className="card" style={{background:"#FFFFFF",borderRadius:12,border:"1px solid #E8E8E8",borderTop:`3px solid ${GL}`,padding:"22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
                     <div style={{fontSize:13,fontWeight:700,color:"#1A1A1A",fontFamily:F,marginBottom:4}}>{t.chartMatTitle}</div>
                     <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F,marginBottom:18}}>{t.chartMatSub}</div>
                     <BarChart data={catGroups.map(c=>({label:c,value:catCount[c],color:CAT_COLORS[c]?.bar||GL,display:catCount[c]}))} height={120}/>
                   </div>
-                  <div className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #E8E8E8",padding:"22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                  <div className="card" style={{background:"#FFFFFF",borderRadius:12,border:"1px solid #E8E8E8",borderTop:"3px solid #BF360C",padding:"22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
                     <div style={{fontSize:13,fontWeight:700,color:"#1A1A1A",fontFamily:F,marginBottom:4}}>{t.chartMethTitle}</div>
                     <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F,marginBottom:18}}>{t.chartMethSub}</div>
                     <div style={{display:"flex",justifyContent:"center",gap:32,alignItems:"center"}}>
@@ -440,10 +490,10 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #E8E8E8",padding:"22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                <div className="card" style={{background:"#FFFFFF",borderRadius:12,border:"1px solid #E8E8E8",padding:"22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
                   <div style={{fontSize:13,fontWeight:700,color:"#1A1A1A",fontFamily:F,marginBottom:4}}>{t.matTableTitle}</div>
                   <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F,marginBottom:18}}>{t.matTableSub}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:G,borderRadius:"8px 8px 0 0",overflow:"hidden"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:`linear-gradient(135deg,${G},${GL})`,borderRadius:"8px 8px 0 0",overflow:"hidden"}}>
                     {[t.thIcon,t.thMaterial,t.thCategory,t.thWasteType,t.thMethod,t.thDefWeight,t.thToxicity].map(h=>(
                       <div key={h} style={{padding:"10px",fontSize:10,fontWeight:700,color:"#FFFFFF",fontFamily:F,letterSpacing:"0.06em",borderRight:"1px solid rgba(255,255,255,0.1)"}}>{h.toUpperCase()}</div>
                     ))}
@@ -652,13 +702,114 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <button className="gen-btn" onClick={handleGenerate} disabled={loading}
-                    style={{padding:"16px 32px",borderRadius:8,border:"none",cursor:loading?"not-allowed":"pointer",
-                      background:loading?"#BDBDBD":`linear-gradient(135deg,${GL},${G})`,
-                      color:"#FFFFFF",fontSize:15,fontFamily:F,fontWeight:700,letterSpacing:"0.04em",
-                      display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
-                    {loading?(<><span className="pulse">●</span><span className="pulse" style={{animationDelay:"0.2s"}}>●</span><span className="pulse" style={{animationDelay:"0.4s"}}>●</span><span style={{marginLeft:6}}>{t.generating}</span></>):<>{t.generateBtn}</>}
-                  </button>
+                  <div style={{display:"flex",gap:12}}>
+                    <button className="gen-btn" onClick={handleGenerate} disabled={loading}
+                      style={{flex:1,padding:"16px 32px",borderRadius:8,border:"none",cursor:loading?"not-allowed":"pointer",
+                        background:loading?"#BDBDBD":`linear-gradient(135deg,${GL},${G})`,
+                        color:"#FFFFFF",fontSize:15,fontFamily:F,fontWeight:700,letterSpacing:"0.04em",
+                        display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
+                      {loading?(<><span className="pulse">●</span><span className="pulse" style={{animationDelay:"0.2s"}}>●</span><span className="pulse" style={{animationDelay:"0.4s"}}>●</span><span style={{marginLeft:6}}>{t.generating}</span></>):<>{t.generateBtn}</>}
+                    </button>
+                    <button onClick={addToBatch}
+                      style={{padding:"16px 22px",borderRadius:8,border:`1.5px solid ${GL}70`,cursor:"pointer",
+                        background:GB,color:G,fontSize:14,fontFamily:F,fontWeight:700,letterSpacing:"0.02em",
+                        display:"flex",alignItems:"center",justifyContent:"center",gap:8,whiteSpace:"nowrap"}}>
+                      {t.addToBatchBtn}
+                    </button>
+                  </div>
+
+                  {/* Incoming from Component 1 */}
+                  <div className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #E0E0E0",padding:"20px 22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                    <div style={{fontSize:10,fontWeight:700,color:GL,letterSpacing:"0.12em",fontFamily:F,marginBottom:4}}>{t.incomingTitle.toUpperCase()}</div>
+                    <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F,marginBottom:14}}>{t.incomingSub}</div>
+
+                    {incomingDetections.length===0?(
+                      <div style={{padding:"16px",textAlign:"center",fontSize:12,color:"#BDBDBD",fontFamily:F,background:"#FAFAFA",borderRadius:8,border:"1px dashed #E0E0E0"}}>
+                        {t.incomingEmpty}
+                      </div>
+                    ):(
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {incomingDetections.map(d=>{
+                          const mat=DETECTION_MATERIAL_MAP[d.waste_type];
+                          const cc=mat?(CAT_COLORS[mat.category]||CAT_COLORS.Paper):{main:"#9E9E9E",light:"#F5F5F5"};
+                          return (
+                            <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,background:cc.light,border:`1px solid ${cc.main}30`}}>
+                              <span style={{fontSize:16}}>{mat?CAT_ICONS[mat.category]:"❓"}</span>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"#1A1A1A",fontFamily:F}}>{mat?mat.name:d.waste_type}</div>
+                                <div style={{fontSize:11,color:"#757575",fontFamily:F}}>{d.condition} · Grade {d.final_grade}{d.waste_confidence?` · ${Math.round(d.waste_confidence*100)}%`:""}</div>
+                              </div>
+                              {mat?(
+                                <>
+                                  <input type="number" min="0.1" step="0.1" placeholder={t.incomingWeightPh} value={d.weightInput}
+                                    onChange={e=>setDetectionWeight(d.id,e.target.value)}
+                                    style={{width:88,padding:"7px 8px",borderRadius:6,border:`1px solid ${cc.main}50`,fontSize:12,fontFamily:F,outline:"none"}}/>
+                                  <button onClick={()=>addDetectionToBatch(d)} disabled={!parseFloat(d.weightInput)||parseFloat(d.weightInput)<=0}
+                                    style={{padding:"7px 12px",borderRadius:6,border:"none",cursor:parseFloat(d.weightInput)>0?"pointer":"not-allowed",
+                                      background:parseFloat(d.weightInput)>0?G:"#E0E0E0",color:"#FFFFFF",fontSize:12,fontFamily:F,fontWeight:700}}>
+                                    {t.incomingAddBtn}
+                                  </button>
+                                </>
+                              ):(
+                                <span style={{fontSize:10,color:"#9E9E9E",fontFamily:F,fontStyle:"italic"}}>{t.incomingUnsupported}</span>
+                              )}
+                              <button onClick={()=>dismissDetection(d.id)}
+                                style={{background:"none",border:"none",color:"#B71C1C",cursor:"pointer",fontSize:15,padding:"2px 4px",flexShrink:0}}>✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Batch Queue */}
+                  <div className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #E0E0E0",padding:"20px 22px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                      <div style={{fontSize:10,fontWeight:700,color:GL,letterSpacing:"0.12em",fontFamily:F}}>{t.batchQueueTitle.toUpperCase()}</div>
+                      {batchQueue.length>0&&(
+                        <span style={{fontSize:11,color:"#9E9E9E",fontFamily:F}}>{batchQueue.length} {t.itemsQueued}</span>
+                      )}
+                    </div>
+                    <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F,marginBottom:14}}>{t.batchQueueSub}</div>
+
+                    {batchQueue.length===0?(
+                      <div style={{padding:"20px",textAlign:"center",fontSize:12,color:"#BDBDBD",fontFamily:F,background:"#FAFAFA",borderRadius:8,border:"1px dashed #E0E0E0"}}>
+                        {t.batchEmptyQueue}
+                      </div>
+                    ):(
+                      <>
+                        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+                          {batchQueue.map(item=>{
+                            const cc=CAT_COLORS[item.material.category]||CAT_COLORS.Paper;
+                            return (
+                              <div key={item.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,background:cc.light,border:`1px solid ${cc.main}30`}}>
+                                <span style={{fontSize:16}}>{CAT_ICONS[item.material.category]}</span>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:13,fontWeight:600,color:"#1A1A1A",fontFamily:F,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.material.name}</div>
+                                  <div style={{fontSize:11,color:"#757575",fontFamily:F}}>{item.weight} kg · {item.moisture==="Wet"?"💧":"☀️"} {item.moisture} · Grade {item.grade}</div>
+                                </div>
+                                <button onClick={()=>removeFromBatch(item.id)}
+                                  style={{background:"none",border:"none",color:"#B71C1C",cursor:"pointer",fontSize:15,padding:"2px 6px",flexShrink:0}}>✕</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div style={{display:"flex",gap:10}}>
+                          <button className="gen-btn" onClick={handleGenerateAll} disabled={batchLoading}
+                            style={{flex:1,padding:"13px 20px",borderRadius:8,border:"none",cursor:batchLoading?"not-allowed":"pointer",
+                              background:batchLoading?"#BDBDBD":`linear-gradient(135deg,${GL},${G})`,
+                              color:"#FFFFFF",fontSize:14,fontFamily:F,fontWeight:700,
+                              display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+                            {batchLoading?`${t.generatingAllBtn}… ${batchProgress.done}/${batchProgress.total}`:`${t.generateAllBtn} (${batchQueue.length})`}
+                          </button>
+                          <button onClick={clearBatch} disabled={batchLoading}
+                            style={{padding:"13px 18px",borderRadius:8,border:"1px solid #E0E0E0",cursor:batchLoading?"not-allowed":"pointer",background:"#FAFAFA",color:"#757575",fontSize:13,fontFamily:F,fontWeight:600}}>
+                            {t.clearBatchBtn}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -852,6 +1003,84 @@ export default function Dashboard() {
               );
             })()}
 
+            {/* BATCH TAB */}
+            {activeTab==="batch"&&(
+              <div className="fade-up">
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:18,fontWeight:700,color:G,fontFamily:F}}>{t.batchResultsTitle}</div>
+                  <div style={{fontSize:13,color:"#9E9E9E",fontFamily:F,marginTop:2}}>{t.batchResultsSub}</div>
+                </div>
+
+                {batchResults.length===0?(
+                  <div style={{textAlign:"center",padding:"80px",background:"#FFFFFF",borderRadius:10,border:"1px solid #E0E0E0"}}>
+                    <div style={{fontSize:48,marginBottom:12,opacity:0.2}}>📦</div>
+                    <div style={{fontSize:16,fontWeight:700,color:"#BDBDBD",fontFamily:F,marginBottom:6}}>{t.batchNoResults}</div>
+                    <div style={{fontSize:13,color:"#BDBDBD",fontFamily:F,marginBottom:18}}>{t.batchNoResultsSub}</div>
+                    <button onClick={()=>setActiveTab("optimize")} style={{padding:"12px 28px",borderRadius:8,border:"none",background:`linear-gradient(135deg,${GL},${G})`,color:"#fff",fontFamily:F,fontSize:14,fontWeight:700,cursor:"pointer"}}>{t.startOpt}</button>
+                  </div>
+                ):(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
+                    {batchResults.map(({item,result:r,error:itemError},idx)=>{
+                      const cc=CAT_COLORS[item.material.category]||CAT_COLORS.Paper;
+                      if(itemError||!r) return (
+                        <div key={idx} className="card" style={{background:"#FFFFFF",borderRadius:10,border:"1px solid #EF9A9A",padding:"18px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                            <span style={{fontSize:20}}>{CAT_ICONS[item.material.category]}</span>
+                            <div style={{fontSize:14,fontWeight:700,color:"#1A1A1A",fontFamily:F}}>{item.material.name}</div>
+                          </div>
+                          <div style={{fontSize:12,color:"#B71C1C",fontFamily:F}}>🚨 {itemError||t.errorMsg}</div>
+                        </div>
+                      );
+                      if(r.action==="REJECT") return (
+                        <div key={idx} className="card" style={{background:"#FFEBEE",border:"1px solid #EF9A9A",borderRadius:10,padding:"18px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                            <span style={{fontSize:20}}>{CAT_ICONS[item.material.category]}</span>
+                            <div style={{fontSize:14,fontWeight:700,color:"#B71C1C",fontFamily:F}}>{item.material.name} — REJECTED</div>
+                          </div>
+                          <div style={{fontSize:12,color:"#B71C1C",fontFamily:F}}>{r.reason}</div>
+                        </div>
+                      );
+                      const sm2=getSM(r.safety_status);
+                      const mm2=getMM(r.recommended_method);
+                      return (
+                        <div key={idx} className="card" style={{background:"#FFFFFF",borderRadius:10,border:`1px solid ${cc.main}30`,borderLeft:`4px solid ${cc.main}`,padding:"18px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                            <div style={{display:"flex",alignItems:"center",gap:10}}>
+                              <span style={{fontSize:22}}>{CAT_ICONS[item.material.category]}</span>
+                              <div>
+                                <div style={{fontSize:14,fontWeight:700,color:"#1A1A1A",fontFamily:F}}>{item.material.name}</div>
+                                <div style={{fontSize:11,color:"#9E9E9E",fontFamily:F}}>{item.weight} kg · Grade {item.grade}</div>
+                              </div>
+                            </div>
+                            <span style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:20,color:sm2.color,background:sm2.light,border:`1px solid ${sm2.border}`}}>{sm2.icon} {r.safety_status}</span>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                            <div style={{background:"#FAFAFA",borderRadius:6,padding:"8px 10px"}}>
+                              <div style={{fontSize:9,color:"#9E9E9E",fontFamily:F}}>METHOD</div>
+                              <div style={{fontSize:13,fontWeight:700,color:mm2.color,fontFamily:F}}>{mm2.icon} {r.recommended_method}</div>
+                            </div>
+                            <div style={{background:"#FAFAFA",borderRadius:6,padding:"8px 10px"}}>
+                              <div style={{fontSize:9,color:"#9E9E9E",fontFamily:F}}>MOISTURE</div>
+                              <div style={{fontSize:13,fontWeight:700,color:"#1A1A1A",fontFamily:F}}>{r.moisture_condition==="Wet"?"💧":"☀️"} {r.moisture_condition}{r.moisture_source==="sensor"?" (IoT)":""}</div>
+                            </div>
+                            <div style={{background:"#FAFAFA",borderRadius:6,padding:"8px 10px"}}>
+                              <div style={{fontSize:9,color:"#9E9E9E",fontFamily:F}}>TIME</div>
+                              <div style={{fontSize:13,fontWeight:700,color:GL,fontFamily:F}}>{r.processing_time_min} min</div>
+                            </div>
+                            <div style={{background:"#FAFAFA",borderRadius:6,padding:"8px 10px"}}>
+                              <div style={{fontSize:9,color:"#9E9E9E",fontFamily:F}}>ENERGY</div>
+                              <div style={{fontSize:13,fontWeight:700,color:"#E65100",fontFamily:F}}>{r.energy_kwh} kWh</div>
+                            </div>
+                          </div>
+                          <div style={{fontSize:11,color:"#757575",fontFamily:F}}>{t.efficiencyLabel}: <strong style={{color:G}}>{r.recycling_efficiency_pct}%</strong></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* HISTORY TAB */}
             {activeTab==="history"&&(
               <div className="fade-up">
@@ -898,6 +1127,9 @@ export default function Dashboard() {
                 )}
               </div>
             )}
+
+            {/* REPORTS TAB */}
+            {activeTab==="reports"&&<Reports lang={lang} darkMode={darkMode}/>}
 
           </div>
         </div>

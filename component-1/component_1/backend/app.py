@@ -78,17 +78,27 @@ EWASTE_CONFIDENCE_THRESHOLD = 0.50
 # LOAD GENERAL WASTE MODELS
 # --------------------------------------------------
 
-print("Loading waste type model...")
+missing_general_models = []
 
-waste_model = tf.keras.models.load_model(
-    WASTE_MODEL_PATH
-)
+if os.path.isfile(WASTE_MODEL_PATH):
+    print("Loading waste type model...")
+    waste_model = tf.keras.models.load_model(WASTE_MODEL_PATH)
+else:
+    waste_model = None
+    missing_general_models.append(os.path.basename(WASTE_MODEL_PATH))
 
-print("Loading condition model...")
+if os.path.isfile(CONDITION_MODEL_PATH):
+    print("Loading condition model...")
+    condition_model = tf.keras.models.load_model(CONDITION_MODEL_PATH)
+else:
+    condition_model = None
+    missing_general_models.append(os.path.basename(CONDITION_MODEL_PATH))
 
-condition_model = tf.keras.models.load_model(
-    CONDITION_MODEL_PATH
-)
+if missing_general_models:
+    print(
+        "General waste models unavailable:",
+        ", ".join(missing_general_models)
+    )
 
 
 # --------------------------------------------------
@@ -234,7 +244,7 @@ def health():
         "status": "ok",
         "service": "waste-assessment-service",
         "version": "1.2",
-        "general_waste": "ready",
+        "general_waste": "ready" if not missing_general_models else "unavailable",
         "ewaste": "ready"
     }
 
@@ -249,6 +259,15 @@ async def predict_waste(
 ):
 
     try:
+
+        if missing_general_models:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": "General waste models are unavailable",
+                    "missing_models": missing_general_models
+                }
+            )
 
         image_bytes = await image.read()
 
