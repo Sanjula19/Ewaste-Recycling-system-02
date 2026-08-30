@@ -62,6 +62,46 @@ FACILITIES: list[Facility] = [
     ),
 ]
 
+# Mechanical recycling destinations -- shred / wash / granulate back into
+# feedstock, no combustion. PVC is routed here rather than to pyrolysis
+# (see materials_db.RecyclingMethod).
+#
+# Both are real operating Sri Lankan recyclers, not placeholders:
+#
+#   - Ciyasa Plastics, 81 Ransiri Uyana, Korathota, Kaduwela. Listed in
+#     the ENF plastics recycler directory as a collector/recycler taking
+#     PVC, PP, ABS, PC, HDPE and LDPE and producing granules ("crush").
+#
+#   - Negombo Recycling Club (NRC) hub, Millaniya, Horana. Commissioned
+#     2025 with a stated 3,600 t/yr capacity; reported via the PLEASE
+#     Project (Plastic-free Rivers and Seas for South Asia).
+#
+# Coordinates are TOWN-CENTRE approximations, same standard as the WtE
+# entries above -- accurate enough to answer "which plant is closer",
+# not surveyed addresses. Replace with exact coordinates before any
+# real dispatch use.
+MECHANICAL_RECYCLERS: list[Facility] = [
+    Facility(
+        name="Ciyasa Plastics (Korathota, Kaduwela)",
+        facility_type="Mechanical Recycling",
+        latitude=6.9339,
+        longitude=79.9847,
+        feed_in_tariff_lkr_per_kwh=None,  # not applicable -- no energy sold
+    ),
+    Facility(
+        name="Negombo Recycling Club Hub (Millaniya, Horana)",
+        facility_type="Mechanical Recycling",
+        latitude=6.7156,
+        longitude=80.0631,
+        feed_in_tariff_lkr_per_kwh=None,
+    ),
+]
+
+_REGISTERS = {
+    "thermal": FACILITIES,
+    "mechanical": MECHANICAL_RECYCLERS,
+}
+
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r_earth_km = 6371.0
@@ -72,12 +112,24 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r_earth_km * math.asin(math.sqrt(a))
 
 
-def nearest_facility(latitude: float | None, longitude: float | None) -> tuple[Facility, float]:
+def nearest_facility(
+    latitude: float | None,
+    longitude: float | None,
+    kind: str = "thermal",
+) -> tuple[Facility, float]:
+    """
+    Nearest facility of the requested kind. `kind` is "thermal" (the
+    waste-to-energy / pyrolysis plants) or "mechanical" (the granulating
+    recyclers) -- a PVC batch must not be routed to a WtE plant just
+    because it happens to be closer.
+    """
     lat = latitude if latitude is not None else DEFAULT_LATITUDE
     lon = longitude if longitude is not None else DEFAULT_LONGITUDE
 
+    register = _REGISTERS.get(kind, FACILITIES)
+
     best_facility, best_distance = None, math.inf
-    for facility in FACILITIES:
+    for facility in register:
         d = haversine_km(lat, lon, facility.latitude, facility.longitude)
         if d < best_distance:
             best_facility, best_distance = facility, d

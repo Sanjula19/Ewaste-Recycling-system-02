@@ -90,11 +90,30 @@ export default function Manifest() {
 
       <div className="card-grid" style={{ marginBottom: 'var(--space-6)' }}>
         <StatCard icon={Package} label={t('dashboard.batchesProcessed')} value={summary.batch_count} />
-        <StatCard icon={Scale} label={t('dashboard.totalTonnage')} value={`${summary.total_weight_kg} ${t('common.kg')}`} />
-        <StatCard icon={Zap} label={t('dashboard.totalEnergy')} value={`${summary.total_energy_recovered_kwh} kWh`} />
-        <StatCard icon={Wallet} label={t('dashboard.totalValue')} value={`Rs. ${summary.total_value_lkr.toLocaleString()}`} />
+        <StatCard icon={Scale} label={t('dashboard.totalTonnage')} value={`${kg(summary.total_weight_kg)} ${t('common.kg')}`} />
+        <StatCard icon={Wallet} label={t('dashboard.totalValue')} value={`Rs. ${money(summary.total_value_lkr)}`} />
         <StatCard icon={Leaf} label={t('dashboard.diversionRate')} value={`${summary.landfill_diversion_rate_pct}%`} />
-        <StatCard icon={Cloud} label={t('dashboard.co2Avoided')} value={`${summary.total_co2_avoided_kg} kg`} />
+
+        <StatCard
+          icon={Zap}
+          label={t('dashboard.totalEnergy')}
+          value={`${kg(summary.total_energy_recovered_kwh)} kWh`}
+          sub={
+            summary.total_energy_consumed_kwh > 0
+              ? `${t('manifest.energyConsumed')}: ${kg(summary.total_energy_consumed_kwh)} kWh · ${t('manifest.net')} ${kg(summary.net_energy_kwh)} kWh`
+              : undefined
+          }
+        />
+        <StatCard
+          icon={Cloud}
+          label={t('dashboard.co2Avoided')}
+          value={`${kg(summary.total_co2_avoided_kg)} kg`}
+          sub={
+            summary.total_co2_emitted_kg > 0
+              ? `${t('manifest.co2Emitted')}: ${kg(summary.total_co2_emitted_kg)} kg · ${t('manifest.net')} ${kg(summary.net_co2_avoided_kg)} kg`
+              : undefined
+          }
+        />
       </div>
 
       <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
@@ -111,18 +130,26 @@ export default function Manifest() {
                   <th>{t('manifest.weightKg')}</th>
                   <th>{t('common.route')}</th>
                   <th>{t('manifest.energyKwh')}</th>
+                  <th>{t('manifest.co2Kg')}</th>
                   <th>{t('manifest.valueLkr')}</th>
                 </tr>
               </thead>
               <tbody>
                 {summary.entries.map((e) => (
-                  <tr key={e.id}>
+                  <tr key={e.manifest_id}>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{e.manifest_id}</td>
                     <td>{materialLabel(e.material, t)}</td>
-                    <td>{e.weight_kg}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{kg(e.weight_kg)}</td>
                     <td>{e.route_or_recommendation}</td>
-                    <td>{e.energy_kwh}</td>
-                    <td>{e.value_lkr.toLocaleString()}</td>
+                    {/* A negative figure is real: an inert heat sink consumes
+                        energy and emits CO2 rather than saving either. */}
+                    <td style={{ fontVariantNumeric: 'tabular-nums', color: e.energy_kwh < 0 ? 'var(--color-danger)' : undefined }}>
+                      {kg(e.energy_kwh)}
+                    </td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums', color: e.co2_avoided_kg < 0 ? 'var(--color-danger)' : undefined }}>
+                      {kg(e.co2_avoided_kg)}
+                    </td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{money(e.value_lkr)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -166,12 +193,24 @@ export default function Manifest() {
   );
 }
 
-function StatCard({ icon: Icon, label, value }) {
+/* Two decimal places, thousands-separated. The backend now sends full
+   float precision so the totals are exact; formatting happens here, once,
+   at the point of display. */
+function kg(n) {
+  return Number(n ?? 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+const money = kg;
+
+function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="card stat">
       <Icon size={18} color="var(--color-primary)" />
       <span className="stat-label">{label}</span>
       <span className="stat-value">{value}</span>
+      {sub && <span className="stat-sub">{sub}</span>}
     </div>
   );
 }

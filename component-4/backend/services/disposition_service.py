@@ -95,8 +95,60 @@ def calculate_disposition(req: DispositionRequest) -> DispositionResponse:
             fx=None,
         )
 
-    facility, distance_km = facility_service.nearest_facility(req.latitude, req.longitude)
     fx = fx_service.get_fx_rates()
+
+    # --- Mechanical recycling (PVC): no thermal processing at all ------
+    # Shredding, washing and granulating back into feedstock releases no
+    # energy, so there is nothing to recover, nothing to burn, and no
+    # grid electricity displaced. Every energy and CO2 figure is
+    # genuinely zero here rather than unmeasured.
+    if profile.recycling_method == "mechanical":
+        recycler, recycler_distance = facility_service.nearest_facility(
+            req.latitude, req.longitude, kind="mechanical"
+        )
+        return DispositionResponse(
+            waste_type=req.waste_type,
+            weight_kg=req.weight_kg,
+            is_recyclable=False,
+            disposition_route="Mechanical Recycling",
+            disposition_method="mechanical",
+            dispatch_note=(
+                f"Dispatch {req.weight_kg:g} kg of {req.waste_type} to "
+                f"{recycler.name} ({recycler_distance} km) for shredding, washing "
+                f"and granulation into recycled feedstock. Do NOT route this batch "
+                f"to a pyrolysis or waste-to-energy plant."
+            ),
+            thermal_classification=None,
+            energy_recovery_kwh=0.0,
+            energy_breakdown=EnergyBreakdown(
+                bio_oil_liters=0.0, syngas_kwh=0.0, char_kg=0.0,
+                total_kwh=0.0, yield_efficiency_pct=0.0,
+            ),
+            gross_energy_kwh=None,
+            wasted_energy_kwh=None,
+            lhv_mj_kg=0.0,
+            process_efficiency=0.0,
+            landfill_diverted=True,
+            co2_avoided_kg=0.0,
+            manifest_id=manifest_id,
+            timestamp=now_iso,
+            facility_name=req.facility_name or "Urban Recycling Facility",
+            nearest_treatment_facility=FacilityMatch(
+                name=recycler.name,
+                facility_type=recycler.facility_type,
+                latitude=recycler.latitude,
+                longitude=recycler.longitude,
+                distance_km=recycler_distance,
+                feed_in_tariff_lkr_per_kwh=None,
+            ),
+            estimated_revenue_usd=None,
+            estimated_revenue_lkr=None,
+            fx=FXInfo(**fx),
+        )
+
+    facility, distance_km = facility_service.nearest_facility(
+        req.latitude, req.longitude, kind="thermal"
+    )
 
     if profile.is_heat_sink:
         # --- Inert heat sink (Contaminated Glass): Q = m x Cp x dT ---
@@ -117,9 +169,11 @@ def calculate_disposition(req: DispositionRequest) -> DispositionResponse:
         )
         thermal_classification = "inert_heat_sink"
         disposition_route = "Thermal Energy Recovery (net energy consumer -- inert heat sink)"
-        # No CO2 credit and no sale value for a net energy consumer.
-        co2_avoided_kg = 0.0
-        revenue_lkr = 0.0
+        # NEGATIVE, not zero. Heating an inert mass to 500C draws grid
+        # power, and that power carries the grid's own carbon intensity.
+        # Reporting 0.0 here would silently hide a real emission and let
+        # a glass-heavy cycle look carbon-neutral when it is not.
+        co2_avoided_kg = -(wasted_energy_kwh * GRID_EMISSION_FACTOR_KG_PER_KWH)
 
     else:
         # --- Combustible (PVC, Polystyrene): E_rec = M x LHV x eta ---
@@ -150,23 +204,24 @@ def calculate_disposition(req: DispositionRequest) -> DispositionResponse:
         )
         thermal_classification = "combustible"
         disposition_route = "Pyrolysis Processing"
-        co2_avoided_kg = round(net_energy_kwh * GRID_EMISSION_FACTOR_KG_PER_KWH, 2)
-
-        tariff = facility.feed_in_tariff_lkr_per_kwh or WTE_FEED_IN_TARIFF_LKR_PER_KWH
-        revenue_lkr = round(net_energy_kwh * tariff, 2)
-
-    revenue_usd = round(revenue_lkr / fx["usd_lkr"], 2)
+        co2_avoided_kg = net_energy_kwh * GRID_EMISSION_FACTOR_KG_PER_KWH
 
     return DispositionResponse(
         waste_type=req.waste_type,
         weight_kg=req.weight_kg,
         is_recyclable=False,
         disposition_route=disposition_route,
+        disposition_method="thermal_recovery" if profile.is_heat_sink else "pyrolysis",
+        dispatch_note=None,
         thermal_classification=thermal_classification,
-        energy_recovery_kwh=round(net_energy_kwh, 2),
-        energy_breakdown=breakdown,
-        gross_energy_kwh=round(gross_energy_kwh, 2),
-        wasted_energy_kwh=round(wasted_energy_kwh, 2),
+        # NOT pre-rounded. These values are summed across a whole cycle in
+        # the manifest, and rounding each batch to 2 dp first compounds:
+        # 100 identical 7 kg PP batches drift 0.33 kWh from the true total.
+        # Rounding belongs at the point of display, once.
+        energy_recovery_kwh=net_energy_kwh,
+        energy_breakdown=breakdown,          # display-only, rounded is fine
+        gross_energy_kwh=gross_energy_kwh,
+        wasted_energy_kwh=wasted_energy_kwh,
         lhv_mj_kg=profile.lhv_mj_kg,
         process_efficiency=PYROLYSIS_EFFICIENCY,
         landfill_diverted=True,
@@ -182,7 +237,11 @@ def calculate_disposition(req: DispositionRequest) -> DispositionResponse:
             distance_km=distance_km,
             feed_in_tariff_lkr_per_kwh=facility.feed_in_tariff_lkr_per_kwh,
         ),
-        estimated_revenue_usd=revenue_usd,
-        estimated_revenue_lkr=revenue_lkr,
+        # Waste streams no longer carry a monetary figure. Revenue is
+        # reported for metal sales only, so "total value" on the manifest
+        # means one unambiguous thing. Waste is accounted for in tonnage,
+        # energy and CO2 instead.
+        estimated_revenue_usd=None,
+        estimated_revenue_lkr=None,
         fx=FXInfo(**fx),
     )

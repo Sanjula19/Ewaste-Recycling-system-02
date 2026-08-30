@@ -38,6 +38,12 @@ class LedgerEntry:
     value_lkr: float
     co2_avoided_kg: float
     timestamp: str
+    # Which of the four outcomes this batch actually took. The receipt
+    # groups by this; deriving it from the free-text route string would
+    # mean parsing prose, which breaks the moment the wording changes.
+    stream: Literal["metal_sale", "metal_hold", "pyrolysis", "mechanical"] = "pyrolysis"
+    unit_price_lkr: float = 0.0        # metals only -- price per kg at time of sale
+    destination: str = ""              # facility this batch was dispatched to
 
 
 @dataclass
@@ -70,6 +76,7 @@ def _find_cycle(cycle_id: int | None) -> Cycle:
 
 
 def log_forecast(resp) -> None:
+    sold = resp.recommendation == "SELL NOW"
     _current_cycle().entries.append(
         LedgerEntry(
             kind="forecast",
@@ -78,14 +85,21 @@ def log_forecast(resp) -> None:
             weight_kg=resp.weight_kg,
             route_or_recommendation=f"{resp.recommendation} ({resp.operator_action})",
             energy_kwh=0.0,
-            value_lkr=resp.profit_if_sell_lkr or 0.0,
+            # Only a SELL is realised money. A HOLD batch is compacted and
+            # still sitting in the yard -- counting its notional value as
+            # revenue would overstate what the cycle actually earned.
+            value_lkr=(resp.profit_if_sell_lkr or 0.0) if sold else 0.0,
             co2_avoided_kg=0.0,
             timestamp=_now_iso(),
+            stream="metal_sale" if sold else "metal_hold",
+            unit_price_lkr=resp.unit_price_lkr,
+            destination="Market liquidation bin" if sold else "Compaction bay (feedstock blocks)",
         )
     )
 
 
 def log_disposition(resp) -> None:
+    method = getattr(resp, "disposition_method", "pyrolysis")
     _current_cycle().entries.append(
         LedgerEntry(
             kind="disposition",
@@ -94,28 +108,66 @@ def log_disposition(resp) -> None:
             weight_kg=resp.weight_kg,
             route_or_recommendation=resp.disposition_route,
             energy_kwh=resp.energy_recovery_kwh,
-            value_lkr=resp.estimated_revenue_lkr or 0.0,
+            value_lkr=0.0,      # waste streams carry no monetary figure
             co2_avoided_kg=resp.co2_avoided_kg,
             timestamp=resp.timestamp,
+            stream="mechanical" if method == "mechanical" else "pyrolysis",
+            destination=(
+                resp.nearest_treatment_facility.name
+                if resp.nearest_treatment_facility else ""
+            ),
         )
     )
 
 
 def summary(cycle_id: int | None = None) -> dict:
+    """
+    Cycle totals. Every figure is accumulated at full precision and
+    rounded once at the end -- summing already-rounded per-entry values
+    compounds their error across a long cycle.
+
+    Energy and CO2 are split into recovered/avoided versus consumed/
+    emitted. Contaminated glass is a net energy CONSUMER, so netting it
+    silently against the pyrolysis credits would understate both sides
+    and hide the fact that a glass-heavy cycle costs grid power.
+    """
     cycle = _find_cycle(cycle_id)
     entries = cycle.entries
+
     total_weight = sum(e.weight_kg for e in entries)
-    total_energy = sum(e.energy_kwh for e in entries)
-    total_value_lkr = sum(e.value_lkr for e in entries)
-    total_co2 = sum(e.co2_avoided_kg for e in entries)
+
+    # Split rather than net, so both directions stay visible.
+    energy_recovered = sum(e.energy_kwh for e in entries if e.energy_kwh > 0)
+    energy_consumed = -sum(e.energy_kwh for e in entries if e.energy_kwh < 0)
+    co2_avoided = sum(e.co2_avoided_kg for e in entries if e.co2_avoided_kg > 0)
+    co2_emitted = -sum(e.co2_avoided_kg for e in entries if e.co2_avoided_kg < 0)
+
+    # Value means realised metal sales, nothing else.
+    total_value_lkr = sum(e.value_lkr for e in entries if e.stream == "metal_sale")
+
+    def stream_weight(name: str) -> float:
+        return sum(e.weight_kg for e in entries if e.stream == name)
+
     return {
         "cycle_id": cycle.cycle_id,
         "status": cycle.status,
+        "started_at": cycle.started_at,
+        "closed_at": cycle.closed_at,
         "batch_count": len(entries),
         "total_weight_kg": round(total_weight, 2),
-        "total_energy_recovered_kwh": round(total_energy, 2),
+        "total_energy_recovered_kwh": round(energy_recovered, 2),
+        "total_energy_consumed_kwh": round(energy_consumed, 2),
+        "net_energy_kwh": round(energy_recovered - energy_consumed, 2),
         "total_value_lkr": round(total_value_lkr, 2),
-        "total_co2_avoided_kg": round(total_co2, 2),
+        "total_co2_avoided_kg": round(co2_avoided, 2),
+        "total_co2_emitted_kg": round(co2_emitted, 2),
+        "net_co2_avoided_kg": round(co2_avoided - co2_emitted, 2),
+        "stream_weights_kg": {
+            "metal_sale": round(stream_weight("metal_sale"), 2),
+            "metal_hold": round(stream_weight("metal_hold"), 2),
+            "pyrolysis": round(stream_weight("pyrolysis"), 2),
+            "mechanical": round(stream_weight("mechanical"), 2),
+        },
         "landfill_diversion_rate_pct": 100.0 if entries else 0.0,
         "entries": [e.__dict__ for e in entries],
     }
@@ -151,78 +203,23 @@ def reset() -> dict:
 
 
 def generate_pdf(facility_name: str = "Urban Recycling Facility", cycle_id: int | None = None) -> bytes:
+    """
+    The End-of-Cycle Tonnage Manifest & Disposal Invoice -- an itemised
+    receipt of what left the facility and where it went, grouped by the
+    four outcomes a batch can have: metal sold, metal held back, waste
+    pyrolysed, waste mechanically recycled.
+
+    Layout lives in services/_receipt_pdf.py; this function's job is
+    only to hand it the right cycle and its totals.
+    """
+    from services import _receipt_pdf
+
     cycle = _find_cycle(cycle_id)
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, title="End-of-Cycle Tonnage Manifest")
-    styles = getSampleStyleSheet()
-    elements = []
-
-    cycle_label = f"Cycle #{cycle.cycle_id} — {'Closed' if cycle.status == 'closed' else 'Open (current)'}"
-    elements.append(Paragraph("End-of-Cycle Tonnage Manifest &amp; Disposal Invoice", styles["Title"]))
-    elements.append(Paragraph(f"Facility: {facility_name}", styles["Normal"]))
-    elements.append(Paragraph(cycle_label, styles["Normal"]))
-    elements.append(
-        Paragraph(
-            f"Generated: {_now_iso()}",
-            styles["Normal"],
-        )
+    return _receipt_pdf.render(
+        cycle=cycle,
+        s=summary(cycle_id),
+        facility_name=facility_name,
+        generated_at=_now_iso(),
     )
-    elements.append(Spacer(1, 8 * mm))
 
-    s = summary(cycle_id)
-    stats_table = Table(
-        [
-            ["Batches processed", str(s["batch_count"])],
-            ["Total tonnage (kg)", f"{s['total_weight_kg']:,}"],
-            ["Total energy recovered (kWh)", f"{s['total_energy_recovered_kwh']:,}"],
-            ["Total estimated value (LKR)", f"{s['total_value_lkr']:,}"],
-            ["Total CO2 avoided (kg)", f"{s['total_co2_avoided_kg']:,}"],
-            ["Landfill diversion rate", f"{s['landfill_diversion_rate_pct']:.0f}%"],
-        ],
-        colWidths=[90 * mm, 60 * mm],
-    )
-    stats_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ]
-        )
-    )
-    elements.append(stats_table)
-    elements.append(Spacer(1, 8 * mm))
 
-    elements.append(Paragraph("Batch Detail", styles["Heading2"]))
-    cell_style = styles["Normal"].clone("cell")
-    cell_style.fontSize = 7.5
-    cell_style.leading = 9
-
-    def cell(text: str) -> Paragraph:
-        return Paragraph(str(text), cell_style)
-
-    rows = [["Manifest / Ref ID", "Material", "Weight (kg)", "Route / Rec.", "Energy (kWh)", "Value (LKR)"]]
-    for e in cycle.entries:
-        rows.append(
-            [cell(e.manifest_id), cell(e.material), cell(f"{e.weight_kg:g}"),
-             cell(e.route_or_recommendation), cell(f"{e.energy_kwh:g}"), cell(f"{e.value_lkr:,.2f}")]
-        )
-    if len(rows) == 1:
-        rows.append([cell("-"), cell("-"), cell("-"), cell("No batches logged this cycle"), cell("-"), cell("-")])
-
-    detail_table = Table(rows, colWidths=[32 * mm, 28 * mm, 18 * mm, 48 * mm, 20 * mm, 24 * mm])
-    detail_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f2937")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-                ("FONTSIZE", (0, 0), (-1, -1), 7.5),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
-            ]
-        )
-    )
-    elements.append(detail_table)
-
-    doc.build(elements)
-    return buf.getvalue()
