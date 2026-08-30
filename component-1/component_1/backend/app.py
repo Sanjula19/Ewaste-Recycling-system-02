@@ -9,6 +9,8 @@ from ultralytics import YOLO
 import io
 import os
 import json
+import subprocess
+import sys
 
 
 app = FastAPI(
@@ -105,11 +107,7 @@ if missing_general_models:
 # LOAD E-WASTE MODEL
 # --------------------------------------------------
 
-print("Loading e-waste YOLO model...")
-
-ewaste_model = YOLO(
-    EWASTE_MODEL_PATH
-)
+print("E-waste YOLO model will run in an isolated worker process.")
 
 
 # --------------------------------------------------
@@ -420,49 +418,26 @@ async def analyze_ewaste(
         # Prepare image
         # ------------------------------
 
-        ewaste_img = prepare_ewaste_image(
-            image_bytes
+        # TensorFlow and PyTorch terminate the process when they perform
+        # inference together on some ARM64 runtimes. Keep YOLO in a clean
+        # child process so a request cannot take down the API server.
+        worker = subprocess.run(
+            [sys.executable, os.path.join(BASE_DIR, "yolo_worker.py")],
+            input=image_bytes,
+            capture_output=True,
+            timeout=60,
+            check=True
         )
-
-
-        # ------------------------------
-        # YOLO Prediction
-        # ------------------------------
-
-        results = ewaste_model.predict(
-            source=ewaste_img,
-            conf=EWASTE_CONFIDENCE_THRESHOLD,
-            imgsz=640,
-            verbose=False
-        )
-
-
+        raw_detections = json.loads(worker.stdout.decode("utf-8"))
         detections = []
 
+        for raw_detection in raw_detections:
+            class_id = raw_detection["class_id"]
+            confidence = raw_detection["confidence"]
+            class_name = raw_detection["detected_type"]
+            xyxy = raw_detection["xyxy"]
 
-        # ------------------------------
-        # Process detections
-        # ------------------------------
-
-        for result in results:
-
-            for box in result.boxes:
-
-                class_id = int(
-                    box.cls[0].item()
-                )
-
-                confidence = float(
-                    box.conf[0].item()
-                )
-
-                class_name = ewaste_model.names[
-                    class_id
-                ]
-
-                xyxy = box.xyxy[0].tolist()
-
-                hazard_info = (
+            hazard_info = (
                     ewaste_knowledge_base.get(
                         class_name,
                         {}
@@ -470,7 +445,7 @@ async def analyze_ewaste(
                 )
 
 
-                detection = {
+            detection = {
 
                     "class_id": class_id,
 
@@ -531,9 +506,9 @@ async def analyze_ewaste(
                         )
                 }
 
-                detections.append(
-                    detection
-                )
+            detections.append(
+                detection
+            )
 
 
         # Highest confidence first
