@@ -75,6 +75,7 @@ import json
 import os
 import pickle
 import logging
+import sys
 from dataclasses import dataclass
 
 import numpy as np
@@ -181,6 +182,21 @@ def warmup(metals=None) -> dict:
     """
     from data_loader import SUPPORTED_METALS
 
+    # A missing heavy dependency used to be silent: every function here just
+    # returned None and the service fell back, with nothing in the log to
+    # say a whole model family had been skipped. Starting the server with
+    # the wrong interpreter then looked like a working server that happened
+    # to never choose an LSTM. Say it once, loudly, at startup.
+    if not HAS_TENSORFLOW:
+        logger.warning(
+            "TensorFlow is not importable by this interpreter (%s), so NO LSTM model "
+            "will be served and every metal falls back to ARIMA. If you expected LSTM "
+            "forecasts, start the server with the project venv.", sys.executable)
+    if not HAS_STATSMODELS:
+        logger.warning(
+            "statsmodels is not importable by this interpreter (%s), so NO pretrained "
+            "ARIMA will be served.", sys.executable)
+
     loaded: dict[str, list[str]] = {}
     for metal in (metals or SUPPORTED_METALS):
         got = []
@@ -189,6 +205,11 @@ def warmup(metals=None) -> dict:
                 got.append("arima")
             if _load_lstm_model(metal) is not None:
                 got.append("lstm")
+            elif HAS_TENSORFLOW and _lstm_path(metal) is not None:
+                # The file is right there and TensorFlow is available, so
+                # this is a real load failure, not an absent model.
+                logger.warning("%s: %s exists but could not be loaded; this metal will "
+                               "fall back to ARIMA.", metal, _lstm_path(metal))
             _fit_matching_scaler(metal)
             got.append("scaler")
             if load_training_meta(metal) is not None:
