@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, Lock, MinusCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
 import { getForecast } from '../api/client.js';
@@ -9,11 +10,20 @@ import LoadingState from '../components/LoadingState.jsx';
 import ConnectionBanner from '../components/ConnectionBanner.jsx';
 import ErrorState from '../components/ErrorState.jsx';
 import MaterialChip from '../components/MaterialChip.jsx';
+import Badge from '../components/Badge.jsx';
 
 export default function Forecast() {
   const { t, intlTag } = useLanguage();
   const { notify } = useNotifications();
-  const [metal, setMetal] = useState(METALS[0].key);
+
+  // Arriving from a Market Overview card carries the metal in the URL.
+  // That batch is about the metal the operator just tapped, so the field
+  // is locked -- changing it here would silently value something else.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const lockedMetal = searchParams.get('metal');
+  const isLocked = Boolean(lockedMetal && METALS.some((m) => m.key === lockedMetal));
+
+  const [metal, setMetal] = useState(isLocked ? lockedMetal : METALS[0].key);
   const [weight, setWeight] = useState('');
   const [status, setStatus] = useState('idle'); // idle | loading | ready | offline | error
   const [errorMessage, setErrorMessage] = useState('');
@@ -44,6 +54,15 @@ export default function Forecast() {
   }
 
   const isSell = result?.recommendation === 'SELL NOW';
+
+  // Both fields were added to the backend after this page shipped. Compared
+  // strictly so an older backend that omits them (undefined) simply renders
+  // nothing here, rather than reading as "no signal" or crashing.
+  const noSignal = result?.signal === false;
+  const persistenceMape = typeof result?.persistence_mape === 'number'
+    ? result.persistence_mape
+    : null;
+
   const chartData = result?.forecast_90d?.map((p) => ({
     date: p.date,
     [t('forecast.currentPrice')]: p.price_lkr,
@@ -63,11 +82,30 @@ export default function Forecast() {
           <div className="form-row">
             <div className="field" style={{ marginBottom: 0 }}>
               <label htmlFor="metal-select">{t('forecast.selectMetal')}</label>
-              <select id="metal-select" value={metal} onChange={(e) => setMetal(e.target.value)}>
+              <select
+                id="metal-select"
+                value={metal}
+                disabled={isLocked}
+                className={isLocked ? 'is-locked' : undefined}
+                onChange={(e) => setMetal(e.target.value)}
+              >
                 {METALS.map((m) => (
                   <option key={m.key} value={m.key}>{t(m.i18nKey)}</option>
                 ))}
               </select>
+              {isLocked && (
+                <span className="field-hint locked-hint">
+                  <Lock size={12} /> {t('forecast.lockedFromMarket')}
+                  {' '}
+                  <button
+                    type="button"
+                    className="linkish"
+                    onClick={() => setSearchParams({})}
+                  >
+                    {t('forecast.changeMetal')}
+                  </button>
+                </span>
+              )}
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
               <label htmlFor="weight-input">{t('common.weightKg')}</label>
@@ -105,6 +143,13 @@ export default function Forecast() {
             </div>
             <MaterialChip materialKey={metal} />
           </div>
+
+          {noSignal && (
+            <div className="no-signal-note">
+              <Badge variant="neutral" icon={MinusCircle}>{t('forecast.noSignal')}</Badge>
+              {result.recommendation_reason && <p>{result.recommendation_reason}</p>}
+            </div>
+          )}
 
           <div className="action-note">
             <strong>{isSell ? t('forecast.actionSell') : t('forecast.actionHold')}</strong>
@@ -167,6 +212,12 @@ export default function Forecast() {
                   <div className="label">{t('forecast.mape')}</div>
                   <div className="value">{result.mape}%</div>
                 </div>
+                {persistenceMape !== null && (
+                  <div className="breakdown-item">
+                    <div className="label">{t('forecast.persistenceMape')}</div>
+                    <div className="value">{persistenceMape}%</div>
+                  </div>
+                )}
                 <div className="breakdown-item">
                   <div className="label">{t('forecast.rmse')}</div>
                   <div className="value">${result.rmse}</div>

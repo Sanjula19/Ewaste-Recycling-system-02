@@ -41,6 +41,14 @@ export default {
     marketOverview: 'சந்தை மேலோட்டம்',
     live: 'நேரடி',
     dataAsOf: 'தேதி நிலவரப்படி',
+    // TRANSLATION NEEDED -- English placeholders. "Signal" here is the
+    // statistical sense (the model has no predictive power), NOT a radio
+    // or network signal, which is the reading a direct translation would
+    // most likely give -- and this chip sits next to the "Live" radio
+    // badge, where that confusion would be worst.
+    noSignal: 'No signal',
+    noSignalTooltip: 'On recent data this metal’s model is no more accurate than assuming the price stays flat, so holding is not recommended.',
+    valueThisMetal: 'இந்த உலோகத்தை மதிப்பிடு',
     batchesProcessed: 'செயலாக்கப்பட்ட தொகுதிகள்',
     totalTonnage: 'மொத்த எடை (டன்)',
     totalEnergy: 'மீட்கப்பட்ட ஆற்றல்',
@@ -78,10 +86,16 @@ export default {
     forecastChart: '90 நாள் விலை முன்கணிப்பு',
     accuracy: 'முன்கணிப்பு துல்லியம்',
     mape: 'சராசரி பிழை (MAPE)',
+    // TRANSLATION NEEDED -- English placeholders. See dashboard.noSignal
+    // above for why "signal" is not translated on a guess.
+    persistenceMape: 'No-change error (MAPE)',
+    noSignal: 'No forecastable signal',
     rmse: 'மூல சராசரி வர்க்கப் பிழை',
     modelUsed: 'பயன்படுத்தப்பட்ட மாதிரி',
     exchangeRate: 'பயன்படுத்தப்பட்ட மாற்று விகிதம்',
     rateAsOf: 'தேதி நிலவரப்படி',
+    lockedFromMarket: 'சந்தை மேலோட்டத்திலிருந்து தேர்ந்தெடுக்கப்பட்டது.',
+    changeMetal: 'உலோகத்தை மாற்று',
     rateSourceLive: 'நேரடி',
     rateSourceCached: 'சேமிக்கப்பட்ட',
     rateSourceFallback: 'மாற்று (இணைப்பில்லாத)',
@@ -125,11 +139,17 @@ export default {
     tariff: 'மின் விநியோக கட்டணம்',
     revenue: 'மதிப்பிடப்பட்ட வருவாய்',
     co2Avoided: 'தவிர்க்கப்பட்ட கார்பன் டை ஆக்சைடு',
+    methodMechanical: 'இயந்திர மறுசுழற்சி',
+    mechanicalHeadline: 'துகள்களாக்க அனுப்பவும்',
+    dispatchNote: 'அனுப்புகை குறிப்பு',
+    nearestRecycler: 'அருகிலுள்ள இயந்திர மறுசுழற்சி மையம்',
+    co2Emitted: 'வெளியேற்றப்பட்ட கார்பன் டை ஆக்சைடு',
     manifestId: 'பதிவு எண்',
   },
   materials: {
     'pvc plastic': 'பிவிசி பிளாஸ்டிக்',
     polystyrene: 'பாலிஸ்டிரீன்',
+    pp: 'பாலிப்ரொப்பிலீன் (PP)',
     'contaminated glass': 'மாசுபட்ட கண்ணாடி',
   },
   manifest: {
@@ -149,10 +169,11 @@ export default {
     startedAt: 'தொடங்கியது',
     lastEntry: 'கடைசி பதிவு',
     weightKg: 'எடை (கி.கி.)',
+    energyConsumed: 'பயன்படுத்திய ஆற்றல்',
+    co2Emitted: 'வெளியேற்றிய CO2',
+    net: 'நிகர',
+    co2Kg: 'CO2 (கி.கி.)',
     energyKwh: 'ஆற்றல் (kWh)',
     valueLkr: 'மதிப்பு (LKR)',
-  },
-  footer: {
-    disclaimer: 'கல்வி முன்மாதிரி — கூறு 4, R26-IT-015. காட்டப்படும் எண்கள் விளக்கக்காட்சி மற்றும் திட்டமிடல் நோக்கங்களுக்கான மதிப்பீடுகள் ஆகும்.',
   },
 };

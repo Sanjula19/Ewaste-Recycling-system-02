@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock, MinusCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
 import { getMarketOverview } from '../api/client.js';
@@ -102,9 +103,17 @@ function MarketCard({ item, t, intlTag }) {
   const isDown = item.day_change_pct < 0;
   const ChangeIcon = isUp ? ArrowUpRight : isDown ? ArrowDownRight : Minus;
   const asOfDate = new Date(item.data_as_of).toLocaleDateString(intlTag, { day: '2-digit', month: 'short', year: 'numeric' });
+  // Strict check: an older backend omits `signal`, and undefined must not
+  // render as "no signal".
+  const noSignal = item.signal === false;
 
   return (
-    <div className="market-card" style={{ '--chip-color': materialColorVar(item.metal) }}>
+    <Link
+      to={`/forecast?metal=${encodeURIComponent(item.metal)}`}
+      className="market-card"
+      style={{ '--chip-color': materialColorVar(item.metal) }}
+      aria-label={`${materialLabel(item.metal, t)} — ${t('dashboard.valueThisMetal')}`}
+    >
       <div className="market-card-top">
         <span className="market-card-name">{materialLabel(item.metal, t)}</span>
         <Badge variant={isSell ? 'success' : 'warning'}>
@@ -129,7 +138,16 @@ function MarketCard({ item, t, intlTag }) {
         ) : (
           <span className="market-card-asof"><Clock size={12} /> {t('dashboard.dataAsOf')} {asOfDate}</span>
         )}
+        {noSignal && (
+          <span
+            className="market-card-nosignal"
+            title={t('dashboard.noSignalTooltip')}
+            aria-label={t('dashboard.noSignalTooltip')}
+          >
+            <MinusCircle size={12} /> {t('dashboard.noSignal')}
+          </span>
+        )}
       </div>
-    </div>
+    </Link>
   );
 }

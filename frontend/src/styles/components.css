@@ -176,6 +176,26 @@
   font-size: 0.9rem;
 }
 
+/* Shown when the model did not beat a no-change forecast, so the 90-day
+   path is not something to act on. Same neutral surface as .action-note --
+   this is a caveat on the recommendation, not an alert. */
+.no-signal-note {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.no-signal-note p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
 .price-pair {
   display: flex;
   align-items: baseline;
@@ -250,7 +270,18 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* the card is a link to that metal's valuation */
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+              border-color var(--transition-fast);
 }
+.market-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--chip-color, var(--color-primary));
+}
+.market-card:active { transform: translateY(0); }
 .market-card-top {
   display: flex;
   align-items: center;
@@ -281,6 +312,26 @@
   margin-top: var(--space-3);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
+  /* Was a single child; now the no-signal chip sits opposite the live /
+     as-of indicator. With one child this renders exactly as before. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.market-card-nosignal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: help;   /* there is a title tooltip explaining it */
 }
 .market-card-asof {
   display: inline-flex;
@@ -288,6 +339,32 @@
   gap: 4px;
   font-size: 0.75rem;
   color: var(--color-text-faint);
+}
+
+/* A select locked to a metal chosen on the Dashboard. Reads as
+   deliberately fixed rather than broken -- greyed out but still legible. */
+.field select.is-locked {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  cursor: not-allowed;
+  opacity: 1;                 /* Safari fades disabled selects to unreadable */
+  -webkit-text-fill-color: var(--color-text);
+}
+.locked-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 /* Toast notifications */

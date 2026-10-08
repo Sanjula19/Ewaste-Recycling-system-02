@@ -41,6 +41,14 @@ export default {
     marketOverview: 'වෙළඳපොල දළ විශ්ලේෂණය',
     live: 'සජීවී',
     dataAsOf: 'දින වන විට',
+    // TRANSLATION NEEDED -- English placeholders. "Signal" here is the
+    // statistical sense (the model has no predictive power), NOT a radio
+    // or network signal, which is the reading a direct translation would
+    // most likely give -- and this chip sits next to the "Live" radio
+    // badge, where that confusion would be worst.
+    noSignal: 'No signal',
+    noSignalTooltip: 'On recent data this metal’s model is no more accurate than assuming the price stays flat, so holding is not recommended.',
+    valueThisMetal: 'මෙම ලෝහය තක්සේරු කරන්න',
     batchesProcessed: 'සැකසූ කණ්ඩායම් ගණන',
     totalTonnage: 'මුළු ප්‍රමාණය (ටොන්)',
     totalEnergy: 'ප්‍රතිසාධිත බලශක්තිය',
@@ -78,10 +86,16 @@ export default {
     forecastChart: 'දින 90ක මිල පුරෝකථනය',
     accuracy: 'පුරෝකථන නිරවද්‍යතාව',
     mape: 'සාමාන්‍ය දෝෂය (MAPE)',
+    // TRANSLATION NEEDED -- English placeholders. See dashboard.noSignal
+    // above for why "signal" is not translated on a guess.
+    persistenceMape: 'No-change error (MAPE)',
+    noSignal: 'No forecastable signal',
     rmse: 'මූල මධ්‍ය වර්ග දෝෂය',
     modelUsed: 'භාවිත කළ ආකෘතිය',
     exchangeRate: 'භාවිත කළ විනිමය අනුපාතය',
     rateAsOf: 'දිනට අනුව',
+    lockedFromMarket: 'වෙළඳපොල දළ විශ්ලේෂණයෙන් තෝරන ලදී.',
+    changeMetal: 'ලෝහය වෙනස් කරන්න',
     rateSourceLive: 'සජීවී',
     rateSourceCached: 'සුරැකි',
     rateSourceFallback: 'විකල්ප (නොබැඳි)',
@@ -125,11 +139,17 @@ export default {
     tariff: 'විදුලි සැපයුම් ගාස්තුව',
     revenue: 'ඇස්තමේන්තුගත ආදායම',
     co2Avoided: 'වළක්වා ගත් කාබන් ඩයොක්සයිඩ්',
+    methodMechanical: 'යාන්ත්‍රික ප්‍රතිචක්‍රීකරණය',
+    mechanicalHeadline: 'කැටිති කිරීම සඳහා යවන්න',
+    dispatchNote: 'යැවීමේ සටහන',
+    nearestRecycler: 'ආසන්නතම යාන්ත්‍රික ප්‍රතිචක්‍රීකරණ මධ්‍යස්ථානය',
+    co2Emitted: 'විමෝචනය වූ කාබන් ඩයොක්සයිඩ්',
     manifestId: 'වාර්තා අංකය',
   },
   materials: {
     'pvc plastic': 'පීවීසී ප්ලාස්ටික්',
     polystyrene: 'පොලිස්ටයිරින්',
+    pp: 'පොලිප්‍රොපිලීන් (PP)',
     'contaminated glass': 'දූෂිත වීදුරු',
   },
   manifest: {
@@ -149,10 +169,11 @@ export default {
     startedAt: 'ආරම්භ වූයේ',
     lastEntry: 'අවසන් ඇතුළත් කිරීම',
     weightKg: 'බර (කි.ග්‍රෑ.)',
+    energyConsumed: 'පරිභෝජනය කළ බලශක්තිය',
+    co2Emitted: 'විමෝචනය වූ CO2',
+    net: 'ශුද්ධ',
+    co2Kg: 'CO2 (කි.ග්‍රෑ.)',
     energyKwh: 'බලශක්තිය (kWh)',
     valueLkr: 'අගය (LKR)',
-  },
-  footer: {
-    disclaimer: 'අධ්‍යයන මූලාකෘතිය — සංරචකය 4, R26-IT-015. පෙන්වා ඇති අගයන් ප්‍රදර්ශන හා සැලසුම් අරමුණු සඳහා ඇස්තමේන්තු වේ.',
   },
 };
