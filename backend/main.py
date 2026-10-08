@@ -1,14 +1,26 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import forecast, disposition, iot, manifest, market
-from services import market_service
+from services import market_service, pretrained_models
+
+# Without a root handler, logger.info() below goes nowhere (logging's
+# last-resort handler only passes WARNING and above). uvicorn configures its
+# own loggers with propagate=False, so this does not duplicate its output.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s %(message)s")
+logger = logging.getLogger("ecovision")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Which model artifacts this process will serve (MODEL_DIR, default
+    # "models"). Logged at startup so a wrong folder is obvious immediately
+    # instead of showing up as quietly different forecasts.
+    logger.info("Serving forecast models from %s", pretrained_models.models_dir())
+
     # Keeps the Market Overview cache warm in the background -- computing
     # it fresh takes ~a minute (pretrained ARIMA+LSTM backtest across 6
     # metals), too slow to do inline on a dashboard request. See

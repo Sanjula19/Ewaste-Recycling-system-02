@@ -1,0 +1,35 @@
+{
+  "metal": "steel",
+  "native_unit": "USD_per_ton",
+  "n_obs": 2507,
+  "first_date": "2015-11-24",
+  "last_date": "2025-10-29",
+  "train_end_index": 2506,
+  "scaler": {
+    "type": "sklearn.MinMaxScaler",
+    "feature_range": [
+      0,
+      1
+    ],
+    "data_min": 176.0,
+    "data_max": 700.0,
+    "fitted_on": "full training series (native units)"
+  },
+  "lstm": {
+    "window": 60,
+    "n_seq_fit": 2202,
+    "n_seq_val": 245,
+    "epochs_run": 27,
+    "best_val_loss": 0.00018729614384938031,
+    "sd_scaled": 0.007804459426552057,
+    "sd_scaled_source": "std of one-step residuals on the last 10% validation slice"
+  },
+  "arima_order": [
+    2,
+    1,
+    2
+  ],
+  "arima_aic": -14850.226923049182,
+  "seed": 42,
+  "train_seconds": 47.4
+}

@@ -44,6 +44,27 @@ looked up.
    instead, exactly like before you sent these files. Nothing breaks
    either way.
 
+## Which folder is served: `MODEL_DIR`
+
+`services/pretrained_models.py` reads its artifacts from the folder named
+by the `MODEL_DIR` environment variable, relative to `backend/`. It
+defaults to `models`, so everything above describes the behaviour when
+`MODEL_DIR` is unset.
+
+`MODEL_DIR=models_v2` serves the retrained, leakage-free models instead
+(`scripts/train_production_v2.py`, same recipe as
+`scripts/evaluate_c4_v2.py`). Both naming conventions are accepted —
+`arima_<metal>_model.pkl` / `lstm_<metal>_model.h5` here, and
+`arima_<metal>.pkl` / `lstm_<metal>.keras` in `models_v2/`.
+
+The one behavioural difference is the scaler. This folder has no
+`scaler_<metal>.pkl`, so the backend refits a `MinMaxScaler` on the full
+series at request time — which is what the original notebook did, and
+which re-derives the scaling bounds from data outside the model's
+training window. `models_v2/` ships the scaler that training actually
+fitted, and the backend loads it instead of refitting. Same story for the
+LSTM band width (`meta_<metal>.json` → `lstm.sd_scaled`).
+
 ## `reference/thermodynamic_properties_db.json`
 
 This is the actual database your `strategic_disposition.py` generated

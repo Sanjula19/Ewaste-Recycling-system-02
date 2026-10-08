@@ -39,9 +39,39 @@ horizon) are copied as-is from your train_lstm() -- a known simplification
 in the original notebook, not something introduced here. Flagged in
 README as a nice follow-up (growing the band with sqrt(step) is more
 statistically correct) rather than silently "fixed" here.
+
+-----------------------------------------------------------------------
+WHICH MODEL FOLDER IS USED (added with models_v2/)
+
+The folder is the MODEL_DIR environment variable, default "models", so the
+behaviour above is unchanged unless you set it. Both naming conventions are
+accepted, so the same code serves either folder:
+
+    models/      arima_<metal>_model.pkl   lstm_<metal>_model.h5   (legacy)
+    models_v2/   arima_<metal>.pkl         lstm_<metal>.keras|.h5
+                 scaler_<metal>.pkl        meta_<metal>.json
+
+Two things change ONLY when the folder supplies the extra files, i.e. for
+leakage-free models trained by scripts/train_production_v2.py:
+
+  * scaler_<metal>.pkl, if present, is LOADED instead of refitting a
+    MinMaxScaler on the full series at request time. Refitting at inference
+    re-derives the min/max from data the model never trained on (including
+    everything after its training window), which is the same leakage the v2
+    pipeline removed from training; a saved scaler is the only way the
+    inference transform matches the training transform exactly.
+  * meta_<metal>.json's lstm.sd_scaled, if present, sets the LSTM band
+    width. It is the std of one-step residuals on the training-time
+    validation slice. The fallback path measures residuals on the last 20%
+    of the series instead, which for a model trained on ALL data is
+    in-sample and so yields an over-narrow band.
+
+The decision rule itself (2% floor, 95% interval, lower-bound comparison)
+and every API response field are untouched by this.
 """
 
 from __future__ import annotations
+import json
 import os
 import pickle
 import logging
@@ -49,16 +79,48 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
 
 from data_loader import load_metal_series_raw, native_to_usd_per_kg
 
+# So MODEL_DIR in backend/.env is honoured even when this module is imported
+# on its own (a script, a test) rather than through main.py. Does not
+# override a variable already set in the real environment.
+load_dotenv()
+
 logger = logging.getLogger("ecovision.pretrained_models")
 
-MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
+BACKEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+DEFAULT_MODEL_DIR = "models"
 WINDOW_SIZE = 60          # must match your ewaste_model_training.py WINDOW_SIZE
 TRAIN_RATIO = 0.80        # must match your ewaste_preprocessing.py TRAIN_RATIO
 FORECAST_HORIZON = 90
+
+
+def models_dir() -> str:
+    """
+    Folder the artifacts are read from: $MODEL_DIR, relative to backend/ if
+    not absolute. Default "models", so an unset MODEL_DIR keeps the
+    pre-existing behaviour. Read per call, not cached at import, so a test
+    (or a restart-free config change) takes effect.
+    """
+    raw = (os.environ.get("MODEL_DIR") or DEFAULT_MODEL_DIR).strip() or DEFAULT_MODEL_DIR
+    return os.path.normpath(raw if os.path.isabs(raw) else os.path.join(BACKEND_DIR, raw))
+
+
+# Kept as a module attribute because models/README.md and the startup log
+# refer to it; path lookups go through models_dir() so MODEL_DIR is live.
+MODELS_DIR = models_dir()
+
+
+def _first_existing(*names: str) -> str | None:
+    d = models_dir()
+    for n in names:
+        p = os.path.join(d, n)
+        if os.path.isfile(p):
+            return p
+    return None
 
 try:
     from statsmodels.tsa.arima.model import ARIMA
@@ -83,20 +145,43 @@ class PretrainedForecast:
     model_used: str
 
 
-def _arima_path(metal: str) -> str:
-    return os.path.join(MODELS_DIR, f"arima_{metal.lower()}_model.pkl")
+def _arima_path(metal: str) -> str | None:
+    m = metal.lower()
+    return _first_existing(f"arima_{m}.pkl", f"arima_{m}_model.pkl")
 
 
-def _lstm_path(metal: str) -> str:
-    return os.path.join(MODELS_DIR, f"lstm_{metal.lower()}_model.h5")
+def _lstm_path(metal: str) -> str | None:
+    m = metal.lower()
+    return _first_existing(f"lstm_{m}.keras", f"lstm_{m}.h5", f"lstm_{m}_model.h5")
+
+
+def _scaler_path(metal: str) -> str | None:
+    return _first_existing(f"scaler_{metal.lower()}.pkl")
+
+
+def _meta_path(metal: str) -> str | None:
+    return _first_existing(f"meta_{metal.lower()}.json")
 
 
 def has_pretrained_arima(metal: str) -> bool:
-    return os.path.isfile(_arima_path(metal))
+    return _arima_path(metal) is not None
 
 
 def has_pretrained_lstm(metal: str) -> bool:
-    return os.path.isfile(_lstm_path(metal))
+    return _lstm_path(metal) is not None
+
+
+def load_training_meta(metal: str) -> dict | None:
+    """Per-metal training record written by scripts/train_production_v2.py."""
+    path = _meta_path(metal)
+    if path is None:
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Failed to read training meta for %s: %s", metal, exc)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -105,14 +190,36 @@ def has_pretrained_lstm(metal: str) -> bool:
 
 def _fit_matching_scaler(metal: str) -> tuple[MinMaxScaler, pd.Series]:
     """
-    Refits a MinMaxScaler(0,1) on the FULL raw native-price series for
-    `metal`, matching ewaste_preprocessing.run_pipeline() exactly (fit on
-    df[['Price']] before the train/test split). Since MinMaxScaler only
-    needs the data's min/max, refitting on the same source CSV reproduces
-    the identical scaler the training notebook used -- no need for you to
-    separately export scaler.pkl per metal.
+    Returns (scaler, raw native series) for `metal`.
+
+    PREFERRED PATH -- load scaler_<metal>.pkl, the scaler that was actually
+    fitted during training (written by scripts/train_production_v2.py).
+    Inference then applies the exact transform training used.
+
+    FALLBACK (no saved scaler, i.e. the legacy models/ folder) -- refit a
+    MinMaxScaler(0,1) on the FULL raw native-price series, matching
+    ewaste_preprocessing.run_pipeline() exactly (fit on df[['Price']] before
+    the train/test split). This is what the whole backend did before
+    models_v2/ existed, so leaving MODEL_DIR unset changes nothing.
+
+    The fallback is not merely redundant work: it re-derives the min/max from
+    the whole series at request time, so a model's inference inputs get
+    scaled by bounds that can come from observations after its training
+    window -- the leakage scripts/evaluate_c4_v2.py removed from training.
+    It also silently breaks the moment the CSV is extended with a new high or
+    low, because the saved weights were fitted against the old bounds while
+    the refitted scaler would use the new ones.
     """
     raw = load_metal_series_raw(metal)  # ascending, native units
+    path = _scaler_path(metal)
+    if path is not None:
+        try:
+            import joblib
+            scaler = joblib.load(path)
+            return scaler, raw
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Failed to load saved scaler for %s (%s); refitting on the full "
+                           "series as a fallback.", metal, exc)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaler.fit(raw.to_numpy().reshape(-1, 1))
     return scaler, raw
@@ -198,10 +305,13 @@ def _backtest_arima_order(metal: str, order: tuple[int, int, int], holdout_ratio
 # ---------------------------------------------------------------------------
 
 def _load_lstm_model(metal: str):
-    if not HAS_TENSORFLOW or not has_pretrained_lstm(metal):
+    path = _lstm_path(metal)
+    if not HAS_TENSORFLOW or path is None:
         return None
     try:
-        return tf.keras.models.load_model(_lstm_path(metal))
+        # compile=False: only predict() is ever called, and it avoids
+        # optimizer-state warnings on both .keras and legacy .h5 files.
+        return tf.keras.models.load_model(path, compile=False)
     except Exception as exc:  # pragma: no cover - defensive
         logger.warning("Failed to load pretrained LSTM for %s: %s", metal, exc)
         return None
@@ -238,6 +348,15 @@ def forecast_with_pretrained_lstm(metal: str, horizon: int = FORECAST_HORIZON) -
             test_pred_scaled = model.predict(X_test, verbose=0)
             residuals = y_test.reshape(-1, 1) - test_pred_scaled
             error_std_scaled = float(np.std(residuals))
+
+    # Prefer the training-time validation residual sd when the folder ships
+    # one (models_v2/). For a model trained on the full series the block
+    # above measures residuals on data it already fitted, which understates
+    # the band; the saved value is out-of-sample for the fitted weights.
+    meta = load_training_meta(metal)
+    meta_sd = (meta or {}).get("lstm", {}).get("sd_scaled")
+    if meta_sd:
+        error_std_scaled = float(meta_sd)
 
     # --- Recursive multi-step forecast, exactly as train_lstm() does it ---
     last_window = full_scaled[-WINDOW_SIZE:]

@@ -1,0 +1,35 @@
+{
+  "metal": "zinc",
+  "native_unit": "INR_per_kg",
+  "n_obs": 2758,
+  "first_date": "2014-01-01",
+  "last_date": "2024-08-30",
+  "train_end_index": 2757,
+  "scaler": {
+    "type": "sklearn.MinMaxScaler",
+    "feature_range": [
+      0,
+      1
+    ],
+    "data_min": 97.85,
+    "data_max": 381.7,
+    "fitted_on": "full training series (native units)"
+  },
+  "lstm": {
+    "window": 60,
+    "n_seq_fit": 2428,
+    "n_seq_val": 270,
+    "epochs_run": 46,
+    "best_val_loss": 0.000148686085594818,
+    "sd_scaled": 0.010785291902720928,
+    "sd_scaled_source": "std of one-step residuals on the last 10% validation slice"
+  },
+  "arima_order": [
+    0,
+    1,
+    0
+  ],
+  "arima_aic": -17059.613716974432,
+  "seed": 42,
+  "train_seconds": 59.8
+}
