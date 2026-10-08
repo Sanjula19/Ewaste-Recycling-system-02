@@ -54,12 +54,28 @@ from typing import Literal
 import pandas as pd
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+V3_DIR = os.path.join(DATA_DIR, "v3")
 
-# Used only to normalize historical INR series for model training.
+# Which price dataset the backend reads.
+#
+#   "v1"  the original MCX exports in data/*.csv -- five metals in INR/kg
+#         converted at the flat USD_INR_RATE_HISTORICAL below, steel in
+#         USD/ton. This is what every model in models/ and models_v2/ was
+#         trained on, so it stays the default: changing it invalidates
+#         those weights and their saved scalers.
+#   "v3"  the Investing.com global contracts rebuilt by
+#         scripts/build_dataset_v3.py into data/v3/<metal>.csv, already in
+#         USD/kg. No INR constant is involved anywhere in that path.
+#
+# Switching to "v3" requires retraining; the saved scalers carry v1's
+# min/max in INR and would silently mis-scale a USD series.
+DATA_VERSION = (os.environ.get("DATA_VERSION") or "v1").strip().lower()
+
+# Used only to normalize historical INR series for model training (v1).
 # Live display rates come from services/fx_service.py instead.
 USD_INR_RATE_HISTORICAL = 87.5  # approx. average over the CSVs' 2014-2024 span
 
-Unit = Literal["INR_per_kg", "USD_per_ton"]
+Unit = Literal["INR_per_kg", "USD_per_ton", "USD_per_kg"]
 
 
 @dataclass(frozen=True)
@@ -84,6 +100,30 @@ MATERIAL_CONFIG: dict[str, MetalConfig] = {
 
 SUPPORTED_METALS = sorted({"aluminium", "copper", "lead", "nickel", "zinc", "steel"})
 
+# v3: one file per metal, already cleaned and already USD/kg, so the
+# "native unit" is the target unit and no conversion is applied.
+V3_CONFIG: dict[str, MetalConfig] = {
+    key: MetalConfig(f"{'aluminium' if key == 'aluminum' else 'steel' if key == 'steel_scrap' else key}.csv",
+                     "%Y-%m-%d", "USD_per_kg")
+    for key in MATERIAL_CONFIG
+}
+
+
+def _resolve(metal: str) -> tuple[MetalConfig, str]:
+    """(config, absolute path) for `metal` under the active DATA_VERSION."""
+    key = metal.strip().lower()
+    if key not in MATERIAL_CONFIG:
+        raise ValueError(
+            f"Unsupported metal '{metal}'. This component covers: {SUPPORTED_METALS}"
+        )
+    if DATA_VERSION == "v3":
+        cfg = V3_CONFIG[key]
+        return cfg, os.path.join(V3_DIR, cfg.filename)
+    if DATA_VERSION != "v1":
+        raise ValueError(f"Unknown DATA_VERSION '{DATA_VERSION}'; expected 'v1' or 'v3'.")
+    cfg = MATERIAL_CONFIG[key]
+    return cfg, os.path.join(DATA_DIR, cfg.filename)
+
 
 def _clean_numeric(series: pd.Series) -> pd.Series:
     return (
@@ -99,6 +139,8 @@ def _to_usd_per_kg(price: pd.Series, unit: Unit) -> pd.Series:
         return price / USD_INR_RATE_HISTORICAL
     if unit == "USD_per_ton":
         return price / 1000.0  # metric ton -> kg
+    if unit == "USD_per_kg":
+        return price        # v3 files are built in USD/kg; nothing to apply
     raise ValueError(f"Unknown unit: {unit}")
 
 
@@ -113,27 +155,28 @@ def load_metal_series_raw(metal: str) -> pd.Series:
     for steel) -- NOT in USD/kg. Convert with native_to_usd_per_kg() below
     before doing anything else with them.
     """
-    key = metal.strip().lower()
-    if key not in MATERIAL_CONFIG:
-        raise ValueError(
-            f"Unsupported metal '{metal}'. This component covers: {SUPPORTED_METALS}"
-        )
-    cfg = MATERIAL_CONFIG[key]
-    path = os.path.join(DATA_DIR, cfg.filename)
+    cfg, path = _resolve(metal)
 
     df = pd.read_csv(path)
     df.columns = [c.strip() for c in df.columns]
-    df["Date"] = pd.to_datetime(df["Date"], format=cfg.date_format)
-    df["Price"] = _clean_numeric(df["Price"])
+    # v3 files are written by scripts/build_dataset_v3.py as date,price_usd_kg;
+    # the v1 exports are Investing.com's Date,Price,Open,High,...
+    date_col, price_col = ("date", "price_usd_kg") if cfg.native_unit == "USD_per_kg" else ("Date", "Price")
+    df["Date"] = pd.to_datetime(df[date_col], format=cfg.date_format)
+    df["Price"] = _clean_numeric(df[price_col])
     df = df.sort_values("Date").drop_duplicates(subset="Date").set_index("Date")
     df["Price"].name = "price_native"
     return df["Price"]
 
 
 def native_to_usd_per_kg(metal: str, value) -> "float | pd.Series":
-    """Converts a raw native-unit price (or Series of them) to USD/kg."""
-    key = metal.strip().lower()
-    cfg = MATERIAL_CONFIG[key]
+    """
+    Converts a raw native-unit price (or Series of them) to USD/kg, using
+    the unit of whichever dataset DATA_VERSION selects. Under "v3" this is
+    the identity -- those files are built in USD/kg and the INR constant is
+    not involved.
+    """
+    cfg, _ = _resolve(metal)
     return _to_usd_per_kg(value, cfg.native_unit)
 
 

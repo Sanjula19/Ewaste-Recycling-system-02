@@ -1,0 +1,7 @@
+metal,source_file,contract,original_unit,conversion_factor,date_format,first_date,last_date,rows,rows_in_source,missing_prices,zero_prices,negative_prices,duplicate_dates_dropped,gaps_over_5_trading_days,jumps_over_15_pct,latest_usd_kg,latest_usd_tonne
+aluminium,Aluminium Historical Data.csv,Aluminium Futures (LME),USD_per_tonne,0.001,%m/%d/%Y,2026-09-08,2026-10-08,23,23,0,0,0,0,0,0,3.0415,3041.5
+copper,Copper Futures Historical Data.csv,Copper Futures (COMEX),USD_per_pound,2.2046226218487757,%d-%m-%Y,2026-09-08,2026-10-08,23,23,0,0,0,0,0,0,14.4888,14488.78
+lead,Lead Futures Historical Data.csv,Lead Futures (LME),USD_per_tonne,0.001,%m/%d/%Y,2026-09-08,2026-10-08,23,23,0,0,0,0,0,0,1.8636,1863.55
+nickel,Nickel Futures Historical Data.csv,Nickel Futures (LME),USD_per_tonne,0.001,%m/%d/%Y,2026-09-08,2026-10-08,23,23,0,0,0,0,0,0,15.5375,15537.5
+steel,Steel Scrap Futures Historical Data (1).csv,Steel Scrap Futures,USD_per_tonne,0.001,%m/%d/%Y,2025-10-02,2025-10-29,20,20,0,0,0,0,0,0,0.3495,349.5
+zinc,Zinc Futures Historical Data.csv,Zinc Futures (LME),USD_per_tonne,0.001,%m/%d/%Y,2026-09-08,2026-10-08,23,23,0,0,0,0,0,0,3.7112,3711.2
