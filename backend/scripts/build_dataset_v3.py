@@ -28,21 +28,22 @@ less than ~13 days of a month), the file is REJECTED rather than parsed on
 a coin flip; pass --date-format metal=%d-%m-%Y to resolve it by hand.
 
 UNITS
-Identified from the Investing.com instrument each file comes from, which
-is visible in the filename and corroborated by the file's own shape:
+All six current exports are LME-style contracts quoted in USD per metric
+tonne, including copper -- its prices are in the thousands with two
+decimals, matching the other five.
 
-  * Aluminium / Lead / Nickel / Zinc -- LME contracts quoted in USD per
-    metric tonne. Two decimals, and the Vol. column is empty (Investing
-    does not publish volume for these).
-  * Copper -- "Copper Futures" is COMEX, quoted in USD per POUND. Told
-    apart from the LME files by four decimals (the 0.0005 tick), a Vol.
-    column populated on every row, and a different date format.
-  * Steel Scrap -- US Midwest HRC/busheling scrap, USD per short ton on
-    some contracts and per metric tonne on others. Treated as metric
-    tonne here, matching how the v1 steel file was already handled.
+That is NOT a safe assumption to carry forward. Investing.com publishes
+copper on two pages: "Copper Futures" (COMEX) is quoted in USD per POUND
+with four decimals and a 0.0005 tick, while the LME page is USD per
+tonne. An earlier download of this same filename was the COMEX one. A
+pound file converted as tonnes lands 2,204x off.
 
-Check the printed USD/tonne figures against the live quote before
-trusting any of this; --unit overrides any of it without a code edit.
+So the unit is not trusted blindly: check_unit_plausibility() below
+converts with the configured unit and rejects the result if the series
+does not land in the range industrial metals actually occupy, naming the
+unit that would fit instead. Combined with the printed USD/tonne figures,
+a wrong unit should be loud rather than silent. --unit overrides any of
+this without a code edit.
 """
 
 from __future__ import annotations
@@ -72,29 +73,35 @@ ALLOWED_UNITS = {
 GAP_TRADING_DAYS = 5        # flag a hole longer than this many business days
 JUMP_PCT = 15.0             # flag a single-day move this large, never drop it
 
+# The range industrial base metals plausibly occupy in USD/kg, wide enough
+# to hold everything here (steel scrap ~0.18 at the bottom, the 2022 nickel
+# squeeze ~62 at the top) and far too narrow to survive a 1000x or 2204x
+# unit error. Used only to reject a converted series, never to alter one.
+PLAUSIBLE_USD_KG = (0.05, 200.0)
+
 
 @dataclass
 class SourceSpec:
     patterns: list[str]
-    unit: str
     contract: str
+    unit: str | None = None            # None -> infer from the file
     date_format: str | None = None     # None -> decide by exclusion
 
 
 SOURCES: dict[str, SourceSpec] = {
     "aluminium": SourceSpec(["Aluminium*Historical*Data*.csv", "Aluminum*Historical*Data*.csv"],
-                            "USD_per_tonne", "Aluminium Futures (LME)"),
+                            "Aluminium (LME)"),
     "copper":    SourceSpec(["Copper*Futures*Historical*Data*.csv"],
-                            "USD_per_pound", "Copper Futures (COMEX)"),
-    "lead":      SourceSpec(["Lead*Futures*Historical*Data*.csv"],
-                            "USD_per_tonne", "Lead Futures (LME)"),
-    "nickel":    SourceSpec(["Nickel*Futures*Historical*Data*.csv"],
-                            "USD_per_tonne", "Nickel Futures (LME)"),
-    "steel":     SourceSpec(["Steel*Scrap*Futures*Historical*Data*.csv"],
-                            "USD_per_tonne", "Steel Scrap Futures"),
-    "zinc":      SourceSpec(["Zinc*Futures*Historical*Data*.csv"],
-                            "USD_per_tonne", "Zinc Futures (LME)"),
+                            "Copper Futures"),
+    "lead":      SourceSpec(["Lead*Futures*Historical*Data*.csv"], "Lead Futures (LME)"),
+    "nickel":    SourceSpec(["Nickel*Futures*Historical*Data*.csv"], "Nickel Futures (LME)"),
+    "steel":     SourceSpec(["Steel*Scrap*Futures*Historical*Data*.csv"], "Steel Scrap Futures"),
+    "zinc":      SourceSpec(["Zinc*Futures*Historical*Data*.csv"], "Zinc Futures (LME)"),
 }
+
+# Above this, a base-metal quote can only be per tonne: the dearest metal
+# here is nickel, and even its 2022 squeeze peak is ~62 USD/kg.
+PER_TONNE_FLOOR = 150.0
 
 
 class BuildError(Exception):
@@ -173,17 +180,84 @@ def load_clean(metal: str, path: str, spec: SourceSpec) -> tuple[pd.DataFrame, d
     n_dupes = int(out["date"].duplicated().sum())
     out = out.drop_duplicates(subset="date", keep="first").reset_index(drop=True)
 
-    factor = ALLOWED_UNITS[spec.unit]
+    # Unit: inferred from this file unless pinned on the command line, then
+    # sanity-checked either way.
+    median_native = float(out["price_native"].median())
+    decimals = int(df["Price"].astype(str).str.split(".").str[-1].str.len().mode().iloc[0])
+    vol = df["Vol."].fillna("").astype(str).str.strip() if "Vol." in df.columns else pd.Series([""])
+    vol_fraction = float((vol != "").mean())
+
+    if spec.unit:
+        unit, unit_evidence = spec.unit, "given on the command line"
+    else:
+        unit, unit_evidence = infer_unit(median_native, decimals, vol_fraction)
+    check_unit_plausibility(metal, median_native, unit)
+
+    factor = ALLOWED_UNITS[unit]
     out["price_usd_kg"] = out["price_native"] * factor
 
     return out, {
         "date_format": fmt, "date_format_evidence": evidence, "rows_in": n_raw,
         "missing": n_missing, "zero": n_zero, "negative": n_negative, "duplicate_dates": n_dupes,
-        "conversion_factor": factor,
+        "unit": unit, "unit_evidence": unit_evidence, "conversion_factor": factor,
+        "decimals": decimals, "vol_fraction": vol_fraction,
     }
 
 
 # --------------------------------------------------------------------- checks
+
+def infer_unit(median_native: float, decimals: int, vol_fraction: float) -> tuple[str, str]:
+    """
+    Work out the quote unit from the file itself, and say what decided it.
+
+    This is inferred rather than configured because the same Investing.com
+    filename has delivered two different instruments on different days: the
+    LME copper page (USD/tonne, two decimals, sparse volume) and the COMEX
+    "Copper Futures" page (USD/pound, four decimals from the 0.0005 tick,
+    volume on every row). A hardcoded unit is therefore wrong roughly half
+    the time, and wrong by a factor of 2,204.
+
+    Returns (unit, evidence). Raises when the evidence does not settle it,
+    because a 50/50 guess here silently poisons every downstream number.
+    """
+    if median_native > PER_TONNE_FLOOR:
+        return "USD_per_tonne", (f"median price {median_native:,.2f} is above "
+                                 f"{PER_TONNE_FLOOR:,.0f}, so the quote is per tonne")
+    if decimals >= 4:
+        return "USD_per_pound", (f"median price {median_native:,.4f} with {decimals} decimals and "
+                                 f"volume on {vol_fraction:.0%} of rows -- the COMEX per-pound tick")
+    raise BuildError(
+        f"cannot tell the unit from the file: median price {median_native:,.4f} with "
+        f"{decimals} decimals, volume on {vol_fraction:.0%} of rows. That is too small "
+        f"to be per tonne and lacks the per-pound tick. Pass --unit <metal>=<unit> "
+        f"explicitly, one of {sorted(ALLOWED_UNITS)}.")
+
+
+def check_unit_plausibility(metal: str, median_native: float, unit: str) -> None:
+    """
+    Reject a conversion whose result is not a price any industrial metal has.
+
+    The failure this exists for is silent: the same Investing.com filename
+    has already delivered both a COMEX USD-per-pound export and an LME
+    USD-per-tonne one. Converting the tonne file as pounds overstates it by
+    2,204x, and nothing downstream would complain -- it would just train on
+    nonsense. A magnitude check cannot tell 2% from 2%, but it catches every
+    error of this kind, which are the ones that matter here.
+    """
+    lo, hi = PLAUSIBLE_USD_KG
+    got = median_native * ALLOWED_UNITS[unit]
+    if lo <= got <= hi:
+        return
+    fits = [u for u, f in ALLOWED_UNITS.items() if lo <= median_native * f <= hi]
+    hint = (f" The file does fit {fits[0]} ({median_native * ALLOWED_UNITS[fits[0]]:,.4f} USD/kg); "
+            f"rerun with --unit {metal}={fits[0]} if that is right."
+            if len(fits) == 1 else
+            f" Candidate units that would fit: {fits or 'none'}.")
+    raise BuildError(
+        f"unit {unit} gives a median of {got:,.4f} USD/kg, outside the plausible "
+        f"{lo}-{hi} USD/kg range for an industrial metal (median source price "
+        f"{median_native:,.4f}).{hint}")
+
 
 def find_gaps(dates: pd.Series, max_days: int = GAP_TRADING_DAYS) -> list[dict]:
     d = dates.dt.date.to_numpy()
@@ -222,6 +296,8 @@ def main():
         metal, _, unit = item.partition("=")
         if unit not in ALLOWED_UNITS:
             raise SystemExit(f"unknown unit {unit!r}; allowed: {sorted(ALLOWED_UNITS)}")
+        if metal not in SOURCES:
+            raise SystemExit(f"unknown metal {metal!r}; known: {sorted(SOURCES)}")
         SOURCES[metal].unit = unit
     for item in args.date_format:
         metal, _, fmt = item.partition("=")
@@ -254,9 +330,11 @@ def main():
             "metal": metal,
             "source_file": os.path.basename(path),
             "contract": spec.contract,
-            "original_unit": spec.unit,
+            "original_unit": info["unit"],
+            "unit_evidence": info["unit_evidence"],
             "conversion_factor": info["conversion_factor"],
             "date_format": info["date_format"],
+            "date_format_evidence": info["date_format_evidence"],
             "first_date": str(df["date"].iloc[0].date()),
             "last_date": str(df["date"].iloc[-1].date()),
             "rows": len(df),
@@ -286,6 +364,12 @@ def main():
         print(f"{r['metal']:10s} {r['original_unit']:14s} {r['conversion_factor']:12.8f} "
               f"{r['first_date']:>10s} {r['last_date']:>10s} {r['rows']:6d} "
               f"{r['gaps_over_5_trading_days']:5d} {r['jumps_over_15_pct']:6d}")
+
+    print("\n=========== HOW EACH FILE WAS READ ===========")
+    for r in summary_rows:
+        print(f"  {r['metal']:10s} {r['source_file']}")
+        print(f"             dates {r['date_format']:12s} -- {r['date_format_evidence']}")
+        print(f"             unit  {r['original_unit']:14s} -- {r['unit_evidence']}")
 
     print("\n=========== LATEST PRICE (sanity-check these) ===========")
     print(f"{'metal':10s} {'USD/kg':>12s} {'USD/tonne':>14s}   source quote")
