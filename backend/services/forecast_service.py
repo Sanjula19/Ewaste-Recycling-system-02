@@ -22,6 +22,7 @@ a concrete next step instead of a bare status label.
 
 from __future__ import annotations
 import itertools
+import math
 import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -45,12 +46,39 @@ except ImportError:  # pragma: no cover
     HAS_STATSMODELS = False
 
 
+NO_SIGNAL_REASON = (
+    "The model does not outperform a no-change forecast on recent data, so "
+    "holding is not recommended."
+)
+
+
 @dataclass
 class ForecastPath:
     mean: np.ndarray      # length = horizon
     lower: np.ndarray
     upper: np.ndarray
     model_used: str
+    # MAPE of a no-change (persistence) forecast on the SAME holdout the
+    # selected model's MAPE was measured on, or None when no such baseline
+    # is available (legacy model folder, or the live-fit fallback).
+    persistence_mape: float | None = None
+
+
+def has_signal(mape: float, persistence_mape: float | None) -> bool:
+    """
+    Is there anything to forecast?
+
+    A model that cannot beat "tomorrow's price is today's price" on recent
+    data has no demonstrated predictive signal, and a HOLD issued off its
+    90-day path is a guess dressed up as a decision. This is the gate for
+    that case; see generate_recommendation().
+
+    Returns True when no baseline is available, so the check can only ever
+    veto a HOLD on evidence, never on a missing number.
+    """
+    if persistence_mape is None or math.isnan(persistence_mape) or math.isnan(mape):
+        return True
+    return mape < persistence_mape
 
 
 # ---------------------------------------------------------------------------
@@ -147,18 +175,74 @@ def backtest(series: pd.Series, holdout: int = BACKTEST_HOLDOUT_DAYS) -> tuple[f
 # Sell / Hold decision + HOLD Command Upgrade
 # ---------------------------------------------------------------------------
 
-def generate_recommendation(current_price: float, path: ForecastPath, last_date: pd.Timestamp) -> dict:
+def generate_recommendation(
+    current_price: float,
+    path: ForecastPath,
+    last_date: pd.Timestamp,
+    mape: float = 0.0,
+) -> dict:
+    """
+    Sell/Hold, judged against the model's own demonstrated reliability
+    rather than one flat number.
+
+    Two rules, both aimed at not calling a decision on noise:
+
+    1. The bar a predicted gain has to clear is the LARGER of the fixed
+       hold threshold and this metal's backtested MAPE. Steel backtests
+       at ~3.5% error, so a 2% predicted rise there is well inside the
+       model's own margin -- reporting that as HOLD dresses up noise as
+       a decision. Copper backtests near 1.2%, so its bar stays at the
+       2% floor.
+
+    2. The comparison uses the forecast's LOWER confidence bound, not
+       the mean. HOLD therefore means "even on the pessimistic path,
+       waiting still beats selling today" -- a claim worth acting on,
+       where "the midpoint might beat today" is not.
+
+    The effect is fewer HOLDs, each better founded. Every figure behind
+    the call is in recommendation_reason so it can be defended.
+
+    3. Before either of those is consulted: if the selected model does not
+       beat a no-change forecast on the same holdout its MAPE came from,
+       there is no demonstrated signal to hold on, and the answer is SELL
+       NOW regardless of what the 90-day path says. A model worse than
+       "price stays put" can still draw a rising curve; that curve is not
+       evidence. This gate is skipped when no baseline is available.
+    """
+    if not has_signal(mape, path.persistence_mape):
+        return {
+            "recommendation": "SELL NOW",
+            "recommendation_reason": (
+                f"{NO_SIGNAL_REASON} On the 30-day holdout the selected model "
+                f"({path.model_used}) scored {mape:.2f}% MAPE against "
+                f"{path.persistence_mape:.2f}% for a no-change forecast, so its "
+                f"90-day path carries no information a flat line would not."
+            ),
+            "expected_peak_price": None,
+            "expected_peak_date": None,
+            "profit_if_sell": None,   # filled in by caller (needs weight_kg)
+            "operator_action": "ROUTE_TO_MARKET_SALE",
+            "operator_action_note": "Route this batch to the market liquidation bin for immediate sale.",
+        }
+
     peak_idx = int(np.argmax(path.mean))
     peak_price = float(path.mean[peak_idx])
+    confident_peak = float(path.lower[peak_idx])   # pessimistic case at the peak
     peak_date = (last_date + timedelta(days=peak_idx + 1)).strftime("%Y-%m-%d")
 
-    if peak_price > current_price * (1 + HOLD_THRESHOLD_PCT / 100):
+    threshold_pct = max(HOLD_THRESHOLD_PCT, mape)
+    required_price = current_price * (1 + threshold_pct / 100)
+    basis = "model error (MAPE)" if mape > HOLD_THRESHOLD_PCT else "fixed floor"
+
+    if confident_peak > required_price:
         return {
             "recommendation": "HOLD",
             "recommendation_reason": (
-                f"Prices are projected to rise {((peak_price / current_price) - 1) * 100:.1f}% "
-                f"to ~{peak_price:.2f} USD/kg by {peak_date}, above the {HOLD_THRESHOLD_PCT}% "
-                f"hold threshold."
+                f"Even the lower confidence bound of the 90-day forecast reaches "
+                f"~{confident_peak:.2f} USD/kg by {peak_date} "
+                f"({((confident_peak / current_price) - 1) * 100:.1f}% above today's "
+                f"{current_price:.2f}), clearing the {threshold_pct:.2f}% bar set by "
+                f"{basis}. Holding is worth the wait."
             ),
             "expected_peak_price": round(peak_price, 4),
             "expected_peak_date": peak_date,
@@ -173,9 +257,10 @@ def generate_recommendation(current_price: float, path: ForecastPath, last_date:
     return {
         "recommendation": "SELL NOW",
         "recommendation_reason": (
-            f"90-day forecast shows no rise beyond the {HOLD_THRESHOLD_PCT}% hold threshold "
-            f"(projected peak ~{peak_price:.2f} USD/kg vs current {current_price:.2f} USD/kg) "
-            f"-- liquidate at today's price."
+            f"No confident rise in the 90-day forecast: the pessimistic case peaks at "
+            f"~{confident_peak:.2f} USD/kg (mean ~{peak_price:.2f}) against today's "
+            f"{current_price:.2f}, short of the {threshold_pct:.2f}% bar set by {basis}. "
+            f"Any projected gain sits inside the model's own error -- liquidate at today's price."
         ),
         "expected_peak_price": None,
         "expected_peak_date": None,
@@ -197,6 +282,11 @@ def _select_pretrained_forecast(metal: str) -> tuple[ForecastPath, float, float]
     Returns None if neither is available (missing file, or
     tensorflow/statsmodels not installed) -- caller falls back to a live
     fit in that case.
+
+    With a models_v2-style folder the MAPE being compared is each model's
+    error on a 30-day holdout it was retrained without, rather than on a
+    window inside its own training data -- so this picks the model that is
+    actually more accurate out of sample, which is not the same winner.
     """
     candidates = []
     arima_result = pretrained_models.forecast_with_pretrained_arima(metal)
@@ -215,7 +305,7 @@ def _select_pretrained_forecast(metal: str) -> tuple[ForecastPath, float, float]
     best = min(candidates, key=_sort_key)
     path = ForecastPath(
         mean=best.mean_usd_kg, lower=best.lower_usd_kg, upper=best.upper_usd_kg,
-        model_used=best.model_used,
+        model_used=best.model_used, persistence_mape=best.persistence_mape,
     )
     return path, best.mape, best.rmse
 
@@ -224,30 +314,49 @@ def _select_pretrained_forecast(metal: str) -> tuple[ForecastPath, float, float]
 # Public entry point
 # ---------------------------------------------------------------------------
 
-_MODEL_CACHE_TTL_SECONDS = 15 * 60
-_model_cache: dict[str, tuple[float, tuple]] = {}
+#: metal -> (cache key, result). One entry per metal, so a new key for a
+#: metal replaces its old entry instead of accumulating alongside it.
+_model_cache: dict[str, tuple[tuple, tuple]] = {}
+
+
+def _cache_key(metal: str, history: pd.Series) -> tuple:
+    """
+    (metal, model folder, latest price date, number of observations).
+
+    The forecast is a function of the model artifacts and the price history,
+    and nothing else, so those are what it is keyed on:
+
+      * model folder -- switching MODEL_DIR must not serve a forecast
+        produced by the other folder's models.
+      * latest price date -- the one thing that changes in normal operation.
+        A new daily price arrives, the date moves, the entry is recomputed.
+      * observation count -- catches a backfill that rewrote earlier history
+        without moving the last date.
+
+    This replaced a 15-minute TTL, which had both failure modes at once: it
+    recomputed six unchanged forecasts every quarter hour, and it could
+    still serve a stale forecast for up to 15 minutes after a new price
+    landed.
+    """
+    last = history.index[-1]
+    return (metal, pretrained_models.models_dir(),
+            str(pd.Timestamp(last).date()), int(len(history)))
 
 
 def _model_path_cached(key: str, history: pd.Series) -> tuple[ForecastPath, float, float]:
     """
-    Resolving a metal's forecast path -- loading the pretrained .pkl/.h5,
-    running the recursive 90-day loop, and backtesting it -- takes on the
-    order of 15 seconds per metal, dominated by TensorFlow model load.
+    Resolving a metal's forecast path -- loading the pretrained model,
+    running the recursive 90-day loop, and scoring it -- is far too slow to
+    redo per request: an IoT scan would sit there for seconds, well past the
+    ESP32's 5s HTTP timeout, so the terminal could never get an answer.
 
-    That is fine once, but it was being redone on every single request.
-    An IoT scan would sit there for 14s waiting, well past the ESP32's
-    5s HTTP timeout, so the terminal could never get an answer at all.
-
-    The underlying models and CSVs do not change between requests, so the
-    result is cached per metal. The *price* is deliberately not cached --
-    build_price_path() re-reads it each call, so a live InfluxDB tick is
-    still picked up immediately.
+    Cached per metal against _cache_key(). The *price* is deliberately not
+    cached -- build_price_path() re-reads it each call, so a live InfluxDB
+    tick is still picked up immediately.
     """
-    import time
-
-    now = time.time()
+    ck = _cache_key(key, history)
     hit = _model_cache.get(key)
-    if hit is not None and (now - hit[0]) < _MODEL_CACHE_TTL_SECONDS:
+    if hit is not None and hit[0] == ck:
         return hit[1]
 
     pretrained = _select_pretrained_forecast(key)
@@ -256,8 +365,14 @@ def _model_path_cached(key: str, history: pd.Series) -> tuple[ForecastPath, floa
     else:
         result = (fit_forecast(history, horizon=HORIZON_DAYS), *backtest(history))
 
-    _model_cache[key] = (now, result)
+    _model_cache[key] = (ck, result)
     return result
+
+
+def clear_cache() -> None:
+    """Drop cached forecasts (and the loaded artifacts behind them)."""
+    _model_cache.clear()
+    pretrained_models.clear_cache()
 
 
 def build_price_path(key: str) -> tuple[ForecastPath, float, float, pd.Series, float, bool]:
@@ -319,7 +434,7 @@ def calculate_forecast(req: ForecastRequest) -> ForecastResponse:
             )
         )
 
-    rec = generate_recommendation(current_price, path, last_date)
+    rec = generate_recommendation(current_price, path, last_date, mape)
     if rec["recommendation"] == "SELL NOW":
         rec["profit_if_sell"] = round(current_price * req.weight_kg, 2)
 
@@ -345,6 +460,8 @@ def calculate_forecast(req: ForecastRequest) -> ForecastResponse:
         expected_peak_date=rec["expected_peak_date"],
         mape=mape,
         rmse=rmse,
+        persistence_mape=path.persistence_mape,
+        signal=has_signal(mape, path.persistence_mape),
         model_used=path.model_used,
         weight_kg=req.weight_kg,
         unit_price=round(current_price, 4),

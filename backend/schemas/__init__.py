@@ -80,6 +80,14 @@ class DispositionResponse(BaseModel):
     weight_kg: float
     is_recyclable: bool
     disposition_route: str         # e.g., "Pyrolysis Processing"
+
+    # Which of the two treatment processes this batch goes through.
+    # "mechanical" carries no energy figures at all -- shredding and
+    # granulating releases nothing to account for, so zero there is the
+    # honest answer rather than a missing value.
+    disposition_method: Literal["pyrolysis", "mechanical", "thermal_recovery"] = "pyrolysis"
+    dispatch_note: Optional[str] = None   # operator instruction for the mechanical route
+
     thermal_classification: Optional[Literal["combustible", "inert_heat_sink"]] = None
     energy_recovery_kwh: float     # NEGATIVE for inert_heat_sink materials -- see note below
     energy_breakdown: EnergyBreakdown
@@ -137,6 +145,16 @@ class ForecastResponse(BaseModel):
     expected_peak_date: Optional[str] = None        # only when HOLD
     mape: float
     rmse: float
+
+    # --- No-forecastable-signal check ---
+    # persistence_mape: error of a no-change forecast on the same 30-day
+    # holdout `mape` was measured on. None when the model folder ships no
+    # holdout metrics, in which case the check is not applied.
+    # signal: False means the model did not beat that no-change baseline,
+    # and the recommendation is forced to SELL NOW.
+    persistence_mape: Optional[float] = None
+    signal: bool = True
+
     model_used: str                # "ARIMA" or "LSTM" or "ARIMA+LSTM"
     weight_kg: float
     unit_price: float              # USD per kg
@@ -163,6 +181,9 @@ class MarketOverviewItem(BaseModel):
     price_source: Literal["live", "historical"]
     model_used: str
     mape: float
+    # Same pair as ForecastResponse -- see the note there.
+    persistence_mape: Optional[float] = None
+    signal: bool = True
 
 
 class MarketOverviewResponse(BaseModel):
@@ -198,4 +219,4 @@ class IoTIngestPayload(BaseModel):
 class BinStatusPayload(BaseModel):
     bin_id: str = "bin-01"
     distance_cm: float = Field(..., description="Ultrasonic reading; lower = fuller")
-    full_threshold_cm: float = 5.0
+    full_threshold_cm: float = 7.5

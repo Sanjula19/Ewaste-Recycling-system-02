@@ -58,10 +58,42 @@ from data_loader import SUPPORTED_METALS, USD_INR_RATE_HISTORICAL, MATERIAL_CONF
 
 # The training recipe itself -- imported, never re-typed.
 from evaluate_c4_v2 import (BATCH, EPOCHS, HOLDOUT, HORIZON, SEED, VAL_FRAC, WINDOW,
-                            build_model, make_sequences, seed_all, select_order, to_scaled)
+                            build_model, holdout_eval, make_sequences, seed_all,
+                            select_order, to_scaled)
+
+HOLDOUT_KEYS = ("arima_order", "arima_mape", "lstm_mape", "persistence_mape",
+                "arima_rmse", "lstm_rmse", "persistence_rmse", "selected",
+                "selected_mape", "selected_rmse", "tau_pct", "beats_persistence",
+                "lstm_epochs", "train_obs")
 
 
-def train_one(metal: str, out_dir: str, seed: int) -> dict:
+def holdout30_metrics(metal: str, seed: int, cache_root: str) -> dict:
+    """
+    Honest 30-day holdout accuracy for this pipeline (Table V of the paper).
+
+    The production models are trained on every observation, so they have no
+    holdout of their own. evaluate_c4_v2.holdout_eval trains a twin on
+    series[:-30] with the identical recipe and scores ARIMA, LSTM and a
+    no-change (persistence) baseline on the withheld 30 observations, in
+    USD/kg -- that twin is how the production model's accuracy is honestly
+    estimated. Loads from models_walkforward/<metal>/holdout30/ when the
+    twin is already cached, so this is normally free.
+
+    The backend reads these numbers to pick ARIMA vs LSTM and to run the
+    no-forecastable-signal check, instead of the in-sample 80/20 split it
+    used to select on.
+    """
+    series = load_metal_series_raw(metal)
+    res = holdout_eval(metal, series.to_numpy(), series.index, cache_root, seed)
+    out = {k: res[k] for k in HOLDOUT_KEYS}
+    out["holdout_obs"] = HOLDOUT
+    out["note"] = ("models retrained on series[:-30]; arima_order here is the order "
+                   "auto_arima picked on that window, which can differ from the "
+                   "production order selected on the full series")
+    return out
+
+
+def train_one(metal: str, out_dir: str, seed: int, cache_root: str) -> dict:
     """Train ARIMA + LSTM for one metal on its full series and save the artifacts."""
     import tensorflow as tf
     from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
@@ -126,6 +158,7 @@ def train_one(metal: str, out_dir: str, seed: int) -> dict:
         "arima_aic": float(fit.aic),
         "seed": seed,
         "train_seconds": round(time.time() - t0, 1),
+        "holdout30": holdout30_metrics(metal, seed, cache_root),
     }
     with open(os.path.join(out_dir, f"meta_{metal}.json"), "w") as f:
         json.dump(meta, f, indent=2)
@@ -135,18 +168,47 @@ def train_one(metal: str, out_dir: str, seed: int) -> dict:
     return meta
 
 
+def refresh_meta(metal: str, out_dir: str, seed: int, cache_root: str) -> dict:
+    """
+    Recompute only the holdout30 block of an already-trained metal, leaving
+    its weights, scaler and ARIMA pickle untouched. Lets the honest holdout
+    metrics be added to models that are already in place without retraining
+    them (which would be a no-op at this seed anyway, but would rewrite
+    artifacts the backend is serving).
+    """
+    path = os.path.join(out_dir, f"meta_{metal}.json")
+    with open(path) as f:
+        meta = json.load(f)
+    meta["holdout30"] = holdout30_metrics(metal, seed, cache_root)
+    with open(path, "w") as f:
+        json.dump(meta, f, indent=2)
+    h = meta["holdout30"]
+    print(f"[{metal}] holdout30 ARIMA {h['arima_mape']:.2f} LSTM {h['lstm_mape']:.2f} "
+          f"persistence {h['persistence_mape']:.2f} -> {h['selected']} "
+          f"(beats persistence: {h['beats_persistence']})", flush=True)
+    return meta
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--metals", nargs="*", default=SUPPORTED_METALS)
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument("--out", default="models_v2")
+    ap.add_argument("--cache", default="models_walkforward",
+                    help="where holdout_eval's retrained-on-series[:-30] twins are cached")
+    ap.add_argument("--refresh-meta-only", action="store_true",
+                    help="recompute holdout30 metrics for already-trained models; do not retrain")
     args = ap.parse_args()
 
     out_dir = os.path.join(BACKEND_DIR, args.out)
+    cache_root = os.path.join(BACKEND_DIR, args.cache)
     os.makedirs(out_dir, exist_ok=True)
     t_start = time.time()
 
-    metas = [train_one(m, out_dir, args.seed) for m in args.metals]
+    if args.refresh_meta_only:
+        metas = [refresh_meta(m, out_dir, args.seed, cache_root) for m in args.metals]
+    else:
+        metas = [train_one(m, out_dir, args.seed, cache_root) for m in args.metals]
 
     def ver(p):
         try:
@@ -186,6 +248,10 @@ def main():
                  "holdout of their own. The honest accuracy figures for this pipeline are the retrained "
                  "last-30-observation holdout in results_v2/table5_accuracy.csv."),
         "arima_order_per_metal": {m["metal"]: m["arima_order"] for m in metas},
+        "holdout30_per_metal": {
+            m["metal"]: {k: m["holdout30"][k] for k in
+                         ("selected", "selected_mape", "persistence_mape", "beats_persistence")}
+            for m in metas if "holdout30" in m},
         "data_end_dates": {m["metal"]: m["last_date"] for m in metas},
         "data_start_dates": {m["metal"]: m["first_date"] for m in metas},
         "n_obs_per_metal": {m["metal"]: m["n_obs"] for m in metas},

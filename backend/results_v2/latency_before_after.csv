@@ -1,0 +1,5 @@
+label,endpoint,n_warm,cold_ms,mean_ms,median_ms,max_ms,min_ms,p95_ms
+before,POST /api/forecast/,50,7788.5,190.6,164.6,705.1,136.6,442.6
+before,POST /api/iot/ingest?compact=true,50,228.0,169.1,163.3,281.9,136.2,215.6
+after,POST /api/forecast/,50,455.8,170.5,163.9,281.8,134.5,213.7
+after,POST /api/iot/ingest?compact=true,50,239.4,183.3,173.9,324.7,143.7,249.7

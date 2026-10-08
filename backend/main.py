@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -20,6 +21,16 @@ async def lifespan(app: FastAPI):
     # "models"). Logged at startup so a wrong folder is obvious immediately
     # instead of showing up as quietly different forecasts.
     logger.info("Serving forecast models from %s", pretrained_models.models_dir())
+
+    # Load every model, scaler and training record once, here, instead of
+    # re-reading them on each request. Startup pays a few seconds so that no
+    # request does; a metal whose files are missing is skipped with a
+    # warning and falls back to a live fit, as it always did.
+    t0 = time.perf_counter()
+    loaded = pretrained_models.warmup()
+    logger.info("Preloaded model artifacts in %.1fs: %s",
+                time.perf_counter() - t0,
+                ", ".join(f"{m}={'+'.join(k) or 'none'}" for m, k in loaded.items()))
 
     # Keeps the Market Overview cache warm in the background -- computing
     # it fresh takes ~a minute (pretrained ARIMA+LSTM backtest across 6

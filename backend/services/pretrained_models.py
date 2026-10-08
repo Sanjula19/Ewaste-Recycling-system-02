@@ -122,6 +122,82 @@ def _first_existing(*names: str) -> str | None:
             return p
     return None
 
+
+# ---------------------------------------------------------------------------
+# Artifact registry
+#
+# Every artifact was being re-read from disk on every request: a ~9 MB
+# statsmodels pickle, a Keras model (the expensive one), a scaler and a JSON
+# file, per metal, per call. They are immutable once written, so they are
+# loaded once and kept.
+#
+# Keyed by (model folder, metal, kind) rather than by metal alone, so
+# pointing MODEL_DIR somewhere else -- which the tests do -- cannot be
+# served a model from the previous folder.
+# ---------------------------------------------------------------------------
+
+_registry: dict[tuple[str, str, str], object] = {}
+
+
+def _cached(metal: str, kind: str, loader):
+    key = (models_dir(), metal.lower(), kind)
+    if key not in _registry:
+        _registry[key] = loader()
+    return _registry[key]
+
+
+def _series_signature(metal: str) -> str:
+    """
+    (size, mtime) of the metal's source CSV, cheap to read and enough to tell
+    that the file changed.
+
+    Needed because the no-saved-scaler fallback fits its scaler on the
+    series, so caching that scaler would otherwise outlive the data it was
+    derived from once a new row is appended. For a folder that ships a saved
+    scaler this only means a touched CSV re-reads a small pickle.
+    """
+    from data_loader import DATA_DIR, MATERIAL_CONFIG
+    try:
+        st = os.stat(os.path.join(DATA_DIR, MATERIAL_CONFIG[metal.strip().lower()].filename))
+        return f"{st.st_size}:{st.st_mtime_ns}"
+    except (OSError, KeyError):  # pragma: no cover - defensive
+        return "unknown"
+
+
+def clear_cache() -> None:
+    """Drop every loaded artifact. For tests and for a deliberate reload."""
+    _registry.clear()
+
+
+def warmup(metals=None) -> dict:
+    """
+    Load every artifact for every metal up front, so no request pays for it.
+    Called from main.py's lifespan handler.
+
+    Returns {metal: [kinds loaded]}. A metal whose files are missing or
+    unreadable is skipped with a warning rather than failing startup: the
+    forecast service falls back to a live fit, which is the behaviour a
+    missing model has always had.
+    """
+    from data_loader import SUPPORTED_METALS
+
+    loaded: dict[str, list[str]] = {}
+    for metal in (metals or SUPPORTED_METALS):
+        got = []
+        try:
+            if _load_arima_fit(metal) is not None:
+                got.append("arima")
+            if _load_lstm_model(metal) is not None:
+                got.append("lstm")
+            _fit_matching_scaler(metal)
+            got.append("scaler")
+            if load_training_meta(metal) is not None:
+                got.append("meta")
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Warmup failed for %s: %s", metal, exc)
+        loaded[metal] = got
+    return loaded
+
 try:
     from statsmodels.tsa.arima.model import ARIMA
     HAS_STATSMODELS = True
@@ -143,6 +219,43 @@ class PretrainedForecast:
     mape: float
     rmse: float
     model_used: str
+    # No-change baseline on the same window `mape` was measured on, or None
+    # when the folder ships no holdout metrics. Carried alongside `mape`
+    # rather than compared here so the two numbers can never come from
+    # different windows -- see _holdout_accuracy().
+    persistence_mape: float | None = None
+    accuracy_source: str = "in_sample_80_20_split"
+
+
+def _holdout_accuracy(metal: str, model_kind: str) -> tuple[float, float, float] | None:
+    """
+    (mape, rmse, persistence_mape) for `model_kind` ("arima"/"lstm") on the
+    honest 30-day holdout recorded by scripts/train_production_v2.py, or
+    None when this folder has no such record (the legacy models/ folder).
+
+    Why this exists: the production models are trained on every
+    observation, so the 80/20 "test" split the functions below score
+    themselves on is inside their own training data. That made every metal
+    look like 0.66-1.75% MAPE and made the LSTM win every selection. These
+    numbers come from a twin retrained on series[:-30] and scored on the
+    withheld 30 observations -- the same Table V figures as the paper -- so
+    ARIMA vs LSTM is decided on out-of-sample accuracy, and the no-change
+    baseline is measured on exactly the same window.
+    """
+    h = (load_training_meta(metal) or {}).get("holdout30")
+    if not h:
+        return None
+    k = model_kind.lower()
+    try:
+        # Rounded here, at one place, so the model MAPE and the baseline it
+        # is compared against are always at the same precision -- and to the
+        # 2dp/4dp the response has always reported.
+        return (round(float(h[f"{k}_mape"]), 2),
+                round(float(h[f"{k}_rmse"]), 4),
+                round(float(h["persistence_mape"]), 2))
+    except (KeyError, TypeError, ValueError) as exc:  # pragma: no cover - defensive
+        logger.warning("Malformed holdout30 block for %s/%s: %s", metal, k, exc)
+        return None
 
 
 def _arima_path(metal: str) -> str | None:
@@ -173,15 +286,18 @@ def has_pretrained_lstm(metal: str) -> bool:
 
 def load_training_meta(metal: str) -> dict | None:
     """Per-metal training record written by scripts/train_production_v2.py."""
-    path = _meta_path(metal)
-    if path is None:
-        return None
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.warning("Failed to read training meta for %s: %s", metal, exc)
-        return None
+    def _load():
+        path = _meta_path(metal)
+        if path is None:
+            return None
+        try:
+            with open(path) as f:
+                return json.load(f)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Failed to read training meta for %s: %s", metal, exc)
+            return None
+
+    return _cached(metal, "meta", _load)
 
 
 # ---------------------------------------------------------------------------
@@ -211,18 +327,25 @@ def _fit_matching_scaler(metal: str) -> tuple[MinMaxScaler, pd.Series]:
     the refitted scaler would use the new ones.
     """
     raw = load_metal_series_raw(metal)  # ascending, native units
-    path = _scaler_path(metal)
-    if path is not None:
-        try:
-            import joblib
-            scaler = joblib.load(path)
-            return scaler, raw
-        except Exception as exc:  # pragma: no cover - defensive
-            logger.warning("Failed to load saved scaler for %s (%s); refitting on the full "
-                           "series as a fallback.", metal, exc)
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(raw.to_numpy().reshape(-1, 1))
-    return scaler, raw
+
+    def _load():
+        path = _scaler_path(metal)
+        if path is not None:
+            try:
+                import joblib
+                return joblib.load(path)
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning("Failed to load saved scaler for %s (%s); refitting on the "
+                               "full series as a fallback.", metal, exc)
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler.fit(raw.to_numpy().reshape(-1, 1))
+        return scaler
+
+    # The series itself is deliberately NOT cached -- it is re-read so a new
+    # row appended to the CSV is picked up without a restart. The scaler is
+    # held, under a key that includes the CSV's signature so the refit
+    # fallback above can never outlive the data it was fitted on.
+    return _cached(metal, f"scaler:{_series_signature(metal)}", _load), raw
 
 
 def _train_test_split(raw: pd.Series, train_ratio: float = TRAIN_RATIO) -> tuple[pd.Series, pd.Series]:
@@ -235,14 +358,18 @@ def _train_test_split(raw: pd.Series, train_ratio: float = TRAIN_RATIO) -> tuple
 # ---------------------------------------------------------------------------
 
 def _load_arima_fit(metal: str):
-    if not HAS_STATSMODELS or not has_pretrained_arima(metal):
-        return None
-    try:
-        with open(_arima_path(metal), "rb") as f:
-            return pickle.load(f)
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.warning("Failed to load pretrained ARIMA for %s: %s", metal, exc)
-        return None
+    def _load():
+        path = _arima_path(metal)
+        if not HAS_STATSMODELS or path is None:
+            return None
+        try:
+            with open(path, "rb") as f:
+                return pickle.load(f)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Failed to load pretrained ARIMA for %s: %s", metal, exc)
+            return None
+
+    return _cached(metal, "arima", _load)
 
 
 def forecast_with_pretrained_arima(metal: str, horizon: int = FORECAST_HORIZON) -> PretrainedForecast | None:
@@ -268,12 +395,20 @@ def forecast_with_pretrained_arima(metal: str, horizon: int = FORECAST_HORIZON) 
     lower_usd = native_to_usd_per_kg(metal, pd.Series(lower_native)).to_numpy()
     upper_usd = native_to_usd_per_kg(metal, pd.Series(upper_native)).to_numpy()
 
-    # --- Honest backtest: refit the SAME order on a train-only split ---
-    mape, rmse = _backtest_arima_order(metal, order)
+    # --- Accuracy: the recorded 30-day holdout if this folder has one,
+    # otherwise refit the SAME order on a train-only split and score that ---
+    acc = _holdout_accuracy(metal, "arima")
+    if acc is not None:
+        mape, rmse, persistence_mape = acc
+        source = "retrained_30d_holdout"
+    else:
+        mape, rmse = _backtest_arima_order(metal, order)
+        persistence_mape, source = None, "in_sample_80_20_split"
 
     return PretrainedForecast(
         mean_usd_kg=mean_usd, lower_usd_kg=lower_usd, upper_usd_kg=upper_usd,
         mape=mape, rmse=rmse, model_used=f"ARIMA{order} (pretrained)",
+        persistence_mape=persistence_mape, accuracy_source=source,
     )
 
 
@@ -305,16 +440,35 @@ def _backtest_arima_order(metal: str, order: tuple[int, int, int], holdout_ratio
 # ---------------------------------------------------------------------------
 
 def _load_lstm_model(metal: str):
-    path = _lstm_path(metal)
-    if not HAS_TENSORFLOW or path is None:
-        return None
-    try:
-        # compile=False: only predict() is ever called, and it avoids
-        # optimizer-state warnings on both .keras and legacy .h5 files.
-        return tf.keras.models.load_model(path, compile=False)
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.warning("Failed to load pretrained LSTM for %s: %s", metal, exc)
-        return None
+    def _load():
+        path = _lstm_path(metal)
+        if not HAS_TENSORFLOW or path is None:
+            return None
+        try:
+            # compile=False: the model is only ever called forward, and it
+            # avoids optimizer-state warnings on .keras and legacy .h5 alike.
+            return tf.keras.models.load_model(path, compile=False)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Failed to load pretrained LSTM for %s: %s", metal, exc)
+            return None
+
+    return _cached(metal, "lstm", _load)
+
+
+def _lstm_step_fn(metal: str, model):
+    """
+    A traced one-step forward pass for `model`.
+
+    The 90-day forecast is recursive, so the model is called 90 times per
+    forecast on a single sample. model.predict() rebuilds its data adapter
+    and callback machinery on every one of those calls, which dominated the
+    cost. Calling the model directly under one tf.function traced once is
+    the same arithmetic -- same weights, same inference-mode graph, float32
+    in both cases -- without that per-call overhead.
+    """
+    return _cached(metal, "lstm_step",
+                   lambda: tf.function(lambda x: model(x, training=False),
+                                       reduce_retracing=True))
 
 
 def _create_sequences(data: np.ndarray, window_size: int) -> tuple[np.ndarray, np.ndarray]:
@@ -340,30 +494,50 @@ def forecast_with_pretrained_lstm(metal: str, horizon: int = FORECAST_HORIZON) -
         logger.warning("Not enough history for LSTM window on %s -- skipping.", metal)
         return None
 
-    # --- Residual std from the test window, for a (constant-width) confidence band ---
-    error_std_scaled = 0.0
-    if len(test_scaled) > WINDOW_SIZE:
-        X_test, y_test = _create_sequences(test_scaled, WINDOW_SIZE)
-        if len(X_test) > 0:
-            test_pred_scaled = model.predict(X_test, verbose=0)
-            residuals = y_test.reshape(-1, 1) - test_pred_scaled
-            error_std_scaled = float(np.std(residuals))
-
-    # Prefer the training-time validation residual sd when the folder ships
-    # one (models_v2/). For a model trained on the full series the block
-    # above measures residuals on data it already fitted, which understates
-    # the band; the saved value is out-of-sample for the fitted weights.
+    # --- Band width and accuracy ------------------------------------------
+    # With a models_v2-style folder both come from the training record, and
+    # the in-sample scoring pass below is skipped entirely: its residuals
+    # (last 20% of the series) are inside this model's training data, so it
+    # understated the band and flattered the MAPE. Without that record the
+    # original path runs unchanged, so models/ behaves exactly as before.
     meta = load_training_meta(metal)
     meta_sd = (meta or {}).get("lstm", {}).get("sd_scaled")
-    if meta_sd:
+    acc = _holdout_accuracy(metal, "lstm")
+
+    if meta_sd and acc is not None:
         error_std_scaled = float(meta_sd)
+        mape, rmse, persistence_mape = acc
+        source = "retrained_30d_holdout"
+    else:
+        error_std_scaled = 0.0
+        mape, rmse = float("nan"), float("nan")
+        persistence_mape, source = None, "in_sample_80_20_split"
+        if len(test_scaled) > WINDOW_SIZE:
+            X_test, y_test = _create_sequences(test_scaled, WINDOW_SIZE)
+            if len(X_test) > 0:
+                test_pred_scaled = model.predict(X_test, verbose=0)
+                residuals = y_test.reshape(-1, 1) - test_pred_scaled
+                error_std_scaled = float(np.std(residuals))
+
+                test_pred_native = scaler.inverse_transform(test_pred_scaled).ravel()
+                test_pred_usd = native_to_usd_per_kg(metal, pd.Series(test_pred_native)).to_numpy()
+                test_actual_native = scaler.inverse_transform(y_test.reshape(-1, 1)).ravel()
+                test_actual_usd = native_to_usd_per_kg(metal, pd.Series(test_actual_native)).to_numpy()
+                mape = float(np.mean(np.abs((test_actual_usd - test_pred_usd) / test_actual_usd)) * 100)
+                rmse = float(np.sqrt(np.mean((test_actual_usd - test_pred_usd) ** 2)))
+        if meta_sd:
+            error_std_scaled = float(meta_sd)
 
     # --- Recursive multi-step forecast, exactly as train_lstm() does it ---
+    # step() replaces model.predict() per iteration; predict() cast its input
+    # to float32 internally, so the explicit cast here keeps the arithmetic
+    # bit-identical (float32 -> float64 round-trips exactly).
+    step = _lstm_step_fn(metal, model)
     last_window = full_scaled[-WINDOW_SIZE:]
     current_input = last_window.reshape(1, WINDOW_SIZE, 1)
     forecast_scaled = []
     for _ in range(horizon):
-        next_pred = model.predict(current_input, verbose=0)[0, 0]
+        next_pred = step(current_input.astype(np.float32)).numpy()[0, 0]
         forecast_scaled.append(next_pred)
         current_input = np.roll(current_input, -1, axis=1)
         current_input[0, -1, 0] = next_pred
@@ -380,16 +554,8 @@ def forecast_with_pretrained_lstm(metal: str, horizon: int = FORECAST_HORIZON) -
     lower_usd = native_to_usd_per_kg(metal, pd.Series(lower_native)).to_numpy()
     upper_usd = native_to_usd_per_kg(metal, pd.Series(upper_native)).to_numpy()
 
-    mape, rmse = float("nan"), float("nan")
-    if len(test_scaled) > WINDOW_SIZE and len(X_test) > 0:
-        test_pred_native = scaler.inverse_transform(test_pred_scaled).ravel()
-        test_pred_usd = native_to_usd_per_kg(metal, pd.Series(test_pred_native)).to_numpy()
-        test_actual_native = scaler.inverse_transform(y_test.reshape(-1, 1)).ravel()
-        test_actual_usd = native_to_usd_per_kg(metal, pd.Series(test_actual_native)).to_numpy()
-        mape = float(np.mean(np.abs((test_actual_usd - test_pred_usd) / test_actual_usd)) * 100)
-        rmse = float(np.sqrt(np.mean((test_actual_usd - test_pred_usd) ** 2)))
-
     return PretrainedForecast(
         mean_usd_kg=mean_usd, lower_usd_kg=lower_usd, upper_usd_kg=upper_usd,
         mape=round(mape, 2), rmse=round(rmse, 4), model_used="LSTM (pretrained)",
+        persistence_mape=persistence_mape, accuracy_source=source,
     )

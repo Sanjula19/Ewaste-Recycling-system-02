@@ -31,5 +31,23 @@
   ],
   "arima_aic": -17059.613716974432,
   "seed": 42,
-  "train_seconds": 59.8
+  "train_seconds": 59.8,
+  "holdout30": {
+    "arima_order": "(0, 1, 0)",
+    "arima_mape": 3.3617504431223244,
+    "lstm_mape": 4.082306152489769,
+    "persistence_mape": 3.3617504431223244,
+    "arima_rmse": 0.11997709531973405,
+    "lstm_rmse": 0.15801460700053513,
+    "persistence_rmse": 0.11997709531973405,
+    "selected": "ARIMA",
+    "selected_mape": 3.3617504431223244,
+    "selected_rmse": 0.11997709531973405,
+    "tau_pct": 3.3617504431223244,
+    "beats_persistence": false,
+    "lstm_epochs": 50,
+    "train_obs": 2728,
+    "holdout_obs": 30,
+    "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+  }
 }

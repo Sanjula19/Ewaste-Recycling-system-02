@@ -62,7 +62,7 @@ def _build_item(metal: str, fx: dict) -> MarketOverviewItem:
     prev_price = float(history.iloc[-2]) if len(history) > 1 else current_price
     day_change_pct = ((current_price - prev_price) / prev_price * 100) if prev_price else 0.0
 
-    rec = forecast_service.generate_recommendation(current_price, path, last_date)
+    rec = forecast_service.generate_recommendation(current_price, path, last_date, mape)
 
     return MarketOverviewItem(
         metal=metal,
@@ -74,6 +74,8 @@ def _build_item(metal: str, fx: dict) -> MarketOverviewItem:
         price_source="live" if is_live else "historical",
         model_used=path.model_used,
         mape=mape,
+        persistence_mape=path.persistence_mape,
+        signal=forecast_service.has_signal(mape, path.persistence_mape),
     )
 
 

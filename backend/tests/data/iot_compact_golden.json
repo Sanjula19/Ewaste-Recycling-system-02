@@ -1,0 +1,64 @@
+{
+  "nickel": {
+    "keys_in_order": [
+      "classified_as",
+      "decision",
+      "price_lkr_per_kg",
+      "value_lkr",
+      "weight_kg",
+      "actuator",
+      "locked"
+    ],
+    "actuator_keys_in_order": [
+      "led",
+      "gate_angle",
+      "crush",
+      "beep_ms"
+    ],
+    "value": {
+      "classified_as": "nickel",
+      "decision": "HOLD",
+      "price_lkr_per_kg": 4894.29,
+      "value_lkr": 5131.26,
+      "weight_kg": 12.5,
+      "actuator": {
+        "led": "yellow",
+        "gate_angle": 90,
+        "crush": true,
+        "beep_ms": 120
+      },
+      "locked": false
+    }
+  },
+  "copper": {
+    "keys_in_order": [
+      "classified_as",
+      "decision",
+      "price_lkr_per_kg",
+      "value_lkr",
+      "weight_kg",
+      "actuator",
+      "locked"
+    ],
+    "actuator_keys_in_order": [
+      "led",
+      "gate_angle",
+      "crush",
+      "beep_ms"
+    ],
+    "value": {
+      "classified_as": "copper",
+      "decision": "SELL NOW",
+      "price_lkr_per_kg": 2733.77,
+      "value_lkr": 34173.0,
+      "weight_kg": 12.5,
+      "actuator": {
+        "led": "green",
+        "gate_angle": 30,
+        "crush": false,
+        "beep_ms": 120
+      },
+      "locked": false
+    }
+  }
+}

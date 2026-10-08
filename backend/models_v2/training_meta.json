@@ -1,8 +1,8 @@
 {
-  "trained_at": "2026-10-08T22:08:40",
+  "trained_at": "2026-10-08T22:25:47",
   "trained_by": "scripts/train_production_v2.py",
   "training_code_imported_from": "scripts/evaluate_c4_v2.py",
-  "runtime_s": 334,
+  "runtime_s": 7,
   "settings": {
     "window": 60,
     "epochs_max": 50,
@@ -87,6 +87,44 @@
       0
     ]
   },
+  "holdout30_per_metal": {
+    "aluminium": {
+      "selected": "LSTM",
+      "selected_mape": 2.9187159577363007,
+      "persistence_mape": 3.6959387590925328,
+      "beats_persistence": true
+    },
+    "copper": {
+      "selected": "LSTM",
+      "selected_mape": 2.4001082365913162,
+      "persistence_mape": 5.79802243024597,
+      "beats_persistence": true
+    },
+    "lead": {
+      "selected": "ARIMA",
+      "selected_mape": 1.9322094981337121,
+      "persistence_mape": 2.188066321865686,
+      "beats_persistence": true
+    },
+    "nickel": {
+      "selected": "ARIMA",
+      "selected_mape": 3.128326711360098,
+      "persistence_mape": 2.994233529947986,
+      "beats_persistence": false
+    },
+    "steel": {
+      "selected": "ARIMA",
+      "selected_mape": 2.1594115515597223,
+      "persistence_mape": 2.1871909172022073,
+      "beats_persistence": true
+    },
+    "zinc": {
+      "selected": "ARIMA",
+      "selected_mape": 3.3617504431223244,
+      "persistence_mape": 3.3617504431223244,
+      "beats_persistence": false
+    }
+  },
   "data_end_dates": {
     "aluminium": "2024-08-29",
     "copper": "2024-08-29",
@@ -158,7 +196,25 @@
       ],
       "arima_aic": -17432.362747450803,
       "seed": 42,
-      "train_seconds": 59.1
+      "train_seconds": 59.1,
+      "holdout30": {
+        "arima_order": "(0, 1, 0)",
+        "arima_mape": 3.6959387590925328,
+        "lstm_mape": 2.9187159577363007,
+        "persistence_mape": 3.6959387590925328,
+        "arima_rmse": 0.10099300171080075,
+        "lstm_rmse": 0.09323126946729597,
+        "persistence_rmse": 0.10099300171080075,
+        "selected": "LSTM",
+        "selected_mape": 2.9187159577363007,
+        "selected_rmse": 0.09323126946729597,
+        "tau_pct": 2.9187159577363007,
+        "beats_persistence": true,
+        "lstm_epochs": 36,
+        "train_obs": 2705,
+        "holdout_obs": 30,
+        "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+      }
     },
     "copper": {
       "metal": "copper",
@@ -193,7 +249,25 @@
       ],
       "arima_aic": -17669.585410470958,
       "seed": 42,
-      "train_seconds": 42.3
+      "train_seconds": 42.3,
+      "holdout30": {
+        "arima_order": "(0, 1, 0)",
+        "arima_mape": 5.79802243024597,
+        "lstm_mape": 2.4001082365913162,
+        "persistence_mape": 5.79802243024597,
+        "arima_rmse": 0.5450188737916479,
+        "lstm_rmse": 0.2582393651509885,
+        "persistence_rmse": 0.5450188737916479,
+        "selected": "LSTM",
+        "selected_mape": 2.4001082365913162,
+        "selected_rmse": 0.2582393651509885,
+        "tau_pct": 2.4001082365913162,
+        "beats_persistence": true,
+        "lstm_epochs": 30,
+        "train_obs": 2728,
+        "holdout_obs": 30,
+        "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+      }
     },
     "lead": {
       "metal": "lead",
@@ -228,7 +302,25 @@
       ],
       "arima_aic": -13990.085184691943,
       "seed": 42,
-      "train_seconds": 44.5
+      "train_seconds": 44.5,
+      "holdout30": {
+        "arima_order": "(1, 0, 2)",
+        "arima_mape": 1.9322094981337121,
+        "lstm_mape": 11.434399712187236,
+        "persistence_mape": 2.188066321865686,
+        "arima_rmse": 0.06680175188729726,
+        "lstm_rmse": 0.2716580851226793,
+        "persistence_rmse": 0.06848796507813781,
+        "selected": "ARIMA",
+        "selected_mape": 1.9322094981337121,
+        "selected_rmse": 0.06680175188729726,
+        "tau_pct": 2.0,
+        "beats_persistence": true,
+        "lstm_epochs": 39,
+        "train_obs": 2727,
+        "holdout_obs": 30,
+        "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+      }
     },
     "nickel": {
       "metal": "nickel",
@@ -263,7 +355,25 @@
       ],
       "arima_aic": -16456.679769187267,
       "seed": 42,
-      "train_seconds": 76.7
+      "train_seconds": 76.7,
+      "holdout30": {
+        "arima_order": "(3, 1, 2)",
+        "arima_mape": 3.128326711360098,
+        "lstm_mape": 4.548196731390526,
+        "persistence_mape": 2.994233529947986,
+        "arima_rmse": 0.5717993182079864,
+        "lstm_rmse": 0.7658396211101625,
+        "persistence_rmse": 0.5450833151071148,
+        "selected": "ARIMA",
+        "selected_mape": 3.128326711360098,
+        "selected_rmse": 0.5717993182079864,
+        "tau_pct": 3.128326711360098,
+        "beats_persistence": false,
+        "lstm_epochs": 40,
+        "train_obs": 2725,
+        "holdout_obs": 30,
+        "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+      }
     },
     "steel": {
       "metal": "steel",
@@ -298,7 +408,25 @@
       ],
       "arima_aic": -14850.226923049182,
       "seed": 42,
-      "train_seconds": 47.4
+      "train_seconds": 47.4,
+      "holdout30": {
+        "arima_order": "(2, 1, 2)",
+        "arima_mape": 2.1594115515597223,
+        "lstm_mape": 7.170733539918181,
+        "persistence_mape": 2.1871909172022073,
+        "arima_rmse": 0.00882503916255043,
+        "lstm_rmse": 0.030618436238572768,
+        "persistence_rmse": 0.008960096725668349,
+        "selected": "ARIMA",
+        "selected_mape": 2.1594115515597223,
+        "selected_rmse": 0.00882503916255043,
+        "tau_pct": 2.1594115515597223,
+        "beats_persistence": true,
+        "lstm_epochs": 28,
+        "train_obs": 2477,
+        "holdout_obs": 30,
+        "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+      }
     },
     "zinc": {
       "metal": "zinc",
@@ -333,7 +461,25 @@
       ],
       "arima_aic": -17059.613716974432,
       "seed": 42,
-      "train_seconds": 59.8
+      "train_seconds": 59.8,
+      "holdout30": {
+        "arima_order": "(0, 1, 0)",
+        "arima_mape": 3.3617504431223244,
+        "lstm_mape": 4.082306152489769,
+        "persistence_mape": 3.3617504431223244,
+        "arima_rmse": 0.11997709531973405,
+        "lstm_rmse": 0.15801460700053513,
+        "persistence_rmse": 0.11997709531973405,
+        "selected": "ARIMA",
+        "selected_mape": 3.3617504431223244,
+        "selected_rmse": 0.11997709531973405,
+        "tau_pct": 3.3617504431223244,
+        "beats_persistence": false,
+        "lstm_epochs": 50,
+        "train_obs": 2728,
+        "holdout_obs": 30,
+        "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+      }
     }
   }
 }
