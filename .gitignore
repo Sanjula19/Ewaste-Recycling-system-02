@@ -37,3 +37,14 @@ desktop.ini
 
 # --- Arduino build output ---------------------------------------
 Mayashi-IOT-handoff/**/build/
+
+# --- Walk-forward model/decision caches (regenerated, ~69 MB) ----
+# scripts/evaluate_c4_v2.py writes a per-retrain model and per-decision
+# cache here purely so a crashed 6-hour run resumes instead of restarting.
+# They are derived from data/v3/ + the script and carry no information the
+# tracked results do not. Delete them and the next run rebuilds them.
+#
+# results_v3/ IS tracked -- its tables, figures, run_meta.json and
+# decisions_raw.csv are what the paper cites. Nothing below excludes it.
+backend/models_walkforward/
+backend/models_walkforward_v3/
