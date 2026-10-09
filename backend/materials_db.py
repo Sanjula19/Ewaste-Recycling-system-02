@@ -3,49 +3,65 @@ materials_db.py
 ----------------
 Reference data for the disposition engine.
 
-FINAL SCOPE: six recyclable metals, three non-recyclable residuals:
+SCOPE: six recyclable metals, three non-recyclable residuals:
 
     Metals:          Aluminium, Nickel, Steel, Lead, Zinc, Copper
-    Residual waste:  PVC Plastic, Polystyrene, Contaminated Glass
+    Residual waste:  PVC Plastic, Polystyrene, Polypropylene
 
-Gold and silver are out of scope on the metals side.
+Out of scope, and rejected rather than guessed at:
+    Gold, silver            -- metals this component does not value
+    Glass, contaminated     -- see GLASS_REJECTION below
+    glass, and variants
 
-SOURCE OF TRUTH FOR THE NUMBERS BELOW: your own strategic_disposition.py /
-thermodynamic_properties_db.json pipeline (the one that parsed the MatWeb
-CSVs + EPA WARM data and generated a real thermodynamic database), not a
-literature-midpoint guess. Specifically, pulled from your generated DB:
+GLASS WAS REMOVED FROM STRATEGIC DISPOSITION
+Contaminated glass used to ride the pyrolysis route as an inert "heat
+sink": it does not combust, so instead of crediting it energy the model
+charged the energy needed to heat that mass to process temperature
+(Q = m x Cp x dT) and reported a NEGATIVE energy recovery. That was an
+honest way to model co-processing glass, but co-processing glass is not
+what this system should be recommending in the first place -- glass
+belongs with a glass recycler, not in a pyrolysis or waste-to-energy
+feed. So the material, the heat-sink calculation and its constants
+(process temperature, ambient temperature, J->kWh) are all gone, and the
+material is now refused on the same path as gold and silver.
+
+The specific-heat and density figures that fed that calculation are still
+in models/reference/thermodynamic_properties_db.json (a 50+ material
+archive kept for future scope), but nothing reads them any more.
+
+SOURCE OF TRUTH FOR THE NUMBERS BELOW: the strategic_disposition.py /
+thermodynamic_properties_db.json pipeline that parsed the MatWeb CSVs plus
+EPA WARM data, not a literature-midpoint guess. Specifically:
 
     PVC          -> LHV 20.0 MJ/kg, Bio-oil 45% / Syngas 30% / Char 25%
     Polystyrene  -> LHV 40.0 MJ/kg, Bio-oil 45% / Syngas 30% / Char 25%
-                    (every polystyrene sub-grade in your DB -- EPS, flame
-                    retardant, molded, impact-modified -- converged on the
-                    same 40.0 MJ/kg, so one number covers all of them)
-    Contaminated
-    Glass        -> LHV 0.0 MJ/kg (inorganic, does not combust), modeled
-                    as a pure thermal heat sink using Density 2.52 g/cc
-                    and Specific Heat 0.84 J/g-C, matching your DB's
-                    "EPA_WARM_MSW_Mixed_Glass" entry -- the closest match
-                    to "contaminated municipal glass" in your dataset.
+                    (every polystyrene sub-grade in that DB -- EPS, flame
+                    retardant, molded, impact-modified -- converged on
+                    40.0 MJ/kg, so one number covers all of them)
+    Polypropylene-> LHV 42.0 MJ/kg, same 45/30/25 split
 
-This is a materially different (and more correct) model for glass than an
-earlier draft of this file used: glass isn't burned for a small energy
-credit, it's treated as a mass that must be heated to pyrolysis
-temperature alongside the combustible batch, which *costs* energy rather
-than yielding it. See disposition_service.py for the Q = m x Cp x dT
-calculation this feeds into, taken directly from your
-EnergyRecoveryCalculator class.
-
-A copy of the full generated thermodynamic_properties_db.json (50+
-materials, not just the 3 in scope here) ships in
-models/reference/thermodynamic_properties_db.json for your report /
-future scope expansion -- this file only wires up the 3 currently in use.
+PVC's LHV is retained for reference only. PVC is routed to MECHANICAL
+recycling, which releases no energy, so nothing on its route reads it.
 """
 
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
+import re
 
-Route = Literal["pyrolysis", "thermal_recovery", "recyclable_metal"]
+Route = Literal["pyrolysis", "mechanical_recycling", "recyclable_metal"]
+
+# Which treatment process a residual goes through.
+#
+#   pyrolysis  -- thermal. Heat the material without oxygen and recover
+#                 bio-oil / syngas / char. Polystyrene and polypropylene.
+#                 A waste-to-energy incinerator is the alternative
+#                 destination for the same two materials.
+#   mechanical -- physical. Shred, wash and granulate back into feedstock.
+#                 No combustion, so no energy recovery figure exists for
+#                 it at all: reporting 0 kWh here is the honest answer,
+#                 not a gap in the model. PVC goes this way.
+RecyclingMethod = Literal["pyrolysis", "mechanical"]
 
 # ---------------------------------------------------------------------------
 # Recyclable metals -> handled by /forecast, not /disposition.
@@ -57,44 +73,72 @@ RECYCLABLE_METALS = {
 
 OUT_OF_SCOPE_METALS = {"gold", "silver"}
 
+# Refused with its own message, because "unrecognised material" would be
+# misleading -- glass is recognised perfectly well, it simply does not
+# belong in this component any more.
+GLASS_REJECTION = (
+    "Contaminated glass is outside the scope of strategic disposition and "
+    "should be sent to a glass recycler."
+)
+
+
+def _normalise(waste_type: str) -> str:
+    """Lowercase, and collapse punctuation/underscores to single spaces."""
+    return re.sub(r"[^a-z0-9]+", " ", waste_type.strip().lower()).strip()
+
+
+def is_glass(waste_type: str) -> bool:
+    """
+    True for glass under any naming variant -- "glass", "Contaminated
+    Glass", "contaminated_glass", "mixed glass", "glass (contaminated)".
+
+    Matched on the word rather than an enumerated list, because the list
+    is the part that rots: a caller inventing "waste glass" next month
+    should still be refused, not silently fall through to "unrecognised".
+    No in-scope material contains the word, so this cannot over-match.
+    """
+    return "glass" in _normalise(waste_type).split()
+
 
 # ---------------------------------------------------------------------------
 # Material thermal profile
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class MaterialProfile:
-    is_heat_sink: bool          # True = inert, doesn't combust (e.g. glass)
-    lhv_mj_kg: float            # 0.0 for heat-sink materials
+    lhv_mj_kg: float
     oil_frac: float
     gas_frac: float
     char_frac: float
-    density_g_cc: float = 0.0        # only meaningful for heat-sink materials
-    specific_heat_j_g_c: float = 0.0  # only meaningful for heat-sink materials
+    recycling_method: RecyclingMethod = "pyrolysis"
     source_db_key: str = ""          # matching key in thermodynamic_properties_db.json
 
 
 NON_RECYCLABLES: dict[str, MaterialProfile] = {
+    # PVC is routed to MECHANICAL recycling, not pyrolysis. The LHV and
+    # yield fractions below are retained from the source datasheet for
+    # reference only -- nothing on the mechanical route reads them, since
+    # shredding and granulating releases no energy to account for.
     "pvc plastic": MaterialProfile(
-        is_heat_sink=False, lhv_mj_kg=20.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        lhv_mj_kg=20.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        recycling_method="mechanical",
         source_db_key="Vycom VINTEC I (R) PVC Polyvinyl Chloride (PVC)",
     ),
     "pvc": MaterialProfile(
-        is_heat_sink=False, lhv_mj_kg=20.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        lhv_mj_kg=20.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        recycling_method="mechanical",
         source_db_key="Vycom VINTEC I (R) PVC Polyvinyl Chloride (PVC)",
     ),
     "polystyrene": MaterialProfile(
-        is_heat_sink=False, lhv_mj_kg=40.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        lhv_mj_kg=40.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
         source_db_key="Overview of materials for Expanded Polystyrene (EPS)",
     ),
-    "contaminated glass": MaterialProfile(
-        is_heat_sink=True, lhv_mj_kg=0.0, oil_frac=0.0, gas_frac=0.0, char_frac=1.0,
-        density_g_cc=2.52, specific_heat_j_g_c=0.84,
-        source_db_key="EPA_WARM_MSW_Mixed_Glass",
+    "pp": MaterialProfile(
+        lhv_mj_kg=42.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        source_db_key="Polypropylene (PP) Scrap",
     ),
-    "glass": MaterialProfile(
-        is_heat_sink=True, lhv_mj_kg=0.0, oil_frac=0.0, gas_frac=0.0, char_frac=1.0,
-        density_g_cc=2.52, specific_heat_j_g_c=0.84,
-        source_db_key="EPA_WARM_MSW_Mixed_Glass",
+    "polypropylene": MaterialProfile(
+        lhv_mj_kg=42.0, oil_frac=0.45, gas_frac=0.30, char_frac=0.25,
+        source_db_key="Polypropylene (PP) Scrap",
     ),
 }
 
@@ -102,10 +146,16 @@ NON_RECYCLABLES: dict[str, MaterialProfile] = {
 def resolve_material(waste_type: str) -> tuple[Route, "MaterialProfile | None"]:
     """
     Returns (route, profile). profile is None for recyclable metals.
-    Raises KeyError for out-of-scope metals (gold, silver) or anything
-    else this component doesn't recognise.
+
+    Raises KeyError for anything this component does not handle: glass
+    (with its own message), gold and silver, or an unrecognised name.
+    Callers turn that into an HTTP 400 -- see routers/disposition.py.
     """
     key = waste_type.strip().lower()
+
+    if is_glass(waste_type):
+        raise KeyError(GLASS_REJECTION)
+
     if key in OUT_OF_SCOPE_METALS:
         raise KeyError(
             f"'{waste_type}' is out of scope for this component (metals covered: "
@@ -116,7 +166,10 @@ def resolve_material(waste_type: str) -> tuple[Route, "MaterialProfile | None"]:
         return "recyclable_metal", None
     if key in NON_RECYCLABLES:
         profile = NON_RECYCLABLES[key]
-        route = "thermal_recovery" if profile.is_heat_sink else "pyrolysis"
+        route: Route = (
+            "mechanical_recycling" if profile.recycling_method == "mechanical"
+            else "pyrolysis"
+        )
         return route, profile
     raise KeyError(
         f"Unrecognised waste_type '{waste_type}'. Known non-recyclables: "
@@ -126,27 +179,33 @@ def resolve_material(waste_type: str) -> tuple[Route, "MaterialProfile | None"]:
 
 
 # ---------------------------------------------------------------------------
-# Process constants -- taken directly from your EnergyRecoveryCalculator /
-# strategic_disposition.py, not re-derived.
+# Process constants -- taken directly from the EnergyRecoveryCalculator /
+# strategic_disposition.py pipeline, not re-derived.
 # ---------------------------------------------------------------------------
 PYROLYSIS_EFFICIENCY = 0.67          # eta in E_rec = M x LHV x eta
-PYROLYSIS_TEMP_CELSIUS = 500.0       # process temperature the heat-sink calc heats material to
-AMBIENT_TEMP_CELSIUS = 25.0          # assumed intake temperature
-JOULES_TO_KWH = 2.77778e-7           # 1 J = 2.77778e-7 kWh
-MJ_TO_KWH = 0.277778                 # 1 MJ = 0.277778 kWh (equivalently, /3.6)
 
-# kg CO2 avoided per kWh of grid electricity displaced.
+# Exact, not the truncated decimals this is usually quoted as. The
+# conversion is definitional -- 1 kWh IS 3.6 MJ -- so writing 0.277778
+# throws away precision for no reason. The rounded form is what
+# strategic_disposition.py printed and remains correct to 6 s.f.; this
+# just avoids compounding that truncation across a whole cycle.
+MJ_TO_KWH = 1.0 / 3.6                # 1 MJ = 0.2777778 kWh
+
+# kg CO2 avoided per kWh of grid electricity DISPLACED. Only meaningful
+# for a plant that actually exports electricity to the grid -- see
+# disposition_service, which reports it for nothing else.
+#
 # Sri Lanka Sustainable Energy Authority, "Sri Lanka Energy Balance 2022":
-# Combined Margin grid emission factor = 0.6482 kgCO2/kWh (Simple Operating
-# Margin 0.7123, Build Margin 0.5841). Combined Margin is the figure
-# typically used in CDM-style project accounting, so it's the default here.
+# Combined Margin grid emission factor = 0.6482 kgCO2/kWh (Simple
+# Operating Margin 0.7123, Build Margin 0.5841). Combined Margin is the
+# figure used in CDM-style project accounting, so it is the default here.
 GRID_EMISSION_FACTOR_KG_PER_KWH = 0.6482
 
-# Feed-in tariff paid for waste-to-energy electricity under the Karadiyana
-# (Colombo South) W2E project's power purchase agreement -- used to put an
-# indicative LKR value on the recovered energy. Source: Fairway Waste
-# Management project page / Wikipedia (Colombo South Waste Processing
-# Facility), tariff = 37.10 LKR/kWh.
-WTE_FEED_IN_TARIFF_LKR_PER_KWH = 37.10
-
 PYROLYSIS_OIL_DENSITY_KG_PER_L = 0.90  # typical plastic-pyrolysis oil density
+
+# NOTE: the waste-to-energy feed-in tariff used to live here as a single
+# module constant (37.10 LKR/kWh, the Karadiyana PPA rate). It is now a
+# per-facility field in backend/data/facilities.json, because it is a
+# property of one plant's power purchase agreement and applying it to
+# every plant overstated what the others are known to pay. A facility
+# with no sourced tariff reports no electricity value at all.

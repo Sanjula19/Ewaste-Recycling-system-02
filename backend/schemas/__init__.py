@@ -53,12 +53,102 @@ class FXInfo(BaseModel):
 
 
 class FacilityMatch(BaseModel):
+    """
+    DEPRECATED. Superseded by FacilityRef, which carries the operator,
+    town, technology, status and source_url that a dispatch note needs.
+    Kept because the IoT compact contract and older dashboard builds read
+    it; populated from the recommendation (or, when there is none, the
+    alternative) so it never goes empty while a caller still depends on it.
+    """
     name: str
-    facility_type: str             # "Waste-to-Energy" | "Pyrolysis / RDF"
+    facility_type: str             # technology, in the old free-text form
     latitude: float
     longitude: float
     distance_km: float
     feed_in_tariff_lkr_per_kwh: Optional[float] = None
+
+
+class FacilityRef(BaseModel):
+    """One facility on the register, as returned to a caller."""
+    id: str
+    name: str
+    operator: str
+    town: str
+    district: str
+    technology: Literal["pyrolysis", "incineration_wte", "mechanical_recycling"]
+    status: Literal["operational", "unconfirmed"]
+    # Convenience mirror of `status` so the dashboard can render a badge
+    # without re-encoding the rule that drives it.
+    unconfirmed: bool
+    distance_km: Optional[float] = None       # straight-line km from the origin
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    exports_electricity: bool = False
+    tariff_lkr_per_kwh: Optional[float] = None
+    source_url: Optional[str] = None
+    coordinates_source: str = ""
+    last_verified: str = ""
+
+
+class FacilityExclusion(BaseModel):
+    """
+    A facility the register holds but routing could not use. Returned so a
+    missing plant is visible rather than silently absent.
+    """
+    id: str
+    name: str
+    operator: str
+    town: str
+    technology: str
+    status: str
+    source_url: Optional[str] = None
+    reason: str
+
+
+class OriginRef(BaseModel):
+    """Where distances were measured from."""
+    name: str
+    latitude: float
+    longitude: float
+    source: Literal["local_authority", "request_override", "default"]
+    district: Optional[str] = None
+
+
+class ElectricityValue(BaseModel):
+    """
+    Indicative value of electricity the receiving plant would generate,
+    plus the grid CO2 that displaces.
+
+    Reported ONLY when the plant exports electricity AND its tariff is
+    sourced on the register. Everywhere else `reported` is False and
+    `not_reported_reason` says which condition failed, so a blank figure
+    is never mistaken for a zero one.
+    """
+    reported: bool
+    label: str
+    not_reported_reason: Optional[str] = None
+    facility_name: Optional[str] = None
+    energy_kwh: Optional[float] = None
+    tariff_lkr_per_kwh: Optional[float] = None
+    value_lkr: Optional[float] = None
+    grid_co2_avoided_kg: Optional[float] = None
+
+
+class PyrolysisProducts(BaseModel):
+    """
+    What a pyrolysis batch yields, by mass. No monetary figure: the oil,
+    gas and char are not sold at a price this system knows, so `value` is
+    the string "not estimated" rather than a number nobody can defend.
+    """
+    bio_oil_liters: float
+    bio_oil_kg: float
+    syngas_kg: float
+    char_kg: float
+    oil_pct: float
+    gas_pct: float
+    char_pct: float
+    value: str = "not estimated"
+    value_note: str
 
 
 # ---------------------------------------------------------------------------
@@ -70,12 +160,20 @@ class DispositionRequest(BaseModel):
     weight_kg: float = Field(..., gt=0, description="Weight of waste in kg")
     facility_name: Optional[str] = "Urban Recycling Facility"
     batch_id: Optional[str] = None
+    local_authority: Optional[str] = Field(
+        None,
+        description="The operator's local authority, as named in "
+                    "backend/data/local_authorities.json. Routing measures from "
+                    "here. Falls back to DEFAULT_LOCAL_AUTHORITY from the "
+                    "environment when omitted.",
+    )
     latitude: Optional[float] = Field(
-        None, description="Source facility latitude, for nearest-treatment-plant routing. "
-                           "Defaults to central Colombo if omitted."
+        None, description="Optional origin latitude. Overrides local_authority when "
+                          "both are given -- an operator with a real GPS reading "
+                          "should not be forced onto a town centroid."
     )
     longitude: Optional[float] = Field(
-        None, description="Source facility longitude, for nearest-treatment-plant routing."
+        None, description="Optional origin longitude. See latitude."
     )
 
 
@@ -97,23 +195,53 @@ class DispositionResponse(BaseModel):
     # "mechanical" carries no energy figures at all -- shredding and
     # granulating releases nothing to account for, so zero there is the
     # honest answer rather than a missing value.
-    disposition_method: Literal["pyrolysis", "mechanical", "thermal_recovery"] = "pyrolysis"
+    #
+    # "thermal_recovery" was removed with contaminated glass: it existed
+    # only for the inert heat-sink route, which no longer has a material.
+    disposition_method: Literal["pyrolysis", "mechanical"] = "pyrolysis"
     dispatch_note: Optional[str] = None   # operator instruction for the mechanical route
 
-    thermal_classification: Optional[Literal["combustible", "inert_heat_sink"]] = None
-    energy_recovery_kwh: float     # NEGATIVE for inert_heat_sink materials -- see note below
+    # DEPRECATED, and now always "combustible" when present. The
+    # "inert_heat_sink" case went with glass.
+    thermal_classification: Optional[Literal["combustible"]] = None
+
+    energy_recovery_kwh: float     # energy CONTENT recovered, kWh; never negative now
     energy_breakdown: EnergyBreakdown
-    gross_energy_kwh: Optional[float] = None    # combustible energy before any heat-sink deduction
-    wasted_energy_kwh: Optional[float] = None   # energy spent heating an inert mass (glass) to process temp
+    gross_energy_kwh: Optional[float] = None
     lhv_mj_kg: float
     process_efficiency: float
     landfill_diverted: bool        # Always True for our system
+
+    # Grid CO2 displaced, kg. Non-zero ONLY where the receiving plant
+    # exports electricity on a sourced tariff -- see ElectricityValue.
+    # A pyrolysis batch reports 0.0 here, with the reason in `electricity`.
     co2_avoided_kg: float
+
     manifest_id: str
     timestamp: str
     facility_name: str
 
-    # --- Residual Pyrolysis Tracker additions ---
+    # --- Facility routing from the operator's local authority ----------
+    origin: Optional[OriginRef] = None
+    recommended_facility: Optional[FacilityRef] = None
+    alternative_facility: Optional[FacilityRef] = None
+    facilities_excluded: List[FacilityExclusion] = Field(default_factory=list)
+    # Set when no facility of the recommended technology is both
+    # coordinated and operational. The recommendation is then None, and
+    # this says which rule blocked it.
+    recommendation_blocked_reason: Optional[str] = None
+
+    # --- Value and emissions -------------------------------------------
+    electricity: Optional[ElectricityValue] = None
+    pyrolysis_products: Optional[PyrolysisProducts] = None
+
+    # --- DEPRECATED -----------------------------------------------------
+    # nearest_treatment_facility: use recommended_facility (falls back to
+    #   alternative_facility when there is no recommendation).
+    # estimated_revenue_*: waste streams carry no revenue. Retained as
+    #   None because routers/iot.py reads estimated_revenue_lkr into the
+    #   compact wire contract the firmware parses; removing it would mean
+    #   reflashing the ESP32.
     nearest_treatment_facility: Optional[FacilityMatch] = None
     estimated_revenue_usd: Optional[float] = None
     estimated_revenue_lkr: Optional[float] = None

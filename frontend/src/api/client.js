@@ -54,15 +54,30 @@ export function getForecast(metal, weightKg) {
   });
 }
 
-export function getDisposition({ wasteType, weightKg, facilityName, latitude, longitude }) {
+export function getDisposition({
+  wasteType, weightKg, facilityName, localAuthority, latitude, longitude,
+}) {
   const payload = { waste_type: wasteType, weight_kg: weightKg };
   if (facilityName) payload.facility_name = facilityName;
+  if (localAuthority) payload.local_authority = localAuthority;
+  // Explicit coordinates win over the local authority server-side, so only
+  // send them when the operator actually entered a reading.
   if (latitude != null && latitude !== '') payload.latitude = Number(latitude);
   if (longitude != null && longitude !== '') payload.longitude = Number(longitude);
   return request('/api/disposition/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+/** The origins routing can measure from, served from the backend register. */
+export function getLocalAuthorities() {
+  return request('/api/disposition/local-authorities');
+}
+
+/** The whole facility register, including entries that cannot be routed to. */
+export function getFacilities() {
+  return request('/api/disposition/facilities');
 }
 
 export function getMarketOverview() {

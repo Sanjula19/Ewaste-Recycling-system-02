@@ -1,0 +1,357 @@
+{
+  "_meta": {
+    "purpose": "Origin points for strategic disposition routing. The origin is the operator's local authority; distance to each facility is measured from here.",
+    "last_updated": "2026-10-09",
+    "seeded_from": "frontend/src/utils/sriLankaLocations.js -- the only set of Sri Lankan coordinates that already existed in this repository.",
+    "coordinates_policy": "No coordinate here was invented. Every entry carries a coordinate copied from the repo gazetteer named in seeded_from. These are town-centre approximations, adequate for 'which plant is nearer' and not for logistics costing.",
+    "district_policy": "district is standard Sri Lankan administrative geography, NOT data from this repo, and is descriptive only -- nothing in the routing reads it. Spot-check before publication.",
+    "TODO": "This repository contains no authoritative register of Sri Lankan local authorities, so this list is the 43-town gazetteer above and nothing more. It is a town list, not a list of Municipal Councils / Urban Councils / Pradeshiya Sabhas. Any local authority an operator needs that is not named here must be added by hand with its own coordinate -- none has been guessed or back-filled. Entries also carry a town-centre point, not the authority's office.",
+    "count": 43
+  },
+  "local_authorities": [
+    {
+      "name": "Colombo",
+      "district": "Colombo",
+      "province": "Western",
+      "latitude": 6.9271,
+      "longitude": 79.8612,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Sri Jayawardenepura Kotte",
+      "district": "Colombo",
+      "province": "Western",
+      "latitude": 6.8905,
+      "longitude": 79.9018,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Dehiwala-Mount Lavinia",
+      "district": "Colombo",
+      "province": "Western",
+      "latitude": 6.841,
+      "longitude": 79.8653,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Moratuwa",
+      "district": "Colombo",
+      "province": "Western",
+      "latitude": 6.773,
+      "longitude": 79.8816,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Wattala",
+      "district": "Gampaha",
+      "province": "Western",
+      "latitude": 6.9895,
+      "longitude": 79.8931,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Ja-Ela",
+      "district": "Gampaha",
+      "province": "Western",
+      "latitude": 7.0744,
+      "longitude": 79.8917,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Negombo",
+      "district": "Gampaha",
+      "province": "Western",
+      "latitude": 7.2083,
+      "longitude": 79.8358,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Gampaha",
+      "district": "Gampaha",
+      "province": "Western",
+      "latitude": 7.0917,
+      "longitude": 80.0,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kaduwela",
+      "district": "Colombo",
+      "province": "Western",
+      "latitude": 6.9339,
+      "longitude": 79.9847,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Homagama",
+      "district": "Colombo",
+      "province": "Western",
+      "latitude": 6.8444,
+      "longitude": 80.0025,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Panadura",
+      "district": "Kalutara",
+      "province": "Western",
+      "latitude": 6.713,
+      "longitude": 79.9026,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kalutara",
+      "district": "Kalutara",
+      "province": "Western",
+      "latitude": 6.5854,
+      "longitude": 79.9607,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Beruwala",
+      "district": "Kalutara",
+      "province": "Western",
+      "latitude": 6.4788,
+      "longitude": 79.9828,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kandy",
+      "district": "Kandy",
+      "province": "Central",
+      "latitude": 7.2906,
+      "longitude": 80.6337,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Matale",
+      "district": "Matale",
+      "province": "Central",
+      "latitude": 7.4675,
+      "longitude": 80.6234,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Nuwara Eliya",
+      "district": "Nuwara Eliya",
+      "province": "Central",
+      "latitude": 6.9497,
+      "longitude": 80.7891,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Galle",
+      "district": "Galle",
+      "province": "Southern",
+      "latitude": 6.0535,
+      "longitude": 80.221,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Ambalangoda",
+      "district": "Galle",
+      "province": "Southern",
+      "latitude": 6.2354,
+      "longitude": 80.054,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Weligama",
+      "district": "Matara",
+      "province": "Southern",
+      "latitude": 5.9739,
+      "longitude": 80.4297,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Matara",
+      "district": "Matara",
+      "province": "Southern",
+      "latitude": 5.9549,
+      "longitude": 80.555,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Tangalle",
+      "district": "Hambantota",
+      "province": "Southern",
+      "latitude": 6.0242,
+      "longitude": 80.7947,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Hambantota",
+      "district": "Hambantota",
+      "province": "Southern",
+      "latitude": 6.1246,
+      "longitude": 81.1185,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Jaffna",
+      "district": "Jaffna",
+      "province": "Northern",
+      "latitude": 9.6615,
+      "longitude": 80.0255,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Point Pedro",
+      "district": "Jaffna",
+      "province": "Northern",
+      "latitude": 9.8167,
+      "longitude": 80.2333,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kilinochchi",
+      "district": "Kilinochchi",
+      "province": "Northern",
+      "latitude": 9.3961,
+      "longitude": 80.3982,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Mannar",
+      "district": "Mannar",
+      "province": "Northern",
+      "latitude": 8.981,
+      "longitude": 79.9044,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Vavuniya",
+      "district": "Vavuniya",
+      "province": "Northern",
+      "latitude": 8.7514,
+      "longitude": 80.4971,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Mullaitivu",
+      "district": "Mullaitivu",
+      "province": "Northern",
+      "latitude": 9.2671,
+      "longitude": 80.8142,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Trincomalee",
+      "district": "Trincomalee",
+      "province": "Eastern",
+      "latitude": 8.5874,
+      "longitude": 81.2152,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Batticaloa",
+      "district": "Batticaloa",
+      "province": "Eastern",
+      "latitude": 7.717,
+      "longitude": 81.7,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kalmunai",
+      "district": "Ampara",
+      "province": "Eastern",
+      "latitude": 7.4167,
+      "longitude": 81.8167,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Ampara",
+      "district": "Ampara",
+      "province": "Eastern",
+      "latitude": 7.2975,
+      "longitude": 81.6747,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kurunegala",
+      "district": "Kurunegala",
+      "province": "North Western",
+      "latitude": 7.4863,
+      "longitude": 80.3647,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Puttalam",
+      "district": "Puttalam",
+      "province": "North Western",
+      "latitude": 8.0362,
+      "longitude": 79.8283,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Chilaw",
+      "district": "Puttalam",
+      "province": "North Western",
+      "latitude": 7.5759,
+      "longitude": 79.7952,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Anuradhapura",
+      "district": "Anuradhapura",
+      "province": "North Central",
+      "latitude": 8.3114,
+      "longitude": 80.4037,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Polonnaruwa",
+      "district": "Polonnaruwa",
+      "province": "North Central",
+      "latitude": 7.9403,
+      "longitude": 81.0188,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Badulla",
+      "district": "Badulla",
+      "province": "Uva",
+      "latitude": 6.9934,
+      "longitude": 81.055,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Bandarawela",
+      "district": "Badulla",
+      "province": "Uva",
+      "latitude": 6.8333,
+      "longitude": 80.9833,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Monaragala",
+      "district": "Monaragala",
+      "province": "Uva",
+      "latitude": 6.8714,
+      "longitude": 81.3507,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Ratnapura",
+      "district": "Ratnapura",
+      "province": "Sabaragamuwa",
+      "latitude": 6.6828,
+      "longitude": 80.3992,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Kegalle",
+      "district": "Kegalle",
+      "province": "Sabaragamuwa",
+      "latitude": 7.2513,
+      "longitude": 80.3464,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    },
+    {
+      "name": "Embilipitiya",
+      "district": "Ratnapura",
+      "province": "Sabaragamuwa",
+      "latitude": 6.3439,
+      "longitude": 80.85,
+      "coordinates_source": "frontend/src/utils/sriLankaLocations.js (repo gazetteer; town-centre approximation, not surveyed)"
+    }
+  ]
+}

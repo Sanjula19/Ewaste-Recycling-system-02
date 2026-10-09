@@ -42,7 +42,9 @@
   --mat-zinc: #8FA0A6;
   --mat-pvc: #4A7A9E;
   --mat-polystyrene: #B7A66E;
-  --mat-glass: #6FA39A;
+  --mat-pp: #A87C93;
+  /* --mat-glass removed with contaminated glass: glass is out of scope for
+     strategic disposition, so no material maps to a colour here any more. */
 }
 
 [data-theme='light'] {

@@ -48,9 +48,23 @@ const OUTLINE_PATH = OUTLINE_LATLON
   })
   .join(' ') + ' Z';
 
-export default function SriLankaMap({ location, facility }) {
+/*
+  `facility` is the recommendation and `alternative` the fallback; either
+  may be absent. A facility with null coordinates is simply not plotted --
+  the register can hold a plant nobody has located yet, and inventing a
+  position for it on a map would be the one place that guess looked
+  authoritative. The Disposition page lists those separately instead.
+*/
+function plot(f) {
+  if (!f || f.latitude == null || f.longitude == null) return null;
+  const [x, y] = project(f.latitude, f.longitude);
+  return { x, y, f };
+}
+
+export default function SriLankaMap({ location, facility, alternative }) {
   const [locX, locY] = location ? project(location.lat, location.lon) : [null, null];
-  const [facX, facY] = facility ? project(facility.latitude, facility.longitude) : [null, null];
+  const rec = plot(facility);
+  const alt = plot(alternative);
 
   return (
     <div className="sl-map-wrap">
@@ -58,7 +72,7 @@ export default function SriLankaMap({ location, facility }) {
         className="sl-map-svg"
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         role="img"
-        aria-label="Map of Sri Lanka showing the entered location and nearest treatment facility"
+        aria-label="Map of Sri Lanka showing the dispatch origin, the recommended treatment facility and the alternative"
       >
         <path
           d={OUTLINE_PATH}
@@ -68,19 +82,35 @@ export default function SriLankaMap({ location, facility }) {
           strokeLinejoin="round"
         />
 
-        {location && facility && (
+        {/* Dashed to the alternative, solid to the recommendation, so the
+            two are distinguishable without reading the legend. */}
+        {location && alt && (
           <line
-            x1={locX} y1={locY} x2={facX} y2={facY}
+            x1={locX} y1={locY} x2={alt.x} y2={alt.y}
+            stroke="var(--color-text-faint)"
+            strokeWidth="1.2"
+            strokeDasharray="2 4"
+          />
+        )}
+        {location && rec && (
+          <line
+            x1={locX} y1={locY} x2={rec.x} y2={rec.y}
             stroke="var(--color-accent)"
             strokeWidth="1.5"
             strokeDasharray="4 3"
           />
         )}
 
-        {facility && (
+        {alt && (
           <g>
-            <circle cx={facX} cy={facY} r="6" fill="var(--color-success)" stroke="var(--color-surface)" strokeWidth="1.5" />
-            <circle cx={facX} cy={facY} r="10" fill="none" stroke="var(--color-success)" strokeWidth="1" opacity="0.5" />
+            <circle cx={alt.x} cy={alt.y} r="5" fill="var(--color-text-faint)" stroke="var(--color-surface)" strokeWidth="1.5" />
+          </g>
+        )}
+
+        {rec && (
+          <g>
+            <circle cx={rec.x} cy={rec.y} r="6" fill="var(--color-success)" stroke="var(--color-surface)" strokeWidth="1.5" />
+            <circle cx={rec.x} cy={rec.y} r="10" fill="none" stroke="var(--color-success)" strokeWidth="1" opacity="0.5" />
           </g>
         )}
 
@@ -100,15 +130,25 @@ export default function SriLankaMap({ location, facility }) {
             <span>{location.name}</span>
           </div>
         )}
-        {facility && (
+        {rec && (
           <div className="sl-map-legend-item">
             <span className="sl-map-dot" style={{ background: 'var(--color-success)' }} />
             <Factory size={14} />
-            <span>{facility.name}</span>
+            <span>
+              {rec.f.name}
+              {typeof rec.f.distance_km === 'number' && ` · ${rec.f.distance_km} km`}
+            </span>
           </div>
         )}
-        {facility && typeof facility.distance_km === 'number' && (
-          <div className="stat-sub">{facility.distance_km} km</div>
+        {alt && (
+          <div className="sl-map-legend-item">
+            <span className="sl-map-dot" style={{ background: 'var(--color-text-faint)' }} />
+            <Factory size={14} />
+            <span>
+              {alt.f.name}
+              {typeof alt.f.distance_km === 'number' && ` · ${alt.f.distance_km} km`}
+            </span>
+          </div>
         )}
       </div>
     </div>

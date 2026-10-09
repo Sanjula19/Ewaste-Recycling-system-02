@@ -15,10 +15,14 @@ export const METALS = [
   { key: 'zinc', cssVar: '--mat-zinc', i18nKey: 'metals.zinc' },
 ];
 
+// Contaminated glass was removed from strategic disposition: glass belongs
+// with a glass recycler, not in a pyrolysis or waste-to-energy feed, so the
+// backend now refuses it outright (materials_db.GLASS_REJECTION). Dropping
+// it here is what stops it being offered in the first place.
 export const RESIDUALS = [
   { key: 'PVC Plastic', cssVar: '--mat-pvc', i18nKey: 'materials.pvc plastic' },
   { key: 'Polystyrene', cssVar: '--mat-polystyrene', i18nKey: 'materials.polystyrene' },
-  { key: 'Contaminated Glass', cssVar: '--mat-glass', i18nKey: 'materials.contaminated glass' },
+  { key: 'pp', cssVar: '--mat-pp', i18nKey: 'materials.pp' },
 ];
 
 const ALL = [...METALS, ...RESIDUALS];
