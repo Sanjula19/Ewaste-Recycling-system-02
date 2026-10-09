@@ -252,13 +252,25 @@ export default function Forecast() {
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Info size={16} /> {t('forecast.exchangeRate')}
               </h3>
-              <p style={{ margin: 0 }}>
+              <p style={{ margin: 0 }} className={result.fx.source === 'fallback' ? 'fx-fallback' : undefined}>
                 1 USD = Rs. {result.fx.usd_lkr.toFixed(2)}
                 {' — '}
+                {result.fx.source === 'exchangerate-api' && t('forecast.rateSourceApi')}
                 {result.fx.source === 'live' && t('forecast.rateSourceLive')}
                 {result.fx.source === 'cached' && t('forecast.rateSourceCached')}
                 {result.fx.source === 'fallback' && t('forecast.rateSourceFallback')}
-                {' '}({t('forecast.rateAsOf')} {result.fx.as_of.slice(0, 10)})
+                {', '}{t('forecast.rateDate')}{' '}
+                {(result.fx.rate_date || result.fx.as_of || '').slice(0, 10)}
+              </p>
+              {result.fx.source === 'fallback' && (
+                <p className="fx-fallback-note">{t('forecast.rateFallbackWarning')}</p>
+              )}
+              {/* Attribution is a condition of the provider's open access tier. */}
+              <p className="fx-attribution">
+                <a href={result.fx.provider_url || 'https://www.exchangerate-api.com'}
+                   target="_blank" rel="noopener noreferrer">
+                  {t('forecast.rateAttribution')}
+                </a>
               </p>
             </div>
           </div>

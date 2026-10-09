@@ -108,6 +108,11 @@ export default {
     rateAsOf: 'දිනට අනුව',
     lockedFromMarket: 'වෙළඳපොල දළ විශ්ලේෂණයෙන් තෝරන ලදී.',
     changeMetal: 'ලෝහය වෙනස් කරන්න',
+    // TRANSLATION NEEDED -- English placeholders (exchange-rate wording).
+    rateSourceApi: 'ExchangeRate-API',
+    rateDate: 'rate date',
+    rateAttribution: 'Rates by Exchange Rate API',
+    rateFallbackWarning: 'Live rate unavailable — showing a stored fallback rate, which may be out of date.',
     rateSourceLive: 'සජීවී',
     rateSourceCached: 'සුරැකි',
     rateSourceFallback: 'විකල්ප (නොබැඳි)',

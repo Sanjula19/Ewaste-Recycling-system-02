@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import sys
+from contextlib import contextmanager
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
@@ -49,10 +50,24 @@ SCALAR_FIELDS = [
 ]
 
 
-def _pin_fx():
-    """Point fx_service at fixed rates for the duration of the process."""
+@contextmanager
+def pinned_fx():
+    """
+    Fixed rates for the duration of the block, then put back.
+
+    This used to assign fx_service.get_fx_rates permanently. Harmless in
+    the script, but the test suite imports this module in the same
+    process, so a single snapshot() left every later test talking to a
+    stub -- which is how 18 unrelated FX tests began failing only when run
+    together, and passing when run alone. Scoped now.
+    """
     from services import fx_service
+    original = fx_service.get_fx_rates
     fx_service.get_fx_rates = lambda: dict(PINNED_FX)
+    try:
+        yield
+    finally:
+        fx_service.get_fx_rates = original
 
 
 def snapshot_one(metal: str, weight_kg: float = 100.0) -> dict:
@@ -78,18 +93,17 @@ def snapshot_one(metal: str, weight_kg: float = 100.0) -> dict:
 
 
 def snapshot(metals: list[str], weight_kg: float = 100.0) -> dict:
-    _pin_fx()
     from services import pretrained_models
-
     import data_loader
 
-    return {
-        "model_dir": os.path.basename(pretrained_models.models_dir()),
-        "data_version": data_loader.data_version(),
-        "pinned_fx": PINNED_FX,
-        "weight_kg": weight_kg,
-        "metals": {m: snapshot_one(m, weight_kg) for m in metals},
-    }
+    with pinned_fx():
+        return {
+            "model_dir": os.path.basename(pretrained_models.models_dir()),
+            "data_version": data_loader.data_version(),
+            "pinned_fx": PINNED_FX,
+            "weight_kg": weight_kg,
+            "metals": {m: snapshot_one(m, weight_kg) for m in metals},
+        }
 
 
 def main():

@@ -108,6 +108,11 @@ export default {
     rateAsOf: 'தேதி நிலவரப்படி',
     lockedFromMarket: 'சந்தை மேலோட்டத்திலிருந்து தேர்ந்தெடுக்கப்பட்டது.',
     changeMetal: 'உலோகத்தை மாற்று',
+    // TRANSLATION NEEDED -- English placeholders (exchange-rate wording).
+    rateSourceApi: 'ExchangeRate-API',
+    rateDate: 'rate date',
+    rateAttribution: 'Rates by Exchange Rate API',
+    rateFallbackWarning: 'Live rate unavailable — showing a stored fallback rate, which may be out of date.',
     rateSourceLive: 'நேரடி',
     rateSourceCached: 'சேமிக்கப்பட்ட',
     rateSourceFallback: 'மாற்று (இணைப்பில்லாத)',

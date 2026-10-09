@@ -23,6 +23,9 @@ frontend/dist/
 
 # --- Runtime caches (regenerated automatically) -----------------
 backend/.fx_cache.json
+# Last successful exchange rate, written at runtime so a restart does
+# not lose it. Machine state, not source.
+backend/data/fx_last.json
 
 # --- Editors / OS -----------------------------------------------
 .vscode/

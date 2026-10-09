@@ -35,9 +35,21 @@ from typing import List, Optional, Literal
 
 class FXInfo(BaseModel):
     usd_lkr: float
-    usd_inr: float                 # kept because the source price CSVs are INR-denominated
-    as_of: str                     # ISO8601 timestamp of the rate actually used
-    source: Literal["live", "cached", "fallback"]
+    usd_inr: float                 # kept because the v1 price CSVs are INR-denominated
+    as_of: str                     # ISO8601 date of the rate actually used (== rate_date)
+    # "live" is retained only so an older cached payload still validates;
+    # the live path now reports the provider it actually came from.
+    source: Literal["exchangerate-api", "live", "cached", "fallback"]
+
+    # --- ExchangeRate-API fields ---
+    # rate_date is the provider's own time_last_update_utc, NOT when we
+    # fetched it; fetched_at is when we did. They can differ by a day, and
+    # conflating them would overstate how fresh the number is.
+    rate: Optional[float] = None            # USD -> LKR, same as usd_lkr
+    rate_date: Optional[str] = None
+    fetched_at: Optional[str] = None        # None when serving the constant
+    provider: Optional[str] = None
+    provider_url: Optional[str] = None      # attribution required by the provider
 
 
 class FacilityMatch(BaseModel):

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import forecast, disposition, iot, manifest, market
+from routers import forecast, disposition, iot, manifest, market, fx
 from services import market_service, pretrained_models
 
 # Without a root handler, logger.info() below goes nowhere (logging's
@@ -67,6 +67,7 @@ app.include_router(disposition.router, prefix="/api/disposition", tags=["Strateg
 app.include_router(iot.router, prefix="/api/iot", tags=["IoT Ingestion (pre-hardware contract)"])
 app.include_router(manifest.router, prefix="/api/manifest", tags=["Tonnage Manifest"])
 app.include_router(market.router, prefix="/api/market", tags=["Market Overview"])
+app.include_router(fx.router, prefix="/api/fx", tags=["Exchange Rate"])
 
 
 @app.get("/api/health")

@@ -444,3 +444,23 @@
   border: 2px solid var(--color-surface);
   box-shadow: 0 0 0 1px var(--color-border-strong);
 }
+
+/* Exchange-rate card. The provider requires visible attribution on its
+   open-access tier, so the link is part of the card, not a footnote. */
+.fx-attribution {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+}
+.fx-attribution a {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+}
+.fx-attribution a:hover { color: var(--color-primary); }
+/* A hard-coded constant is not a quoted rate; it should not read like one. */
+.fx-fallback { color: var(--color-warning); font-weight: 600; }
+.fx-fallback-note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-warning);
+}
