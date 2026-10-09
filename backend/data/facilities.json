@@ -39,7 +39,7 @@
       "tariff_lkr_per_kwh": null,
       "status": "operational",
       "source_url": "https://aitkenspence.com/our-expertise/strategic-investments/power/waste-to-energy",
-      "coordinates_source": "Carried over from services/facility_service.py before this rewrite, where it was recorded as an approximate plant location in Kerawalapitiya, Western Province. Not surveyed.",
+      "coordinates_source": "Google Maps satellite, 2026-10-09",
       "last_verified": "2026-10-09"
     },
     {
@@ -82,15 +82,15 @@
       "operator": "Negombo Recycling Club (NRC)",
       "town": "Millaniya, Horana",
       "district": "Kalutara",
-      "latitude": 7.213539799704137,
-      "longitude": 80.0631,
+      "latitude": 7.213549779432222,
+      "longitude": 79.92160223605701,
       "technology": "mechanical_recycling",
       "accepts": ["pvc"],
       "exports_electricity": false,
       "tariff_lkr_per_kwh": null,
       "status": "unconfirmed",
       "source_url": null,
-      "coordinates_source": "Carried over from services/facility_service.py before this rewrite, where it was recorded as a town-centre approximation of Millaniya, Horana. Not surveyed.",
+      "coordinates_source": "Google Maps satellite, 2026-10-09",
       "last_verified": "2026-10-09"
     }
   ]

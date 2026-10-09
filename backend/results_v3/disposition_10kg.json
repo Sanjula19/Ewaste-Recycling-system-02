@@ -32,8 +32,8 @@
       "process_efficiency": 0.67,
       "landfill_diverted": true,
       "co2_avoided_kg": 0.0,
-      "manifest_id": "MAN-20261009-35A0605C",
-      "timestamp": "2026-10-09T08:07:56.206127Z",
+      "manifest_id": "MAN-20261009-116B045D",
+      "timestamp": "2026-10-09T08:10:17.852868Z",
       "facility_name": "Urban Recycling Facility",
       "origin": {
         "name": "Colombo",
@@ -75,7 +75,7 @@
         "exports_electricity": true,
         "tariff_lkr_per_kwh": null,
         "source_url": "https://aitkenspence.com/our-expertise/strategic-investments/power/waste-to-energy",
-        "coordinates_source": "Carried over from services/facility_service.py before this rewrite, where it was recorded as an approximate plant location in Kerawalapitiya, Western Province. Not surveyed.",
+        "coordinates_source": "Google Maps satellite, 2026-10-09",
         "last_verified": "2026-10-09"
       },
       "facilities_excluded": [],
@@ -144,8 +144,8 @@
       "process_efficiency": 0.67,
       "landfill_diverted": true,
       "co2_avoided_kg": 0.0,
-      "manifest_id": "MAN-20261009-A9033157",
-      "timestamp": "2026-10-09T08:07:56.206847Z",
+      "manifest_id": "MAN-20261009-125E25BA",
+      "timestamp": "2026-10-09T08:10:17.852868Z",
       "facility_name": "Urban Recycling Facility",
       "origin": {
         "name": "Colombo",
@@ -187,7 +187,7 @@
         "exports_electricity": true,
         "tariff_lkr_per_kwh": null,
         "source_url": "https://aitkenspence.com/our-expertise/strategic-investments/power/waste-to-energy",
-        "coordinates_source": "Carried over from services/facility_service.py before this rewrite, where it was recorded as an approximate plant location in Kerawalapitiya, Western Province. Not surveyed.",
+        "coordinates_source": "Google Maps satellite, 2026-10-09",
         "last_verified": "2026-10-09"
       },
       "facilities_excluded": [],
@@ -256,8 +256,8 @@
       "process_efficiency": 0.0,
       "landfill_diverted": true,
       "co2_avoided_kg": 0.0,
-      "manifest_id": "MAN-20261009-5BC363B3",
-      "timestamp": "2026-10-09T08:07:56.206847Z",
+      "manifest_id": "MAN-20261009-3458159C",
+      "timestamp": "2026-10-09T08:10:17.852868Z",
       "facility_name": "Urban Recycling Facility",
       "origin": {
         "name": "Colombo",
