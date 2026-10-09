@@ -30,6 +30,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 import pandas as pd
 
+import data_loader
 from data_loader import load_metal_series, SUPPORTED_METALS
 from materials_db import OUT_OF_SCOPE_METALS
 from services import fx_service, influx_client, pretrained_models
@@ -38,6 +39,28 @@ from schemas import ForecastRequest, ForecastResponse, ForecastDataPoint, FXInfo
 HORIZON_DAYS = 90
 BACKTEST_HOLDOUT_DAYS = 30
 HOLD_THRESHOLD_PCT = 2.0  # peak must beat current price by more than this to recommend HOLD
+
+# Older than this and the price being valued is not today's price, so the
+# response says so rather than letting a dashboard imply otherwise.
+STALE_AFTER_DAYS = 7
+
+# How far a live tick may sit from the CSV's last close before the two are
+# treated as different sources rather than the same price. Above this they
+# are not interchangeable, and silently taking one as P0 while forecasting
+# from the other would value a batch against a number the model never saw.
+SOURCE_AGREEMENT_PCT = 0.5
+
+
+@dataclass
+class PriceContext:
+    """Where P0 came from, how old it is, and whether anything disagrees."""
+    history: pd.Series          # the series the forecast is actually built on
+    current_price: float
+    last_price_date: pd.Timestamp
+    data_age_days: int
+    stale_data: bool
+    price_source: str           # "live" | "historical"
+    data_warning: str | None
 
 try:
     from statsmodels.tsa.arima.model import ARIMA
@@ -387,18 +410,73 @@ def build_price_path(key: str) -> tuple[ForecastPath, float, float, pd.Series, f
     display this to an operator should say so rather than presenting a
     possibly stale number as live.
     """
-    # Prefer live data from InfluxDB; fall back to the historical CSV.
-    history = influx_client.query_history(key)
-    if history.empty:
-        history = load_metal_series(key)
+    ctx = resolve_price_context(key)
+    path, mape, rmse = _model_path_cached(key, ctx.history)
+    return path, mape, rmse, ctx.history, ctx.current_price, ctx.price_source == "live"
+
+
+def resolve_price_context(key: str) -> PriceContext:
+    """
+    Pin P0 and the forecast to ONE price series, and say which.
+
+    The forecast is produced by the pretrained models, which read the
+    configured dataset (data_loader, DATA_VERSION) directly. So the series
+    below is that same dataset -- not whatever InfluxDB happens to hold.
+
+    That matters now that the dataset has changed: an InfluxDB seeded from
+    the old MCX/INR export would hand back a price on a different basis
+    from the series the model was trained on, and taking it as P0 while
+    forecasting from the new one would value a batch against a number the
+    model has never seen. Rather than mix them, a live tick is used only
+    when it agrees with the dataset's own last close to within
+    SOURCE_AGREEMENT_PCT; otherwise the dataset wins and the disagreement
+    is reported on the response.
+    """
+    history = load_metal_series(key)
+    csv_last = float(history.iloc[-1])
+    last_date = pd.Timestamp(history.index[-1])
+
+    price_source, warning = "historical", None
+    current_price = csv_last
 
     live_price = influx_client.query_latest_price(key)
-    is_live = live_price is not None
-    current_price = live_price if is_live else float(history.iloc[-1])
+    if live_price is not None:
+        drift_pct = abs(live_price - csv_last) / csv_last * 100 if csv_last else float("inf")
+        if drift_pct <= SOURCE_AGREEMENT_PCT:
+            current_price, price_source = float(live_price), "live"
+        else:
+            warning = (
+                f"InfluxDB returned {live_price:.4f} USD/kg for {key} while the "
+                f"{data_loader.data_version()} dataset's last close ({last_date.date()}) is "
+                f"{csv_last:.4f} -- {drift_pct:.1f}% apart, so these are different price "
+                f"sources. The forecast is built on the {data_loader.data_version()} series, "
+                f"so that series' price is used for P0 too; the live tick is ignored rather "
+                f"than mixed in. Re-seed InfluxDB from the current dataset "
+                f"(scripts/seed_influxdb.py) to use live prices again."
+            )
 
-    path, mape, rmse = _model_path_cached(key, history)
+    age = max(0, (pd.Timestamp.utcnow().tz_localize(None).normalize() - last_date.normalize()).days)
+    stale = age > STALE_AFTER_DAYS
+    if stale:
+        stale_note = (f"Latest {key} price is from {last_date.date()}, {age} days old; "
+                      f"this is not a current market price.")
+        warning = f"{warning} {stale_note}" if warning else stale_note
 
-    return path, mape, rmse, history, current_price, is_live
+    return PriceContext(history=history, current_price=current_price, last_price_date=last_date,
+                        data_age_days=age, stale_data=stale, price_source=price_source,
+                        data_warning=warning)
+
+
+def forecast_dates(last_date: pd.Timestamp, horizon: int = HORIZON_DAYS) -> list[pd.Timestamp]:
+    """
+    The next `horizon` BUSINESS days after the last observed price.
+
+    These series are exchange closes, so they have no weekend observations
+    and the model's step is one trading day, not one calendar day. Dating
+    the path in calendar days stretched a 90-step forecast across ~128
+    trading days and put a third of the points on days the market is shut.
+    """
+    return list(pd.bdate_range(start=last_date + pd.Timedelta(days=1), periods=horizon))
 
 
 def calculate_forecast(req: ForecastRequest) -> ForecastResponse:
@@ -411,14 +489,17 @@ def calculate_forecast(req: ForecastRequest) -> ForecastResponse:
     if key not in SUPPORTED_METALS:
         raise ValueError(f"Unsupported metal '{req.metal}'. Supported: {SUPPORTED_METALS}")
 
-    path, mape, rmse, history, current_price, _is_live = build_price_path(key)
+    ctx = resolve_price_context(key)
+    path, mape, rmse = _model_path_cached(key, ctx.history)
+    current_price = ctx.current_price
 
     fx = fx_service.get_fx_rates()
-    last_date = history.index[-1]
+    last_date = ctx.last_price_date
+    dates = forecast_dates(last_date, HORIZON_DAYS)
 
     forecast_points = []
     for i in range(HORIZON_DAYS):
-        date_str = (last_date + timedelta(days=i + 1)).strftime("%Y-%m-%d")
+        date_str = dates[i].strftime("%Y-%m-%d")
         price = float(path.mean[i])
         lower = float(path.lower[i])
         upper = float(path.upper[i])
@@ -462,6 +543,10 @@ def calculate_forecast(req: ForecastRequest) -> ForecastResponse:
         rmse=rmse,
         persistence_mape=path.persistence_mape,
         signal=has_signal(mape, path.persistence_mape),
+        last_price_date=last_date.strftime("%Y-%m-%d"),
+        data_age_days=ctx.data_age_days,
+        stale_data=ctx.stale_data,
+        data_warning=ctx.data_warning,
         model_used=path.model_used,
         weight_kg=req.weight_kg,
         unit_price=round(current_price, 4),

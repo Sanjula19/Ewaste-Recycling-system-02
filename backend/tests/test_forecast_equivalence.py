@@ -29,8 +29,17 @@ sys.path.insert(0, str(BACKEND / "scripts"))
 BASELINE = BACKEND / "results_v2" / "forecast_baseline_pre_change3.json"
 TOL = 1e-6
 
+# Forecast point dates deliberately moved from calendar days to business
+# days after the baseline was recorded. Every NUMBER must still match it
+# exactly -- that is what this file guards -- so the dates are excluded
+# here and pinned to their rule in test_forecast_dates_are_business_days
+# instead, which is a stronger check than a frozen list of dates.
+SKIP = (".date",)
 
-def _diffs(path, expected, actual, out):
+
+def _diffs(path, expected, actual, out, skip_suffixes=()):
+    if any(path.endswith(s) for s in skip_suffixes):
+        return
     if isinstance(expected, bool) or isinstance(actual, bool):
         if expected != actual:
             out.append((path, expected, actual))
@@ -41,13 +50,13 @@ def _diffs(path, expected, actual, out):
             out.append((path, expected, actual))
     elif isinstance(expected, dict):
         for k in set(expected) | set(actual or {}):
-            _diffs(f"{path}.{k}", expected.get(k), (actual or {}).get(k), out)
+            _diffs(f"{path}.{k}", expected.get(k), (actual or {}).get(k), out, skip_suffixes)
     elif isinstance(expected, list):
         if len(expected) != len(actual or []):
             out.append((path, f"len {len(expected)}", f"len {len(actual or [])}"))
         else:
             for i, (e, a) in enumerate(zip(expected, actual)):
-                _diffs(f"{path}[{i}]", e, a, out)
+                _diffs(f"{path}[{i}]", e, a, out, skip_suffixes)
     elif expected != actual:
         out.append((path, expected, actual))
 
@@ -60,7 +69,12 @@ def baseline():
 
 
 def test_every_forecast_figure_is_unchanged(baseline, monkeypatch):
+    # Both settings must be pinned. The baseline was recorded on the v1
+    # series with the models_v2 folder; pinning only MODEL_DIR let a later
+    # .env switch to DATA_VERSION=v3 feed those models a different series,
+    # which is a real misconfiguration but not what this test is asking.
     monkeypatch.setenv("MODEL_DIR", baseline["model_dir"])
+    monkeypatch.setenv("DATA_VERSION", baseline.get("data_version", "v1"))
     from services import forecast_service
     from forecast_snapshot import snapshot
 
@@ -69,9 +83,44 @@ def test_every_forecast_figure_is_unchanged(baseline, monkeypatch):
 
     out = []
     for metal, expected in baseline["metals"].items():
-        _diffs(metal, expected, current["metals"].get(metal), out)
+        _diffs(metal, expected, current["metals"].get(metal), out, SKIP)
     assert not out, "forecast output changed:\n" + "\n".join(
         f"  {p}: {e!r} -> {a!r}" for p, e, a in out[:20])
+
+
+def test_forecast_dates_are_business_days(monkeypatch):
+    """
+    The 90 forecast points are the next 90 BUSINESS days after the last
+    observed price -- these are exchange closes, so a calendar-day path put
+    a third of its points on days the market is shut.
+    """
+    import pandas as pd
+    from services import forecast_service as fs
+
+    last = pd.Timestamp("2026-10-08")          # a Thursday
+    dates = fs.forecast_dates(last, fs.HORIZON_DAYS)
+
+    assert len(dates) == fs.HORIZON_DAYS
+    assert all(d.dayofweek < 5 for d in dates), "a forecast point landed on a weekend"
+    assert dates[0] > last, "the path must start after the last observed price"
+    assert all(b > a for a, b in zip(dates, dates[1:])), "dates must be strictly increasing"
+    # Thursday -> Friday -> Monday, not Thursday -> Friday -> Saturday.
+    assert [str(d.date()) for d in dates[:3]] == ["2026-10-09", "2026-10-12", "2026-10-13"]
+
+
+def test_stale_data_flagged_beyond_a_week(monkeypatch):
+    """data_age_days > 7 must set stale_data and say so in data_warning."""
+    from services import forecast_service as fs
+
+    monkeypatch.setenv("DATA_VERSION", "v3")
+    if not (BACKEND / "data" / "v3" / "steel.csv").is_file():
+        pytest.skip("v3 dataset not built")
+    fs.clear_cache()
+    ctx = fs.resolve_price_context("steel")      # ends 2025-10-29, long stale
+    assert ctx.data_age_days > fs.STALE_AFTER_DAYS
+    assert ctx.stale_data is True
+    assert ctx.data_warning and "not a current market price" in ctx.data_warning
+    assert ctx.price_source == "historical"
 
 
 def test_baseline_actually_covers_the_numbers(baseline):

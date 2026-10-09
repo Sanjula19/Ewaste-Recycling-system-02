@@ -1,0 +1,53 @@
+{
+  "metal": "copper",
+  "native_unit": "INR_per_kg",
+  "n_obs": 3312,
+  "first_date": "2014-01-02",
+  "last_date": "2026-10-08",
+  "train_end_index": 3311,
+  "scaler": {
+    "type": "sklearn.MinMaxScaler",
+    "feature_range": [
+      0,
+      1
+    ],
+    "data_min": 4.284684,
+    "data_max": 15.186543,
+    "fitted_on": "full training series (native units)"
+  },
+  "lstm": {
+    "window": 60,
+    "n_seq_fit": 2927,
+    "n_seq_val": 325,
+    "epochs_run": 44,
+    "best_val_loss": 0.0015396272065117955,
+    "sd_scaled": 0.030652429908514023,
+    "sd_scaled_source": "std of one-step residuals on the last 10% validation slice"
+  },
+  "arima_order": [
+    0,
+    1,
+    1
+  ],
+  "arima_aic": -19874.593730109358,
+  "seed": 42,
+  "train_seconds": 80.8,
+  "holdout30": {
+    "arima_order": "(0, 1, 1)",
+    "arima_mape": 1.3191297229757983,
+    "lstm_mape": 15.728766198426946,
+    "persistence_mape": 1.3169993369485566,
+    "arima_rmse": 0.24653212170576727,
+    "lstm_rmse": 2.4310191560796883,
+    "persistence_rmse": 0.24618956445525192,
+    "selected": "ARIMA",
+    "selected_mape": 1.3191297229757983,
+    "selected_rmse": 0.24653212170576727,
+    "tau_pct": 2.0,
+    "beats_persistence": false,
+    "lstm_epochs": 30,
+    "train_obs": 3282,
+    "holdout_obs": 30,
+    "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+  }
+}

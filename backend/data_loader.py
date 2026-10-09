@@ -52,6 +52,16 @@ import os
 from dataclasses import dataclass
 from typing import Literal
 import pandas as pd
+from dotenv import load_dotenv
+
+# Must run BEFORE DATA_VERSION is read below. This module is imported
+# early -- ahead of services/influx_client.py and
+# services/pretrained_models.py, which also call load_dotenv() -- so
+# without this, DATA_VERSION was resolved against an environment that did
+# not yet contain .env and silently fell back to "v1" while MODEL_DIR,
+# which is read per call, correctly picked up models_v3. The result was a
+# v3 model served against the v1 series, with nothing in the log to say so.
+load_dotenv()
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 V3_DIR = os.path.join(DATA_DIR, "v3")
@@ -69,7 +79,30 @@ V3_DIR = os.path.join(DATA_DIR, "v3")
 #
 # Switching to "v3" requires retraining; the saved scalers carry v1's
 # min/max in INR and would silently mis-scale a USD series.
-DATA_VERSION = (os.environ.get("DATA_VERSION") or "v1").strip().lower()
+DEFAULT_DATA_VERSION = "v1"
+KNOWN_DATA_VERSIONS = ("v1", "v3")
+
+
+def data_version() -> str:
+    """
+    The active dataset, read per call rather than frozen at import.
+
+    Import-time was a trap: this module is imported before anything calls
+    load_dotenv(), so the value was decided against an environment that did
+    not yet contain .env. MODEL_DIR, which is resolved per call, picked up
+    .env correctly -- so the two silently disagreed and a v3 model was
+    served a v1 series. Reading it per call also lets a test select a
+    dataset without reloading the module.
+    """
+    v = (os.environ.get("DATA_VERSION") or DEFAULT_DATA_VERSION).strip().lower()
+    if v not in KNOWN_DATA_VERSIONS:
+        raise ValueError(f"Unknown DATA_VERSION '{v}'; expected one of {KNOWN_DATA_VERSIONS}.")
+    return v
+
+
+# Snapshot at import for logging and for callers that read the attribute.
+# Anything that must be correct after an env change calls data_version().
+DATA_VERSION = data_version()
 
 # Used only to normalize historical INR series for model training (v1).
 # Live display rates come from services/fx_service.py instead.
@@ -116,11 +149,9 @@ def _resolve(metal: str) -> tuple[MetalConfig, str]:
         raise ValueError(
             f"Unsupported metal '{metal}'. This component covers: {SUPPORTED_METALS}"
         )
-    if DATA_VERSION == "v3":
+    if data_version() == "v3":
         cfg = V3_CONFIG[key]
         return cfg, os.path.join(V3_DIR, cfg.filename)
-    if DATA_VERSION != "v1":
-        raise ValueError(f"Unknown DATA_VERSION '{DATA_VERSION}'; expected 'v1' or 'v3'.")
     cfg = MATERIAL_CONFIG[key]
     return cfg, os.path.join(DATA_DIR, cfg.filename)
 

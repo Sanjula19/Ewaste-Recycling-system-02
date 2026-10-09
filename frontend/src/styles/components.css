@@ -308,17 +308,23 @@
 }
 .market-card-change.is-up { color: var(--color-success); }
 .market-card-change.is-down { color: var(--color-danger); }
+/* Stacked rows, not one wrapping line: the freshness indicator varies in
+   width between cards, and sharing a row with the no-signal chip put that
+   chip in a different place on every card. */
 .market-card-footer {
   margin-top: var(--space-3);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
-  /* Was a single child; now the no-signal chip sits opposite the live /
-     as-of indicator. With one child this renders exactly as before. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.market-card-footer-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  min-height: 20px;
 }
 .market-card-nosignal {
   display: inline-flex;

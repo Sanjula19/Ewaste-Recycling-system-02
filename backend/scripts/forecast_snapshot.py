@@ -81,8 +81,11 @@ def snapshot(metals: list[str], weight_kg: float = 100.0) -> dict:
     _pin_fx()
     from services import pretrained_models
 
+    import data_loader
+
     return {
         "model_dir": os.path.basename(pretrained_models.models_dir()),
+        "data_version": data_loader.data_version(),
         "pinned_fx": PINNED_FX,
         "weight_kg": weight_kg,
         "metals": {m: snapshot_one(m, weight_kg) for m in metals},

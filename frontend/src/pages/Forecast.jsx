@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Info, Lock, MinusCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, Lock, MinusCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
 import { getForecast } from '../api/client.js';
@@ -62,6 +62,8 @@ export default function Forecast() {
   const persistenceMape = typeof result?.persistence_mape === 'number'
     ? result.persistence_mape
     : null;
+  const isStale = result?.stale_data === true;
+  const lastPriceDate = result?.last_price_date || null;
 
   const chartData = result?.forecast_90d?.map((p) => ({
     date: p.date,
@@ -143,6 +145,13 @@ export default function Forecast() {
             </div>
             <MaterialChip materialKey={metal} />
           </div>
+
+          {isStale && (
+            <div className="alert alert-warning" role="status" style={{ marginTop: 'var(--space-3)' }}>
+              <AlertTriangle size={18} />
+              <p>{t('forecast.staleNotice').replace('{days}', String(result.data_age_days))}</p>
+            </div>
+          )}
 
           {noSignal && (
             <div className="no-signal-note">
@@ -226,6 +235,17 @@ export default function Forecast() {
                   <div className="label">{t('forecast.modelUsed')}</div>
                   <div className="value" style={{ fontSize: '0.85rem' }}>{result.model_used}</div>
                 </div>
+                {lastPriceDate && (
+                  <div className="breakdown-item">
+                    <div className="label">{t('forecast.lastPriceDate')}</div>
+                    <div className="value" style={{ fontSize: '0.85rem' }}>
+                      {lastPriceDate}
+                      {typeof result.data_age_days === 'number' && (
+                        <span className="stat-sub"> ({result.data_age_days} {t('forecast.days')})</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="card">

@@ -155,6 +155,15 @@ class ForecastResponse(BaseModel):
     persistence_mape: Optional[float] = None
     signal: bool = True
 
+    # --- Data freshness ---
+    # The price being valued is the last observation in the configured
+    # dataset, which is not necessarily today. Stated outright so a
+    # dashboard cannot present a year-old close as a live quote.
+    last_price_date: Optional[str] = None       # YYYY-MM-DD
+    data_age_days: Optional[int] = None
+    stale_data: bool = False                    # True when data_age_days > 7
+    data_warning: Optional[str] = None          # staleness and/or source conflict
+
     model_used: str                # "ARIMA" or "LSTM" or "ARIMA+LSTM"
     weight_kg: float
     unit_price: float              # USD per kg
@@ -181,9 +190,13 @@ class MarketOverviewItem(BaseModel):
     price_source: Literal["live", "historical"]
     model_used: str
     mape: float
-    # Same pair as ForecastResponse -- see the note there.
+    # Same pairs as ForecastResponse -- see the notes there.
     persistence_mape: Optional[float] = None
     signal: bool = True
+    last_price_date: Optional[str] = None
+    data_age_days: Optional[int] = None
+    stale_data: bool = False
+    data_warning: Optional[str] = None
 
 
 class MarketOverviewResponse(BaseModel):

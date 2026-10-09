@@ -170,6 +170,41 @@ def clear_cache() -> None:
     _registry.clear()
 
 
+def check_dataset_match(metals=None) -> list[str]:
+    """
+    Is each model being served the dataset it was trained on?
+
+    MODEL_DIR and DATA_VERSION are two separate settings that have to agree,
+    and when they disagree nothing fails -- the model simply forecasts from
+    a series it has never seen, scaled by bounds taken from a different one.
+    That is invisible in every response. So the two are compared at startup:
+    each model records the last date of its training data, and that is
+    checked against the last date of the series now configured.
+
+    Returns a list of human-readable problems, empty when all is well.
+    """
+    from data_loader import SUPPORTED_METALS, data_version, load_metal_series_raw
+
+    problems = []
+    for metal in (metals or SUPPORTED_METALS):
+        meta = load_training_meta(metal)
+        if not meta or not meta.get("last_date"):
+            continue        # legacy folder, nothing recorded to compare
+        try:
+            series_last = str(load_metal_series_raw(metal).index[-1].date())
+        except Exception as exc:  # pragma: no cover - defensive
+            problems.append(f"{metal}: could not read the configured series ({exc})")
+            continue
+        if meta["last_date"] != series_last:
+            problems.append(
+                f"DATASET MISMATCH for {metal}: the model in {os.path.basename(models_dir())} "
+                f"was trained on data ending {meta['last_date']}, but DATA_VERSION="
+                f"{data_version()} supplies a series ending {series_last}. The forecast will be "
+                f"produced from a series this model never saw, scaled by the wrong bounds. "
+                f"Set DATA_VERSION and MODEL_DIR to the same generation.")
+    return problems
+
+
 def warmup(metals=None) -> dict:
     """
     Load every artifact for every metal up front, so no request pays for it.
@@ -196,6 +231,10 @@ def warmup(metals=None) -> dict:
         logger.warning(
             "statsmodels is not importable by this interpreter (%s), so NO pretrained "
             "ARIMA will be served.", sys.executable)
+
+    mismatches = check_dataset_match(metals)
+    for line in mismatches:
+        logger.warning("%s", line)
 
     loaded: dict[str, list[str]] = {}
     for metal in (metals or SUPPORTED_METALS):

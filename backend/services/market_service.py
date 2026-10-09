@@ -56,8 +56,11 @@ _cache_at: float = 0.0
 
 
 def _build_item(metal: str, fx: dict) -> MarketOverviewItem:
-    path, mape, rmse, history, current_price, is_live = forecast_service.build_price_path(metal)
-    last_date = history.index[-1]
+    ctx = forecast_service.resolve_price_context(metal)
+    path, mape, rmse = forecast_service._model_path_cached(metal, ctx.history)
+    history, current_price = ctx.history, ctx.current_price
+    last_date = ctx.last_price_date
+    is_live = ctx.price_source == "live"
 
     prev_price = float(history.iloc[-2]) if len(history) > 1 else current_price
     day_change_pct = ((current_price - prev_price) / prev_price * 100) if prev_price else 0.0
@@ -76,6 +79,10 @@ def _build_item(metal: str, fx: dict) -> MarketOverviewItem:
         mape=mape,
         persistence_mape=path.persistence_mape,
         signal=forecast_service.has_signal(mape, path.persistence_mape),
+        last_price_date=last_date.strftime("%Y-%m-%d"),
+        data_age_days=ctx.data_age_days,
+        stale_data=ctx.stale_data,
+        data_warning=ctx.data_warning,
     )
 
 

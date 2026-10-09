@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock, MinusCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock, MinusCircle, Info, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
 import { getMarketOverview } from '../api/client.js';
@@ -10,6 +10,8 @@ import LoadingState from './LoadingState.jsx';
 import ErrorState from './ErrorState.jsx';
 
 const POLL_MS = 60_000;
+// A price older than this is not "live", whatever the transport says.
+const LIVE_MAX_AGE_DAYS = 3;
 
 export default function MarketOverview() {
   const { t, intlTag } = useLanguage();
@@ -66,7 +68,9 @@ export default function MarketOverview() {
   if (status === 'error') return <ErrorState message={errorMessage} />;
   if (!data) return null;
 
-  const sellingNow = data.items.filter((i) => i.recommendation === 'SELL NOW');
+  const holding = data.items.filter((i) => i.recommendation === 'HOLD');
+  // stale_data is absent on an older backend, so this stays empty there.
+  const staleItems = data.items.filter((i) => i.stale_data === true);
 
   return (
     <div style={{ marginBottom: 'var(--space-6)' }}>
@@ -75,14 +79,40 @@ export default function MarketOverview() {
         <Badge variant="success" icon={Radio}>{t('dashboard.live')}</Badge>
       </div>
 
-      {sellingNow.length > 0 && (
-        <div className="alert alert-danger" role="alert" style={{ marginBottom: 'var(--space-4)' }}>
-          <ArrowUpRight size={20} />
+      {/* Neutral, not red. "Sell now" across the board is the ordinary
+          outcome of the decision rule when no metal clears its own forecast
+          error -- it is not an alert, and styling it as one trained the eye
+          to ignore it. When something IS worth holding, that is the news. */}
+      {data.items.length > 0 && (
+        <div className="alert alert-neutral" role="status" style={{ marginBottom: 'var(--space-4)' }}>
+          <Info size={20} />
           <p>
-            <strong>{t('notifications.sellNowTitle')}</strong>{' '}
-            {t('notifications.sellNowBanner').replace(
+            {holding.length > 0 ? (
+              <>
+                <strong>{t('dashboard.bannerHoldTitle')}</strong>{' '}
+                {t('dashboard.bannerHold').replace(
+                  '{metals}',
+                  holding.map((i) => materialLabel(i.metal, t)).join(', ')
+                )}
+              </>
+            ) : (
+              <>
+                <strong>{t('dashboard.bannerSellTitle')}</strong>{' '}
+                {t('dashboard.bannerSellAll')}
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
+      {staleItems.length > 0 && (
+        <div className="alert alert-warning" role="status" style={{ marginBottom: 'var(--space-4)' }}>
+          <AlertTriangle size={20} />
+          <p>
+            <strong>{t('dashboard.staleTitle')}</strong>{' '}
+            {t('dashboard.staleBody').replace(
               '{metals}',
-              sellingNow.map((i) => materialLabel(i.metal, t)).join(', ')
+              staleItems.map((i) => `${materialLabel(i.metal, t)} (${i.data_age_days}d)`).join(', ')
             )}
           </p>
         </div>
@@ -102,10 +132,17 @@ function MarketCard({ item, t, intlTag }) {
   const isUp = item.day_change_pct > 0;
   const isDown = item.day_change_pct < 0;
   const ChangeIcon = isUp ? ArrowUpRight : isDown ? ArrowDownRight : Minus;
-  const asOfDate = new Date(item.data_as_of).toLocaleDateString(intlTag, { day: '2-digit', month: 'short', year: 'numeric' });
+  const asOfDate = new Date(item.last_price_date || item.data_as_of).toLocaleDateString(
+    intlTag, { day: '2-digit', month: 'short', year: 'numeric' });
   // Strict check: an older backend omits `signal`, and undefined must not
   // render as "no signal".
   const noSignal = item.signal === false;
+  // "Live" is only honest for a price from the last few days. An older
+  // backend sends no data_age_days, so fall back to the price_source flag
+  // it does send rather than claiming staleness it never reported.
+  const isFresh = item.data_age_days == null
+    ? item.price_source === 'live'
+    : item.data_age_days <= LIVE_MAX_AGE_DAYS;
 
   return (
     <Link
@@ -132,20 +169,29 @@ function MarketCard({ item, t, intlTag }) {
         {Math.abs(item.day_change_pct).toFixed(2)}%
       </div>
 
+      {/* Two fixed rows: freshness, then signal. Previously both sat in one
+          wrapping flex row, so the "No signal" chip landed in a different
+          place depending on how wide the freshness label happened to be. */}
       <div className="market-card-footer">
-        {item.price_source === 'live' ? (
-          <Badge variant="info" icon={Radio}>{t('dashboard.live')}</Badge>
-        ) : (
-          <span className="market-card-asof"><Clock size={12} /> {t('dashboard.dataAsOf')} {asOfDate}</span>
-        )}
+        <div className="market-card-footer-row">
+          {isFresh ? (
+            <Badge variant="info" icon={Radio}>{t('dashboard.live')}</Badge>
+          ) : (
+            <span className="market-card-asof">
+              <Clock size={12} /> {t('dashboard.dataUpTo')} {asOfDate}
+            </span>
+          )}
+        </div>
         {noSignal && (
-          <span
-            className="market-card-nosignal"
-            title={t('dashboard.noSignalTooltip')}
-            aria-label={t('dashboard.noSignalTooltip')}
-          >
-            <MinusCircle size={12} /> {t('dashboard.noSignal')}
-          </span>
+          <div className="market-card-footer-row">
+            <span
+              className="market-card-nosignal"
+              title={t('dashboard.noSignalTooltip')}
+              aria-label={t('dashboard.noSignalTooltip')}
+            >
+              <MinusCircle size={12} /> {t('dashboard.noSignal')}
+            </span>
+          </div>
         )}
       </div>
     </Link>

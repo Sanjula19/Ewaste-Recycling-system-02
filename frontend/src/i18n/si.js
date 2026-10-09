@@ -41,6 +41,14 @@ export default {
     marketOverview: 'වෙළඳපොල දළ විශ්ලේෂණය',
     live: 'සජීවී',
     dataAsOf: 'දින වන විට',
+    // TRANSLATION NEEDED -- English placeholders (data-freshness wording).
+    dataUpTo: 'Data up to',
+    bannerSellTitle: 'Recommendation: sell now',
+    bannerSellAll: 'No metal shows a reliable expected gain above its forecast error.',
+    bannerHoldTitle: 'Hold recommended:',
+    bannerHold: '{metals}. Every other metal: sell now.',
+    staleTitle: 'Prices are out of date.',
+    staleBody: 'These are the latest available closes, not current market prices: {metals}.',
     // TRANSLATION NEEDED -- English placeholders. "Signal" here is the
     // statistical sense (the model has no predictive power), NOT a radio
     // or network signal, which is the reading a direct translation would
@@ -90,6 +98,10 @@ export default {
     // above for why "signal" is not translated on a guess.
     persistenceMape: 'No-change error (MAPE)',
     noSignal: 'No forecastable signal',
+    lastPriceDate: 'Price date',
+    dataAgeDays: 'Data age',
+    days: 'days',
+    staleNotice: 'This valuation uses the latest available close, which is {days} days old — not a current market price.',
     rmse: 'මූල මධ්‍ය වර්ග දෝෂය',
     modelUsed: 'භාවිත කළ ආකෘතිය',
     exchangeRate: 'භාවිත කළ විනිමය අනුපාතය',

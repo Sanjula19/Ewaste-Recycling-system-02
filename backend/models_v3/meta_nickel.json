@@ -1,0 +1,53 @@
+{
+  "metal": "nickel",
+  "native_unit": "INR_per_kg",
+  "n_obs": 3134,
+  "first_date": "2014-01-02",
+  "last_date": "2026-10-08",
+  "train_end_index": 3133,
+  "scaler": {
+    "type": "sklearn.MinMaxScaler",
+    "feature_range": [
+      0,
+      1
+    ],
+    "data_min": 7.59,
+    "data_max": 61.7144,
+    "fitted_on": "full training series (native units)"
+  },
+  "lstm": {
+    "window": 60,
+    "n_seq_fit": 2767,
+    "n_seq_val": 307,
+    "epochs_run": 21,
+    "best_val_loss": 9.464222239330411e-05,
+    "sd_scaled": 0.006709428038448095,
+    "sd_scaled_source": "std of one-step residuals on the last 10% validation slice"
+  },
+  "arima_order": [
+    3,
+    1,
+    0
+  ],
+  "arima_aic": -17764.701989211626,
+  "seed": 42,
+  "train_seconds": 40.6,
+  "holdout30": {
+    "arima_order": "(3, 1, 0)",
+    "arima_mape": 3.851560958936272,
+    "lstm_mape": 5.751870029686476,
+    "persistence_mape": 3.578112425829285,
+    "arima_rmse": 0.7580642537783613,
+    "lstm_rmse": 1.0827635788667325,
+    "persistence_rmse": 0.7206446167887937,
+    "selected": "ARIMA",
+    "selected_mape": 3.851560958936272,
+    "selected_rmse": 0.7580642537783613,
+    "tau_pct": 3.851560958936272,
+    "beats_persistence": false,
+    "lstm_epochs": 41,
+    "train_obs": 3104,
+    "holdout_obs": 30,
+    "note": "models retrained on series[:-30]; arima_order here is the order auto_arima picked on that window, which can differ from the production order selected on the full series"
+  }
+}

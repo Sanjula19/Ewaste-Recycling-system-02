@@ -149,7 +149,7 @@ def main():
     ap.add_argument("--scaler-metal", default="nickel")
     args = ap.parse_args()
 
-    print(f"DATA_VERSION = {data_loader.DATA_VERSION}")
+    print(f"DATA_VERSION = {data_loader.data_version()}")
     print(f"settings: start_offset={args.start_offset} spacing={args.spacing} "
           f"retrain_every={args.retrain_every} holdout={HOLDOUT} horizon={HORIZON} "
           f"window={WINDOW} val_frac={VAL_FRAC} seed={args.seed}\n")

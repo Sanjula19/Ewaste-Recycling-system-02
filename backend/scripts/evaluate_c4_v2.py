@@ -946,9 +946,9 @@ def main():
     meta = {
         "run_at": datetime.now().isoformat(timespec="seconds"),
         "runtime_s_this_invocation": round(time.time() - t_start),
-        "data_version": data_loader.DATA_VERSION,
+        "data_version": data_loader.data_version(),
         "data_source": ("data/v3/<metal>.csv, already USD/kg"
-                        if data_loader.DATA_VERSION == "v3" else "data/<metal>_Historical_Data.csv"),
+                        if data_loader.data_version() == "v3" else "data/<metal>_Historical_Data.csv"),
         "unit_conversion_applied_per_metal": conv_factors,
         "settings": {"holdout": HOLDOUT, "horizon": HORIZON, "window": WINDOW, "epochs_max": EPOCHS,
                      "batch": BATCH, "val_frac": VAL_FRAC, "floor_default": FLOOR_DEFAULT,
@@ -1002,7 +1002,7 @@ def main():
     print("\nTESTS:", json.dumps(tests, indent=1, default=float))
     print(f"\nFigure 4 metal: {fig4_metal} ({fig4_selected}), margin vs no-change "
           f"{fig4_margin:.2f} pp -- the largest of the six")
-    print(f"Data version: {data_loader.DATA_VERSION}; unit conversion applied: {inr_applied}")
+    print(f"Data version: {data_loader.data_version()}; unit conversion applied: {inr_applied}")
     print(f"\nDecision points: {len(df)} (failed {failed_total}, missing {missing_total}). Outputs: {out_dir}")
 
 
