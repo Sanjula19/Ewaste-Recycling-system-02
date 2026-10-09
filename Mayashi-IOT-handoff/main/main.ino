@@ -70,6 +70,49 @@
 
 
 // ---------------------------------------------------------------------
+//  2b. TRIAL INSTRUMENTATION
+// ---------------------------------------------------------------------
+// Emits one machine-readable line per scan for tools/log_trials.py to
+// capture over serial, alongside the human-readable log. The prose log is
+// for watching; these lines are the measurement.
+//
+//   TRIAL,<seq>,<sense_ms>,<net_ms>,<act_ms>,<total_ms>,<r>,<g>,<b>,<c>,
+//         <class>,<http_status>,<decision>,<led>,<gate>,<crusher>,
+//         <bin_cm>,<error_code>
+//
+// The four timestamps, all millis():
+//   t0  IR trigger (the beam breaking, before any settle)
+//   t1  colour settle + COLOUR_SAMPLES samples finished
+//   t2  HTTP response received AND parsed
+//   t3  last actuation finished (gate back at HOME, or crusher stroke done)
+// and the three spans reported are t1-t0 (sensing), t2-t1 (network +
+// backend) and t3-t2 (actuation), plus t3-t0 as the total. Split that way
+// because they have different causes: sensing is SETTLE_MS plus the
+// sensor's integration time, the middle span is Wi-Fi and the backend,
+// and actuation is servo travel. A single total would hide which one
+// moved.
+//
+//   class        the LOCAL verdict (copper / not_copper), before the
+//                backend sees it -- that is what the confusion matrix in
+//                tools/summarise_terminal_trials.py scores.
+//   http_status  HTTP code, 0 if the request was never made, negative for
+//                an HTTPClient transport error (-11 is a read timeout).
+//   led          colour actually driven: green / yellow / red / none
+//   gate         1 if the release-and-return motion completed, else 0
+//   crusher      1 if a compaction stroke ran, else 0
+//   bin_cm       most recent bin measurement, -1 if never measured
+//   error_code   OK | WIFI_DOWN | TIMEOUT | HTTP_<code> | PARSE_ERR | LOCKOUT
+//
+// Also emitted:
+//   LOCKOUT,<seq>,<bin_cm>,<refused>   every scan attempted while locked
+//   BIN,<cm>                           every bin check
+//   NET,<event>,<ip>                   Wi-Fi transitions and backend host
+//
+// Set to 0 to silence all of it; nothing else changes.
+#define TRIAL_LOG       1
+
+
+// ---------------------------------------------------------------------
 //  3. PIN MAP  (ESP32 DevKit V1, USB facing you)
 // ---------------------------------------------------------------------
 //   Dxx on the silkscreen == GPIOxx, except RX2/TX2 which are 16/17.
@@ -160,12 +203,20 @@ const unsigned long IR_DEBOUNCE_MS = 150;
 
 const unsigned long HTTP_TIMEOUT_MS = 30000;  // first request loads the model (~13 s)
 
-// DEBUG PACING: pause this long after each logged step in the scan cycle,
-// so the whole IR -> colour -> POST -> LED -> gate sequence is slow
-// enough to actually read on Serial Monitor instead of scrolling past in
-// under a second. Turn down to a few hundred ms (or 0) once you're not
-// actively watching each scan happen.
-const unsigned long STEP_DELAY_MS = 1200;
+// DEBUG PACING -- compile-time, and 0 for any measured run.
+//
+// This pauses after each logged step of the scan cycle so the whole
+// IR -> colour -> POST -> LED -> gate sequence is readable on Serial
+// Monitor instead of scrolling past in under a second.
+//
+// 1200 IS FOR SERIAL READABILITY ONLY. The scan cycle passes through
+// logStep() five times and delay(STEP_DELAY_MS) several more, so at 1200
+// it adds roughly 10 s of pure padding to every scan -- which would
+// dominate any timing measurement and make the reported scan-to-actuation
+// figure meaningless. Leave it at 0 whenever TRIAL_LOG is on; set it back
+// to 1200 only to watch a single scan happen by eye.
+#define STEP_DELAY_MS 0
+//#define STEP_DELAY_MS 1200   // readable-by-eye pacing, NOT for trials
 
 // How long each lamp stays lit during the boot self-test. Long enough to
 // walk around the board and actually confirm each colour, not just catch
@@ -206,6 +257,123 @@ bool     itemPresent   = false;  // debounced "something is on the plate"
 bool     binLocked     = false;  // latched by the bin monitor
 unsigned long lastBinCheck = 0;
 uint32_t scanCount = 0;
+float    lastBinCm  = -1.0f;     // most recent measurement, for the TRIAL line
+
+
+// ---------------------------------------------------------------------
+//  6b. TRIAL RECORD
+// ---------------------------------------------------------------------
+// One scan's worth of measurement, accumulated as the scan progresses and
+// printed once at the end. Accumulated rather than printed in pieces
+// because the fields are produced in three different functions -- the
+// timestamps in loop(), the colour in scanItem(), the decision and
+// actuation in postAndAct() -- and a single line per scan is what makes
+// the log joinable to the manual observation sheet by seq.
+#if TRIAL_LOG
+struct TrialRecord {
+  uint32_t seq;
+  unsigned long t0, t1, t2, t3;
+  uint16_t r, g, b, c;
+  bool  isCopper;
+  int   httpStatus;
+  char  decision[16];
+  char  led[8];
+  bool  gateDone;
+  bool  crusherDone;
+  char  error[16];
+};
+
+TrialRecord trial;
+
+void trialBegin(uint32_t seq, unsigned long t0) {
+  trial = TrialRecord();            // zero every field, not just the ones set below
+  trial.seq = seq;
+  trial.t0 = trial.t1 = trial.t2 = trial.t3 = t0;
+  trial.httpStatus = 0;
+  strncpy(trial.decision, "-",  sizeof(trial.decision) - 1);
+  strncpy(trial.led,      "none", sizeof(trial.led) - 1);
+  strncpy(trial.error,    "OK",  sizeof(trial.error) - 1);
+}
+
+void trialError(const char *code) {
+  strncpy(trial.error, code, sizeof(trial.error) - 1);
+  trial.error[sizeof(trial.error) - 1] = '\0';
+}
+
+// Setters, so the call sites in scanItem()/postAndAct() stay free of #if
+// blocks and still compile with TRIAL_LOG 0 (see the #else below).
+void trialT1() { trial.t1 = millis(); trial.t2 = trial.t1; trial.t3 = trial.t1; }
+void trialT2() { trial.t2 = millis(); trial.t3 = trial.t2; }
+void trialT3() { trial.t3 = millis(); }
+
+void trialColour(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
+  trial.r = r; trial.g = g; trial.b = b; trial.c = c; trial.isCopper = isCopper;
+}
+
+void trialHttp(int status) { trial.httpStatus = status; }
+
+void trialDecision(const char *decision, const char *led) {
+  strncpy(trial.decision, decision, sizeof(trial.decision) - 1);
+  trial.decision[sizeof(trial.decision) - 1] = '\0';
+  strncpy(trial.led, led, sizeof(trial.led) - 1);
+  trial.led[sizeof(trial.led) - 1] = '\0';
+}
+
+void trialGate(bool done)    { trial.gateDone = done; }
+void trialCrusher(bool done) { trial.crusherDone = done; }
+
+// Called once per scan, after the last actuation. Spans are computed here
+// rather than stored so an unset timestamp reads as 0 ms instead of a
+// wrapped-around unsigned subtraction.
+void trialEmit() {
+  Serial.print(F("TRIAL,"));
+  Serial.print(trial.seq);                    Serial.print(',');
+  Serial.print(trial.t1 - trial.t0);          Serial.print(',');
+  Serial.print(trial.t2 - trial.t1);          Serial.print(',');
+  Serial.print(trial.t3 - trial.t2);          Serial.print(',');
+  Serial.print(trial.t3 - trial.t0);          Serial.print(',');
+  Serial.print(trial.r);                      Serial.print(',');
+  Serial.print(trial.g);                      Serial.print(',');
+  Serial.print(trial.b);                      Serial.print(',');
+  Serial.print(trial.c);                      Serial.print(',');
+  Serial.print(trial.isCopper ? F("copper") : F("not_copper"));
+  Serial.print(',');
+  Serial.print(trial.httpStatus);             Serial.print(',');
+  Serial.print(trial.decision);               Serial.print(',');
+  Serial.print(trial.led);                    Serial.print(',');
+  Serial.print(trial.gateDone ? 1 : 0);       Serial.print(',');
+  Serial.print(trial.crusherDone ? 1 : 0);    Serial.print(',');
+  Serial.print(lastBinCm, 1);                 Serial.print(',');
+  Serial.println(trial.error);
+}
+
+void trialLockout(uint32_t seq, float binCm, bool refused) {
+  Serial.print(F("LOCKOUT,"));
+  Serial.print(seq);               Serial.print(',');
+  Serial.print(binCm, 1);          Serial.print(',');
+  Serial.println(refused ? 1 : 0);
+}
+
+void trialNet(const char *event, const String &ip) {
+  Serial.print(F("NET,"));
+  Serial.print(event);  Serial.print(',');
+  Serial.println(ip);
+}
+#else
+  #define trialBegin(seq, t0)          do {} while (0)
+  #define trialError(code)             do {} while (0)
+  #define trialEmit()                  do {} while (0)
+  #define trialLockout(s, b, r)        do {} while (0)
+  #define trialNet(e, ip)              do {} while (0)
+  #define trialT1()                    do {} while (0)
+  #define trialT2()                    do {} while (0)
+  #define trialT3()                    do {} while (0)
+  #define trialColour(r, g, b, c, cu)  do {} while (0)
+  #define trialHttp(s)                 do {} while (0)
+  #define trialDecision(d, l)          do {} while (0)
+  #define trialGate(d)                 do {} while (0)
+  #define trialCrusher(d)              do {} while (0)
+#endif
 
 
 // ---------------------------------------------------------------------
@@ -393,6 +561,10 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
   if (WiFi.status() != WL_CONNECTED) {
     setLed(isCopper ? "yellow" : "green");
     Serial.println(F("   offline - not posted; LED follows the local rule"));
+    trialError("WIFI_DOWN");
+    trialDecision("-", isCopper ? "yellow" : "green");
+    trialT2();
+    trialT3();
     return;
   }
 
@@ -430,6 +602,7 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
   Serial.println(F("   waiting for backend..."));
   int code = http.POST(body);
   Serial.print(F("   <- HTTP ")); Serial.println(code);
+  trialHttp(code);
 
   if (code == 200) {
     String respBody = http.getString();
@@ -437,7 +610,15 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
     JsonDocument res;
     if (deserializeJson(res, respBody)) {
       Serial.println(F("   bad JSON from backend"));
+      trialError("PARSE_ERR");
+      trialT2();
+      trialT3();
     } else {
+      // t2: response received AND parsed. Parsing is inside the span on
+      // purpose -- an ESP32 deserialising a payload is a real cost the
+      // firmware pays before it can act, and excluding it would flatter
+      // the round trip.
+      trialT2();
       const char *material = res["classified_as"]   | "?";
       const char *decision = res["decision"]        | "?";
       const char *led      = res["actuator"]["led"] | "green";
@@ -464,6 +645,7 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
       setLed(led);
       Serial.print(F("   LED -> "));
       Serial.println(led);
+      trialDecision(decision, led);
       delay(STEP_DELAY_MS);
 
       // Single bin: one release motion for every item, independent of
@@ -475,6 +657,7 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
       delay(STEP_DELAY_MS);
       Serial.println(F("   reopening pathway..."));
       moveGate(GATE_HOME);
+      trialGate(true);
 
       // Crusher is wired now (D14) -- HOLD material gets compacted after
       // it lands, independent of which bin it's in.
@@ -483,7 +666,14 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
         delay(STEP_DELAY_MS);
         Serial.println(F("   crushing (HOLD)..."));
         runCrusher();
+        trialCrusher(true);
       }
+
+      // t3: last actuation finished -- the gate is back at HOME and, on a
+      // HOLD, the crusher stroke has completed. Taken after the crusher
+      // rather than after the gate because on a HOLD the stroke is the
+      // last thing the item waits for.
+      trialT3();
 
       // The backend echoes the lockout state on every scan, so a bin that
       // filled up between bin-monitor ticks still gets caught here.
@@ -497,10 +687,25 @@ void postAndAct(uint16_t r, uint16_t g, uint16_t b, uint16_t c, bool isCopper) {
     // bright-neutral-aluminium only; it refuses to guess at anything else
     // rather than fabricating a classification.
     Serial.println(F("   backend could not classify this colour (422)"));
+    trialError("HTTP_422");
+    trialT2();
+    trialT3();
   } else {
     Serial.print(F("   POST failed, HTTP "));
     Serial.println(code);
     if (code == -11) Serial.println(F("   (-11 = read timeout; first request after a backend restart is slow)"));
+    // -11 is HTTPClient's read timeout, which with a 30 s setTimeout is
+    // the slow-first-request case and worth distinguishing from a server
+    // that answered with an error.
+    if (code == HTTPC_ERROR_READ_TIMEOUT) {
+      trialError("TIMEOUT");
+    } else {
+      char buf[16];
+      snprintf(buf, sizeof(buf), "HTTP_%d", code);
+      trialError(buf);
+    }
+    trialT2();
+    trialT3();
   }
 
   http.end();
@@ -531,6 +736,11 @@ void scanItem() {
   uint16_t b = sb / COLOUR_SAMPLES;
   uint16_t c = sc / COLOUR_SAMPLES;
 
+  // t1: settle + all COLOUR_SAMPLES done. Everything before this point is
+  // sensing cost (SETTLE_MS plus the sensor's integration time per
+  // sample); nothing after it is.
+  trialT1();
+
   scanCount++;
   Serial.print(F(">> ITEM DETECTED  #"));
   Serial.println(scanCount);
@@ -548,10 +758,16 @@ void scanItem() {
   bool isCopper = looksLikeCopper(r, g, b, c);
   Serial.print(F("   local verdict: "));
   Serial.println(isCopper ? F("COPPER") : F("NOT COPPER"));
+  trialColour(r, g, b, c, isCopper);
   delay(STEP_DELAY_MS);
 
   logStep(F("   [4/5] posting to backend..."));
   postAndAct(r, g, b, c, isCopper);
+
+  // One line per scan, after the last actuation. Emitted here rather than
+  // inside postAndAct() so it still appears on every path out of it --
+  // offline, timeout, bad JSON or 422 included.
+  trialEmit();
 #endif
 }
 
@@ -673,9 +889,17 @@ void setup() {
     Serial.println(WiFi.localIP());
     Serial.print(F("backend: "));
     Serial.println(backendUrl(""));
+    // Recorded so a log can be tied to the host it was talking to. The
+    // laptop's IP changes on every hotspot reconnect, and a session whose
+    // failures came from pointing at a stale address should be
+    // identifiable after the fact rather than argued about.
+    trialNet("CONNECTED", WiFi.localIP().toString());
+    trialNet("BACKEND", backendUrl(""));
   } else {
     Serial.println(F("WIFI FAILED - scans will read colour but not post"));
     Serial.println(F("   (2.4 GHz only; the ESP32 cannot join a 5 GHz network)"));
+    trialNet("CONNECT_FAILED", String(WIFI_SSID));
+    trialNet("BACKEND", backendUrl(""));
   }
 
   Serial.println(F("--- ready, place an item ---"));
@@ -687,6 +911,27 @@ void setup() {
 // ---------------------------------------------------------------------
 void loop() {
 
+  // ---- Job 3: Wi-Fi watcher -----------------------------------------
+  // Observes only. The ESP32 reconnects on its own; adding reconnect
+  // logic here would change behaviour, and the point of this block is to
+  // make a drop visible in the log so a cluster of WIFI_DOWN or TIMEOUT
+  // rows can be attributed rather than guessed at.
+#if TRIAL_LOG
+  {
+    static bool wifiWasUp = false;
+    static bool wifiFirstPass = true;
+    bool wifiUp = (WiFi.status() == WL_CONNECTED);
+    if (wifiFirstPass) {
+      wifiWasUp = wifiUp;
+      wifiFirstPass = false;
+    } else if (wifiUp != wifiWasUp) {
+      wifiWasUp = wifiUp;
+      if (wifiUp) trialNet("RECONNECTED", WiFi.localIP().toString());
+      else        trialNet("DISCONNECTED", String(""));
+    }
+  }
+#endif
+
   // ---- Job 2: bin monitor, on its own cadence -----------------------
   // Deliberately outside the scan cycle so a filling bin is noticed
   // between items, not only while one is being processed.
@@ -694,6 +939,10 @@ void loop() {
   if (millis() - lastBinCheck >= BIN_CHECK_MS) {
     lastBinCheck = millis();
     float cm = measureBinCm();
+    lastBinCm = cm;
+#if TRIAL_LOG
+    Serial.print(F("BIN,")); Serial.println(cm, 1);
+#endif
     if (cm > 0) {
       bool wasLocked = binLocked;
       binLocked = reportBinLevel(cm);
@@ -747,6 +996,10 @@ void loop() {
 
   if (covered && !itemPresent) {
     itemPresent = true;
+    // t0: the beam breaking. Taken before the banner and before logStep's
+    // pacing delay, so STEP_DELAY_MS can never leak into a measured span
+    // even if someone leaves it at 1200.
+    unsigned long t0 = millis();
     Serial.println(F("----------------------------------------"));
     logStep(F(">> [1/5] IR BEAM BROKEN - item arriving"));
     if (binLocked) {
@@ -754,7 +1007,19 @@ void loop() {
       Serial.println(F(">> item detected but BIN IS FULL - dispatch required"));
       setLed("red");
       beep(400);
+      // A refused scan is still an attempt, and the protocol counts
+      // refusals, so it gets both a LOCKOUT line and a TRIAL line. scanCount
+      // advances too -- otherwise two scans share a seq and the manual
+      // observation sheet cannot be joined to the log.
+      scanCount++;
+      trialBegin(scanCount, t0);
+      trialError("LOCKOUT");
+      trialDecision("-", "red");
+      trialT3();
+      trialEmit();
+      trialLockout(scanCount, lastBinCm, true);
     } else {
+      trialBegin(scanCount + 1, t0);
       scanItem();
     }
   } else if (!covered && itemPresent) {
