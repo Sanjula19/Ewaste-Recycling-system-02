@@ -30,6 +30,8 @@ POST /api/iot/bin-status
     (see routers/manifest.py), not held in memory here.
 """
 
+import logging
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
@@ -40,9 +42,55 @@ from services.forecast_service import calculate_forecast
 from services.disposition_service import calculate_disposition
 from services import manifest_service
 
+logger = logging.getLogger("ecovision.iot")
+
 router = APIRouter()
 
 _bin_state: dict[str, dict] = {}
+
+
+# --------------------------------------------------------------- trial mode
+# TRIAL_FORCE_DECISION exists for ONE purpose: testing actuation on the
+# bench. A HOLD is the only decision that drives the crusher, and whether
+# a real forecast returns HOLD depends on the market -- you cannot wait
+# for one to turn up while standing at the rig with a stopwatch.
+#
+# It is deliberately awkward to use by accident:
+#   - default "" is off, and off is byte-for-byte the previous behaviour
+#   - an unrecognised value RAISES rather than silently falling back to
+#     off, because an operator who typo'd it would otherwise believe
+#     forcing was on and record real decisions as forced trials
+#   - while it is on, EVERY ingest response carries forced=true, and so
+#     does every manifest entry, so a forced trial can never be mixed into
+#     the real decision record
+#   - a warning is logged at startup
+#
+# Read per call, not frozen at import, so a test can set it without
+# reloading the module -- the same reason data_loader.data_version() is a
+# function.
+_FORCE_VALUES = {
+    "": None,
+    "HOLD": "HOLD",
+    "SELL": "SELL NOW",
+    "SELL NOW": "SELL NOW",
+}
+
+
+def trial_force_decision() -> str | None:
+    """
+    The decision to force, or None when forcing is off.
+
+    Returns the decision in the forecast's own vocabulary ("SELL NOW",
+    not "SELL"), so it drops straight into _actuator_for().
+    """
+    raw = (os.environ.get("TRIAL_FORCE_DECISION") or "").strip().upper()
+    try:
+        return _FORCE_VALUES[raw]
+    except KeyError:
+        raise ValueError(
+            f"TRIAL_FORCE_DECISION={raw!r} is not recognised. Use '' (off), "
+            f"'HOLD' or 'SELL'."
+        )
 
 # Most recent scan, kept so the dashboard's live terminal view has
 # something to poll. Only ever one entry -- this is a "what just
@@ -127,11 +175,18 @@ def ingest_telemetry(payload: IoTIngestPayload, compact: bool = False) -> dict:
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     locked = _bin_state.get(payload.bin_id or "bin-01", {}).get("locked", False)
 
+    forced = trial_force_decision()
+
     if route == "recyclable_metal":
         forecast = calculate_forecast(ForecastRequest(metal=material, weight_kg=payload.weight_kg))
-        manifest_service.log_forecast(forecast)
+        manifest_service.log_forecast(forecast, forced_decision=forced)
 
-        decision = forecast.recommendation
+        # The forced decision replaces the real one, and the actuator is
+        # recomputed from it so the gate angle and crush flag match what
+        # the box is being told to do. The price and value fields are left
+        # as the forecast produced them: they describe the real market, and
+        # forced=true is what says not to read them as a decision.
+        decision = forced or forecast.recommendation
         summary = {
             "classified_as": material,
             "decision": decision,
@@ -142,9 +197,14 @@ def ingest_telemetry(payload: IoTIngestPayload, compact: bool = False) -> dict:
             "locked": locked,
             "at": now_iso,
         }
+        # Added ONLY when forcing is on, so the compact response an ESP32
+        # parses with a fixed-size buffer is unchanged in normal operation.
+        if forced:
+            summary["forced"] = True
         _last_scan = summary
         return summary if compact else {
-            "classified_as": material, "endpoint": "forecast", "result": forecast
+            "classified_as": material, "endpoint": "forecast", "result": forecast,
+            **({"forced": True} if forced else {}),
         }
 
     disposition = calculate_disposition(
@@ -155,8 +215,12 @@ def ingest_telemetry(payload: IoTIngestPayload, compact: bool = False) -> dict:
             longitude=payload.longitude,
         )
     )
-    manifest_service.log_disposition(disposition)
+    manifest_service.log_disposition(disposition, forced=bool(forced))
 
+    # A polymer has no SELL/HOLD question -- forcing one would be
+    # meaningless -- so the decision stays PYROLYSIS. It is still marked
+    # forced, because while the flag is on nothing coming out of this
+    # endpoint should be treated as a clean record.
     summary = {
         "classified_as": material,
         "decision": "PYROLYSIS",
@@ -168,9 +232,12 @@ def ingest_telemetry(payload: IoTIngestPayload, compact: bool = False) -> dict:
         "locked": locked,
         "at": now_iso,
     }
+    if forced:
+        summary["forced"] = True
     _last_scan = summary
     return summary if compact else {
-        "classified_as": material, "endpoint": "disposition", "result": disposition
+        "classified_as": material, "endpoint": "disposition", "result": disposition,
+        **({"forced": True} if forced else {}),
     }
 
 

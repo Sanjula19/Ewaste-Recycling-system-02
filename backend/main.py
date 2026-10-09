@@ -22,6 +22,19 @@ async def lifespan(app: FastAPI):
     # instead of showing up as quietly different forecasts.
     logger.info("Serving forecast models from %s", pretrained_models.models_dir())
 
+    # Loud, because a forced decision is not a model output. If this is on
+    # by accident, every scan in the cycle is a bench artefact -- so it is
+    # a warning, not an info line, and it names the way out.
+    from routers.iot import trial_force_decision
+    forced = trial_force_decision()
+    if forced:
+        logger.warning(
+            "TRIAL MODE: TRIAL_FORCE_DECISION=%s -- /api/iot/ingest will return "
+            "this decision instead of the model's, and every response and "
+            "manifest entry is marked forced=true. Unset it before recording "
+            "anything real.", forced,
+        )
+
     # Load every model, scaler and training record once, here, instead of
     # re-reading them on each request. Startup pays a few seconds so that no
     # request does; a metal whose files are missing is skipped with a

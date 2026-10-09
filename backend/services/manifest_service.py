@@ -44,6 +44,12 @@ class LedgerEntry:
     stream: Literal["metal_sale", "metal_hold", "pyrolysis", "mechanical"] = "pyrolysis"
     unit_price_lkr: float = 0.0        # metals only -- price per kg at time of sale
     destination: str = ""              # facility this batch was dispatched to
+    # True when TRIAL_FORCE_DECISION was on: the decision was imposed for a
+    # bench actuation test, not produced by the model. Kept on the entry so
+    # a forced trial can never be silently counted as a real decision --
+    # summary() reports how many there are, and a cycle containing any is
+    # not a clean audit record.
+    forced: bool = False
 
 
 @dataclass
@@ -75,30 +81,45 @@ def _find_cycle(cycle_id: int | None) -> Cycle:
     raise KeyError(f"No such manifest cycle: {cycle_id}")
 
 
-def log_forecast(resp) -> None:
-    sold = resp.recommendation == "SELL NOW"
+def log_forecast(resp, forced_decision: str | None = None) -> None:
+    """
+    `forced_decision` is set only by a bench trial with
+    TRIAL_FORCE_DECISION on. When it is, the ledger records what the rig
+    actually did rather than what the model said, marks the entry forced,
+    and books zero value -- a forced trial realised no money, and letting
+    one contribute to the cycle total is precisely the mixing the flag
+    exists to prevent.
+    """
+    decision = forced_decision or resp.recommendation
+    sold = decision == "SELL NOW"
+    forced = forced_decision is not None
     _current_cycle().entries.append(
         LedgerEntry(
             kind="forecast",
             manifest_id=f"FC-{datetime.now(timezone.utc):%Y%m%d%H%M%S}-{uuid.uuid4().hex[:6].upper()}",
             material=resp.metal,
             weight_kg=resp.weight_kg,
-            route_or_recommendation=f"{resp.recommendation} ({resp.operator_action})",
+            route_or_recommendation=(
+                f"{decision} (FORCED TRIAL)" if forced
+                else f"{resp.recommendation} ({resp.operator_action})"
+            ),
             energy_kwh=0.0,
             # Only a SELL is realised money. A HOLD batch is compacted and
             # still sitting in the yard -- counting its notional value as
-            # revenue would overstate what the cycle actually earned.
-            value_lkr=(resp.profit_if_sell_lkr or 0.0) if sold else 0.0,
+            # revenue would overstate what the cycle actually earned. A
+            # forced decision realises nothing either way.
+            value_lkr=0.0 if forced else ((resp.profit_if_sell_lkr or 0.0) if sold else 0.0),
             co2_avoided_kg=0.0,
             timestamp=_now_iso(),
             stream="metal_sale" if sold else "metal_hold",
             unit_price_lkr=resp.unit_price_lkr,
             destination="Market liquidation bin" if sold else "Compaction bay (feedstock blocks)",
+            forced=forced,
         )
     )
 
 
-def log_disposition(resp) -> None:
+def log_disposition(resp, forced: bool = False) -> None:
     method = getattr(resp, "disposition_method", "pyrolysis")
     _current_cycle().entries.append(
         LedgerEntry(
@@ -116,6 +137,7 @@ def log_disposition(resp) -> None:
                 resp.nearest_treatment_facility.name
                 if resp.nearest_treatment_facility else ""
             ),
+            forced=forced,
         )
     )
 
@@ -173,6 +195,10 @@ def summary(cycle_id: int | None = None) -> dict:
             "mechanical": round(stream_weight("mechanical"), 2),
         },
         "landfill_diversion_rate_pct": 100.0 if entries else 0.0,
+        # Surfaced at the top level, not just per entry, so a cycle
+        # polluted by bench trials is obvious without reading every row.
+        # Anything above zero means this cycle is not a clean audit record.
+        "forced_entries": sum(1 for e in entries if e.forced),
         "entries": [e.__dict__ for e in entries],
     }
 
