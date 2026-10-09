@@ -1,0 +1,4 @@
+seq,true_material,led_seen,item_released,crusher_seen,notes
+1,copper,yellow,yes,yes,
+2,aluminium,green,yes,no,
+3,copper,green,no,no,jammed at the chute lip

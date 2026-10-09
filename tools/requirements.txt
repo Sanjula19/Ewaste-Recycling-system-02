@@ -1,0 +1,5 @@
+# Bench-session tooling only. The backend does not need these.
+#     pip install -r tools/requirements.txt
+#
+# log_trials.py reads the ESP32 over USB serial.
+pyserial==3.5
