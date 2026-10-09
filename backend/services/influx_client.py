@@ -38,6 +38,12 @@ load_dotenv()
 
 logger = logging.getLogger("ecovision.influx")
 
+INFLUXDB_ENABLED = os.environ.get("INFLUXDB_ENABLED", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 INFLUXDB_URL = os.environ.get("INFLUXDB_URL", "http://localhost:8086")
 INFLUXDB_TOKEN = os.environ.get("INFLUXDB_TOKEN", "")
 INFLUXDB_ORG = os.environ.get("INFLUXDB_ORG", "ewaste_org")
@@ -75,6 +81,15 @@ def _client():
     global _warned_once
 
     if _breaker_is_open():
+        return None
+
+    if not INFLUXDB_ENABLED:
+        if not _warned_once:
+            logger.info(
+                "InfluxDB is disabled (INFLUXDB_ENABLED=false). Using CSV fallback for all price lookups. "
+                "Set INFLUXDB_ENABLED=true and configure INFLUXDB_URL/INFLUXDB_TOKEN to enable live data."
+            )
+            _warned_once = True
         return None
 
     try:
