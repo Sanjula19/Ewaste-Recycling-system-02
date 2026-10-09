@@ -70,5 +70,14 @@
         "Bio_Oil_Yield_Pct": 0.45,
         "Syngas_Yield_Pct": 0.3,
         "Char_Yield_Pct": 0.25
+    },
+    "Polypropylene (PP) Scrap": {
+        "Density": 0.9,
+        "Specific_Heat": 1.9,
+        "Melting_Point": 160.0,
+        "LHV_Estimated_MJ_kg": 42.0,
+        "Bio_Oil_Yield_Pct": 0.45,
+        "Syngas_Yield_Pct": 0.3,
+        "Char_Yield_Pct": 0.25
     }
 }
