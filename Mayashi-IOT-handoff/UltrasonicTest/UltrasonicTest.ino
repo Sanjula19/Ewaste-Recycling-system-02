@@ -30,11 +30,11 @@
 
 const int TRIG_PIN = 5;    // board pin D5
 const int ECHO_PIN = 22;   // board pin D18 - via 1k/2k divider
+const int LED_PIN = 4;     // board pin D4 - red LED for full-bin indication
 
 // Bin is considered full when the waste surface rises to within this
-// distance of the lid-mounted sensor. 5 cm per the design doc; measure
-// against the real bin and adjust.
-const float BIN_FULL_CM = 5.0;
+// distance of the lid-mounted sensor. Measured against the real bin: 7.5 cm.
+const float BIN_FULL_CM = 7.5;
 
 // pulseIn gives up after this long. 30 ms of round trip is about 5 m,
 // comfortably past the HC-SR04's useful 4 m range, and it keeps the
@@ -99,7 +99,9 @@ void setup() {
 
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
   digitalWrite(TRIG_PIN, LOW);
+  digitalWrite(LED_PIN, LOW);
 
   Serial.println("HC-SR04 test - Trig D5, Echo D18 (via 1k/2k divider)");
   Serial.print("bin-full threshold: ");
@@ -111,6 +113,9 @@ void setup() {
 
 void loop() {
   float cm = measure();
+  bool binFull = (cm >= 0 && cm <= BIN_FULL_CM);
+
+  digitalWrite(LED_PIN, binFull ? HIGH : LOW);
 
   if (cm < 0) {
     // Every ping timed out. Either nothing is in range, or Echo is not
@@ -120,7 +125,7 @@ void loop() {
     Serial.print(cm, 1);
     Serial.print(" cm");
 
-    if (cm <= BIN_FULL_CM) {
+    if (binFull) {
       Serial.print("   <-- BIN FULL");
     }
     Serial.println();
