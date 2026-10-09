@@ -383,39 +383,65 @@ def test_shipped_register_holds_only_the_approved_facilities():
     }
 
 
-def test_shipped_insee_has_no_coordinates_yet():
+def test_shipped_insee_is_routable():
     """
-    Fails the day someone fills these in -- at which point delete this
-    test, because the pyrolysis recommendation starts working and
-    test_polymer_recommends_pyrolysis_with_incineration_alternative
-    covers it against the real register too.
+    INSEE's coordinates were supplied on 2026-10-09, which is what makes
+    the pyrolysis recommendation work against the real register. This
+    guards them: a coordinate silently reverting to null would quietly
+    turn every polymer recommendation back into an incinerator fallback,
+    which is a routing change nobody would see in a diff of a results file.
     """
     facility_service.clear_cache()
     insee = next(f for f in facility_service.load_facilities()
                  if f.id == "insee-ecocycle-puttalam-pyrolysis")
-    assert insee.latitude is None and insee.longitude is None
-    assert insee.coordinates_source == "TODO"
+    assert insee.has_coordinates, "INSEE lost its coordinates"
+    assert insee.coordinates_source != "TODO"
     assert insee.status == "operational"
     assert insee.source_url and insee.source_url.startswith("https://")
+    # Inside Sri Lanka, and in the right district -- catches a lat/lon
+    # swap, which would otherwise land the plant in the Indian Ocean.
+    assert 5.0 < insee.latitude < 10.5, insee.latitude
+    assert 79.0 < insee.longitude < 82.5, insee.longitude
+    assert insee.district == "Puttalam"
 
 
-def test_shipped_register_blocks_both_recommendations_today():
+def test_shipped_register_recommends_pyrolysis_for_polymers():
+    """The real register, not the synthetic one."""
+    facility_service.clear_cache()
+    for material in ("polystyrene", "polypropylene"):
+        r = _dispose(material)
+        assert r.recommended_facility is not None, r.recommendation_blocked_reason
+        assert r.recommended_facility.id == "insee-ecocycle-puttalam-pyrolysis"
+        assert r.recommended_facility.technology == "pyrolysis"
+        assert r.recommendation_blocked_reason is None
+        # Pyrolysis exports no electricity, so no value and no grid CO2.
+        assert r.electricity.reported is False
+        assert r.co2_avoided_kg == 0.0
+        # Nothing is excluded any more: every shipped facility has a coordinate.
+        assert r.facilities_excluded == []
+        assert r.alternative_facility.id == "kerawalapitiya-wte"
+        assert r.alternative_facility.technology == "incineration_wte"
+
+
+def test_shipped_register_still_blocks_pvc():
     """
-    The documented consequence of the current data: no material gets a
-    recommendation, because the only pyrolysis plant lacks coordinates
-    and both recyclers are unconfirmed. Each blocked reason must say so
-    rather than leaving the caller guessing.
+    Both mechanical recyclers remain unconfirmed -- neither has a source
+    URL on the register -- so PVC gets a flagged alternative and no
+    recommendation. Fails once a source is supplied and one is promoted to
+    operational, which is the intended next change.
     """
     facility_service.clear_cache()
-    poly = _dispose("polystyrene")
-    assert poly.recommended_facility is None
-    assert "missing coordinates" in poly.recommendation_blocked_reason
-    assert poly.alternative_facility.id == "kerawalapitiya-wte"
-
     pvc = _dispose("pvc")
     assert pvc.recommended_facility is None
     assert "unconfirmed" in pvc.recommendation_blocked_reason
     assert pvc.alternative_facility.unconfirmed is True
+
+
+def test_no_shipped_facility_is_left_unroutable():
+    facility_service.clear_cache()
+    missing = [f.name for f in facility_service.load_facilities()
+               if not f.has_coordinates]
+    assert missing == [], f"no coordinates for: {missing}"
 
 
 def test_shipped_local_authorities_all_carry_coordinates():
