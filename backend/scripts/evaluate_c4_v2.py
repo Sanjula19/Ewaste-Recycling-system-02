@@ -72,6 +72,7 @@ import pandas as pd
 from scipy import stats
 from scipy.stats import norm
 
+import data_loader
 from data_loader import (SUPPORTED_METALS, USD_INR_RATE_HISTORICAL, MATERIAL_CONFIG,
                          load_metal_series_raw, native_to_usd_per_kg)
 
@@ -457,6 +458,7 @@ def row_for(rec: dict, floor: float, level: float) -> dict:
     return {
         "metal": rec["metal"], "date": rec["date"], "t": rec["t"], "p0": p0,
         "selected": rec["selected"], "sel_mape": rec["sel_mape"],
+        "arima_inner_mape": rec["arima_inner_mape"], "lstm_inner_mape": rec["lstm_inner_mape"],
         "persistence_mape": rec["persistence_inner_mape"],
         "beats_persistence": bool(rec["sel_mape"] < rec["persistence_inner_mape"]),
         "tau_pct": tau * 100, "peak_forecast": peak, "lower_at_peak": lstar,
@@ -487,6 +489,62 @@ def summarise(df: pd.DataFrame, col: str) -> dict:
 
 def per_decision_value(df: pd.DataFrame, col: str) -> np.ndarray:
     return np.where(df[col], df["realised_gain_pct"], 0.0)
+
+
+def multiwindow_accuracy(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Accuracy across EVERY decision point, not just the final 30 observations.
+
+    Table V reports one holdout at the end of each series, which is a single
+    draw -- a model can look good or bad there by luck. These are the same
+    three forecasters scored on the 30-day inner holdout of all ~85 decision
+    points per metal, so the comparison against the no-change baseline rests
+    on the whole decade rather than one month of it.
+    """
+    rows = []
+    for metal, g in df.groupby("metal"):
+        rows.append({
+            "metal": metal,
+            "decision_points": len(g),
+            "first_decision": g["date"].min(),
+            "last_decision": g["date"].max(),
+            "arima_mean_inner_mape": float(g["arima_inner_mape"].mean()),
+            "lstm_mean_inner_mape": float(g["lstm_inner_mape"].mean()),
+            "persistence_mean_inner_mape": float(g["persistence_mape"].mean()),
+            "selected_mean_inner_mape": float(g["sel_mape"].mean()),
+            "arima_median_inner_mape": float(g["arima_inner_mape"].median()),
+            "lstm_median_inner_mape": float(g["lstm_inner_mape"].median()),
+            "persistence_median_inner_mape": float(g["persistence_mape"].median()),
+            "pct_points_selected_beats_persistence": float(100 * g["beats_persistence"].mean()),
+            "pct_points_arima_selected": float(100 * (g["selected"] == "ARIMA").mean()),
+            "mean_margin_vs_persistence_pp": float((g["persistence_mape"] - g["sel_mape"]).mean()),
+        })
+    return pd.DataFrame(rows)
+
+
+def table6_per_metal_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Table VI broken out by metal, with each metal's decision date range."""
+    rows = []
+    for metal, g in df.groupby("metal"):
+        s = summarise(g, "hold_proposed")
+        n = summarise(g, "hold_naive")
+        vp = per_decision_value(g, "hold_proposed")
+        vn = per_decision_value(g, "hold_naive")
+        rows.append({
+            "metal": metal, "decision_points": len(g),
+            "first_decision": g["date"].min(), "last_decision": g["date"].max(),
+            "holds_proposed": s["holds"], "hits_proposed": s["target_hits"],
+            "hit_rate_pct": s["hit_rate_pct"], "ci95_lo": s["ci95_lo"], "ci95_hi": s["ci95_hi"],
+            "mean_gain_pct": s["mean_gain_pct"], "median_gain_pct": s["median_gain_pct"],
+            "mean_days_held": s["mean_days_held"],
+            "holds_when_not_beating_persistence": s["holds_when_not_beating_persistence"],
+            "mean_value_per_decision_pct": float(vp.mean()),
+            "base_rate_pct": s["base_rate_pct"],
+            "holds_naive": n["holds"], "hits_naive": n["target_hits"],
+            "hit_rate_naive_pct": n["hit_rate_pct"],
+            "mean_value_naive_per_decision_pct": float(vn.mean()),
+        })
+    return pd.DataFrame(rows)
 
 
 def run_tests(df: pd.DataFrame, seed: int) -> dict:
@@ -594,13 +652,27 @@ def fig4(cache_root: str, out_dir: str, plt, metal="nickel"):
     return fig, ax, z, x
 
 
-def finish_fig4(fig, ax, z, x, selected: str, out_dir: str):
+def finish_fig4(fig, ax, z, x, selected: str, out_dir: str, metal: str = "nickel"):
     lo, hi = (z["arima_lo"], z["arima_hi"]) if selected == "ARIMA" else (z["lstm_lo"], z["lstm_hi"])
     ax.fill_between(x, lo, hi, color="0.85", lw=0, label=f"95% band ({selected})")
     ax.set_xlabel("Holdout day")
     ax.set_ylabel("Price (USD/kg)")
     ax.legend(frameon=False, ncol=2, loc="best")
-    fig.savefig(os.path.join(out_dir, "fig4_holdout_nickel.pdf"))
+    fig.savefig(os.path.join(out_dir, f"fig4_holdout_{metal}.pdf"))
+
+
+def pick_fig4_metal(t5: pd.DataFrame) -> tuple[str, float]:
+    """
+    The metal whose selected model beats the no-change baseline by the
+    widest margin on the Table V holdout.
+
+    Chosen by a stated rule rather than by eye, so the figure cannot be the
+    one that happened to look best. The margin is in percentage points of
+    MAPE: persistence minus selected, larger is better.
+    """
+    margins = (t5["persistence_mape"] - t5["selected_mape"])
+    i = int(margins.idxmax())
+    return str(t5.loc[i, "metal"]), float(margins.loc[i])
 
 
 def fig5(df: pd.DataFrame, recs_by_key: dict, series_by_metal: dict, out_dir: str, plt):
@@ -677,6 +749,9 @@ def main():
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument("--out", default="results_v2")
     ap.add_argument("--cache", default="models_walkforward")
+    ap.add_argument("--compare-with", default="results_v1",
+                    help="earlier results dir to tabulate side by side (comparison only, "
+                         "never an input to anything computed here)")
     ap.add_argument("--max-retrains", type=int, default=None)
     ap.add_argument("--max-decisions", type=int, default=None)
     ap.add_argument("--dry-run", action="store_true", help="time a small slice, print runtime estimate, exit")
@@ -791,39 +866,67 @@ def main():
     sens = pd.DataFrame(sens_rows)
     sens.to_csv(os.path.join(out_dir, "sensitivity.csv"), index=False)
 
-    # v1 vs v2 (comparison only)
+    # multi-window accuracy and per-metal Table VI
+    mw = multiwindow_accuracy(df)
+    mw.to_csv(os.path.join(out_dir, "multiwindow_accuracy.csv"), index=False)
+    t6_metal = table6_per_metal_frame(df)
+    t6_metal.to_csv(os.path.join(out_dir, "table6_per_metal.csv"), index=False)
+
+    # Side-by-side with an earlier run (comparison only). Tries both naming
+    # conventions: v1 wrote table4_holdout/table5_decisions, v2 onwards
+    # write table5_accuracy/table6_decisions.
+    prev_dir = args.compare_with if os.path.isabs(args.compare_with) else os.path.join(BACKEND_DIR, args.compare_with)
+    prev_tag = os.path.basename(prev_dir.rstrip("/\\")) or "prev"
+    this_tag = os.path.basename(out_dir.rstrip("/\\"))
     cmp_rows = []
-    v1_t4 = os.path.join(v1_copy, "table4_holdout.csv")
-    if os.path.isfile(v1_t4):
-        o = pd.read_csv(v1_t4).set_index("metal")
+    prev_t5 = next((p for p in (os.path.join(prev_dir, "table5_accuracy.csv"),
+                                os.path.join(prev_dir, "table4_holdout.csv")) if os.path.isfile(p)), None)
+    if prev_t5:
+        o = pd.read_csv(prev_t5).set_index("metal")
         for _, r in t5.iterrows():
             if r.metal in o.index:
-                cmp_rows.append({"metal": r.metal,
-                                 "v1_arima_mape": o.loc[r.metal, "arima_mape"], "v2_arima_mape": r.arima_mape,
-                                 "v1_lstm_mape": o.loc[r.metal, "lstm_mape"], "v2_lstm_mape": r.lstm_mape,
-                                 "v1_selected": o.loc[r.metal, "selected"], "v2_selected": r.selected,
-                                 "v1_tau_pct": o.loc[r.metal, "tau_pct"], "v2_tau_pct": r.tau_pct})
-        pd.DataFrame(cmp_rows).to_csv(os.path.join(out_dir, "v1_vs_v2_table5.csv"), index=False)
-    v1_t5 = os.path.join(v1_copy, "table5_decisions.csv")
-    if os.path.isfile(v1_t5):
-        o = pd.read_csv(v1_t5, index_col=0)
+                row = {"metal": r.metal}
+                for col in ("arima_mape", "lstm_mape", "persistence_mape", "selected", "tau_pct"):
+                    row[f"{prev_tag}_{col}"] = o.loc[r.metal, col] if col in o.columns else None
+                    row[f"{this_tag}_{col}"] = r[col]
+                cmp_rows.append(row)
+        pd.DataFrame(cmp_rows).to_csv(
+            os.path.join(out_dir, f"comparison_{prev_tag}_vs_{this_tag}_table5.csv"), index=False)
+
+    prev_t6 = next((p for p in (os.path.join(prev_dir, "table6_decisions.csv"),
+                                os.path.join(prev_dir, "table5_decisions.csv")) if os.path.isfile(p)), None)
+    if prev_t6:
+        o = pd.read_csv(prev_t6, index_col=0)
         rows = []
-        for name, key in (("Naive (peak above current price)", "Naive (peak above current price)"),
-                          ("Proposed, (4) and (5)", "Proposed, (4) and (5)")):
-            if key in o.index:
-                rows.append({"rule": name, "v1_points": o.loc[key, "decision_points"],
-                             "v1_holds": o.loc[key, "holds_issued"], "v1_correct": o.loc[key, "correct_holds"],
-                             "v1_precision_pct": o.loc[key, "hold_precision_pct"],
-                             "v2_points": summ[name]["decision_points"], "v2_holds": summ[name]["holds"],
-                             "v2_hits": summ[name]["target_hits"], "v2_precision_pct": summ[name]["hit_rate_pct"]})
-        pd.DataFrame(rows).to_csv(os.path.join(out_dir, "v1_vs_v2_table6.csv"), index=False)
+        for name in ("Naive (peak above current price)", "Proposed, (4) and (5)"):
+            if name in o.index:
+                def prev(*names):
+                    for c in names:
+                        if c in o.columns:
+                            return o.loc[name, c]
+                    return None
+                rows.append({
+                    "rule": name,
+                    f"{prev_tag}_points": prev("decision_points"),
+                    f"{prev_tag}_holds": prev("holds", "holds_issued"),
+                    f"{prev_tag}_hits": prev("target_hits", "correct_holds"),
+                    f"{prev_tag}_hit_rate_pct": prev("hit_rate_pct", "hold_precision_pct"),
+                    f"{prev_tag}_mean_gain_pct": prev("mean_gain_pct"),
+                    f"{this_tag}_points": summ[name]["decision_points"],
+                    f"{this_tag}_holds": summ[name]["holds"],
+                    f"{this_tag}_hits": summ[name]["target_hits"],
+                    f"{this_tag}_hit_rate_pct": summ[name]["hit_rate_pct"],
+                    f"{this_tag}_mean_gain_pct": summ[name]["mean_gain_pct"],
+                })
+        pd.DataFrame(rows).to_csv(
+            os.path.join(out_dir, f"comparison_{prev_tag}_vs_{this_tag}_table6.csv"), index=False)
 
     # figures
     plt = setup_mpl()
-    sel_nickel = t5.set_index("metal").loc["nickel", "selected"] if "nickel" in set(t5.metal) else None
-    if sel_nickel:
-        fig, ax, z, x = fig4(cache, out_dir, plt)
-        finish_fig4(fig, ax, z, x, sel_nickel, out_dir)
+    fig4_metal, fig4_margin = pick_fig4_metal(t5)
+    fig4_selected = t5.set_index("metal").loc[fig4_metal, "selected"]
+    fig, ax, z, x = fig4(cache, out_dir, plt, metal=fig4_metal)
+    finish_fig4(fig, ax, z, x, fig4_selected, out_dir, metal=fig4_metal)
     fig5_info = fig5(df, recs_by_key, series_by_metal, out_dir, plt)
     fig6(sens, out_dir, plt)
 
@@ -833,15 +936,27 @@ def main():
             return metadata.version(p)
         except Exception:
             return None
+    # Whether any currency conversion is actually applied on this dataset.
+    # v3 is already USD/kg, so native_to_usd_per_kg is the identity and the
+    # old flat INR constant plays no part -- recorded as such rather than
+    # reprinting 87.5 as though it had been used.
+    conv_factors = {m: float(native_to_usd_per_kg(m, 1.0)) for m in args.metals}
+    inr_applied = any(f != 1.0 for f in conv_factors.values())
+
     meta = {
         "run_at": datetime.now().isoformat(timespec="seconds"),
         "runtime_s_this_invocation": round(time.time() - t_start),
+        "data_version": data_loader.DATA_VERSION,
+        "data_source": ("data/v3/<metal>.csv, already USD/kg"
+                        if data_loader.DATA_VERSION == "v3" else "data/<metal>_Historical_Data.csv"),
+        "unit_conversion_applied_per_metal": conv_factors,
         "settings": {"holdout": HOLDOUT, "horizon": HORIZON, "window": WINDOW, "epochs_max": EPOCHS,
                      "batch": BATCH, "val_frac": VAL_FRAC, "floor_default": FLOOR_DEFAULT,
                      "level_default": LEVEL_DEFAULT, "floors_grid": FLOORS, "levels_grid": LEVELS,
                      "start_offset_obs": args.start_offset, "spacing_obs": args.spacing,
                      "retrain_every_obs": args.retrain_every, "max_retrains": args.max_retrains,
-                     "usd_inr_constant": USD_INR_RATE_HISTORICAL, "z_values": Z},
+                     "usd_inr_constant": USD_INR_RATE_HISTORICAL if inr_applied else None,
+                     "usd_inr_constant_applied": inr_applied, "z_values": Z},
         "seeds": {"base_seed": args.seed, "applied_via": "random.seed, np.random.seed, tf.keras.utils.set_random_seed before every training"},
         "versions": {"python": platform.python_version(), "os": platform.platform(),
                      **{p: ver(p) for p in ["numpy", "pandas", "scipy", "statsmodels", "pmdarima", "tensorflow",
@@ -850,6 +965,11 @@ def main():
                              "ARIMA order via auto_arima on training window only", "model for decision t trained with train_end <= t-30 (asserted)",
                              "LSTM band sd from validation residuals only"],
         "n_decision_points": len(df), "n_failed_points": failed_total, "n_missing_points": missing_total,
+        "fig4_metal": fig4_metal, "fig4_selection_rule": (
+            "metal whose selected model beats the no-change baseline by the largest MAPE "
+            "margin on the Table V holdout"),
+        "fig4_margin_pp": fig4_margin, "fig4_selected_model": fig4_selected,
+        "multiwindow_accuracy": mw.to_dict(orient="records"),
         "fig5_example": fig5_info,
         "table6": summ, "tests": tests,
         "holds_when_selected_not_beating_persistence": {
@@ -862,11 +982,27 @@ def main():
     print("\n=========== TABLE V (retrained on series[:-30]) ===========")
     print(t5[["metal", "arima_order", "arima_mape", "lstm_mape", "persistence_mape", "selected",
               "selected_rmse", "tau_pct", "beats_persistence"]].to_string(index=False, float_format=lambda v: f"{v:.2f}"))
+    print("\n=========== MULTI-WINDOW ACCURACY (all decision points) ===========")
+    print(mw[["metal", "decision_points", "first_decision", "last_decision",
+              "arima_mean_inner_mape", "lstm_mean_inner_mape", "persistence_mean_inner_mape",
+              "selected_mean_inner_mape", "pct_points_selected_beats_persistence",
+              "pct_points_arima_selected"]].to_string(index=False, float_format=lambda v: f"{v:.2f}"))
+
     print("\n=========== TABLE VI (walk-forward, take-profit exit) ===========")
     print(t6[["decision_points", "holds", "target_hits", "hit_rate_pct", "ci95_lo", "ci95_hi", "mean_gain_pct",
               "median_gain_pct", "mean_days_held", "false_holds", "sells", "missed_rises", "base_rate_pct",
               "holds_when_not_beating_persistence"]].to_string(float_format=lambda v: f"{v:.2f}"))
+    print("\n=========== TABLE VI PER METAL ===========")
+    print(t6_metal[["metal", "decision_points", "first_decision", "last_decision", "holds_proposed",
+                    "hits_proposed", "hit_rate_pct", "ci95_lo", "ci95_hi", "mean_gain_pct",
+                    "median_gain_pct", "holds_when_not_beating_persistence",
+                    "mean_value_per_decision_pct", "base_rate_pct"]]
+          .to_string(index=False, float_format=lambda v: f"{v:.2f}"))
+
     print("\nTESTS:", json.dumps(tests, indent=1, default=float))
+    print(f"\nFigure 4 metal: {fig4_metal} ({fig4_selected}), margin vs no-change "
+          f"{fig4_margin:.2f} pp -- the largest of the six")
+    print(f"Data version: {data_loader.DATA_VERSION}; unit conversion applied: {inr_applied}")
     print(f"\nDecision points: {len(df)} (failed {failed_total}, missing {missing_total}). Outputs: {out_dir}")
 
 

@@ -1,0 +1,50 @@
+{
+  "fisher_one_sided_p": 0.5381446269943746,
+  "fisher_table": [
+    [
+      10,
+      3
+    ],
+    [
+      88,
+      32
+    ]
+  ],
+  "fisher_note": "proposed holds are a subset of naive holds, and 90-day windows 30 days apart overlap, so the Fisher p-value is optimistic (samples not independent); see non-overlapping subsample p-values",
+  "non_overlapping_subsamples": {
+    "offset0": {
+      "n": 171,
+      "holds_proposed": 2,
+      "hits_proposed": 2,
+      "holds_naive": 38,
+      "hits_naive": 30,
+      "fisher_one_sided_p": 0.6358974358974359
+    },
+    "offset1": {
+      "n": 165,
+      "holds_proposed": 6,
+      "hits_proposed": 5,
+      "holds_naive": 43,
+      "hits_naive": 33,
+      "fisher_one_sided_p": 0.5922591515792255
+    },
+    "offset2": {
+      "n": 165,
+      "holds_proposed": 5,
+      "hits_proposed": 3,
+      "holds_naive": 39,
+      "hits_naive": 25,
+      "fisher_one_sided_p": 0.7541380910637859
+    }
+  },
+  "mean_value_proposed_pct": 0.005724478248880877,
+  "mean_value_naive_pct": 0.14746994963688992,
+  "mean_paired_diff_pct": -0.14174547138800905,
+  "wilcoxon_two_sided_p": 0.006476687577572836,
+  "paired_t_two_sided_p": 0.43169425659249594,
+  "paired_diff_bootstrap95": [
+    -0.47884269894241543,
+    0.21529222357812952
+  ],
+  "n_decisions_where_rules_differ": 107
+}

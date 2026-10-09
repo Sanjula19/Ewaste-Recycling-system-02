@@ -1,0 +1,276 @@
+{
+  "run_at": "2026-10-09T07:24:43",
+  "runtime_s_this_invocation": 22832,
+  "data_version": "v3",
+  "data_source": "data/v3/<metal>.csv, already USD/kg",
+  "unit_conversion_applied_per_metal": {
+    "aluminium": 1.0,
+    "copper": 1.0,
+    "lead": 1.0,
+    "nickel": 1.0,
+    "steel": 1.0,
+    "zinc": 1.0
+  },
+  "settings": {
+    "holdout": 30,
+    "horizon": 90,
+    "window": 60,
+    "epochs_max": 50,
+    "batch": 32,
+    "val_frac": 0.1,
+    "floor_default": 0.02,
+    "level_default": 0.95,
+    "floors_grid": [
+      0.0,
+      0.01,
+      0.02,
+      0.03
+    ],
+    "levels_grid": [
+      0.95,
+      0.8,
+      0.68
+    ],
+    "start_offset_obs": 504,
+    "spacing_obs": 30,
+    "retrain_every_obs": 126,
+    "max_retrains": null,
+    "usd_inr_constant": null,
+    "usd_inr_constant_applied": false,
+    "z_values": {
+      "0.95": 1.959963984540054,
+      "0.8": 1.2815515655446004,
+      "0.68": 0.9944578832097535
+    }
+  },
+  "seeds": {
+    "base_seed": 42,
+    "applied_via": "random.seed, np.random.seed, tf.keras.utils.set_random_seed before every training"
+  },
+  "versions": {
+    "python": "3.11.9",
+    "os": "Windows-10-10.0.26300-SP0",
+    "numpy": "1.26.4",
+    "pandas": "2.2.2",
+    "scipy": "1.13.1",
+    "statsmodels": "0.14.2",
+    "pmdarima": "2.0.4",
+    "tensorflow": "2.17.0",
+    "keras": "3.15.1",
+    "scikit-learn": "1.5.2",
+    "matplotlib": "3.11.2"
+  },
+  "leakage_controls": [
+    "scaler fit on training window only",
+    "early stopping validated on last 10% of training window",
+    "ARIMA order via auto_arima on training window only",
+    "model for decision t trained with train_end <= t-30 (asserted)",
+    "LSTM band sd from validation residuals only"
+  ],
+  "n_decision_points": 501,
+  "n_failed_points": 0,
+  "n_missing_points": 0,
+  "fig4_metal": "steel",
+  "fig4_selection_rule": "metal whose selected model beats the no-change baseline by the largest MAPE margin on the Table V holdout",
+  "fig4_margin_pp": 0.02777936563629746,
+  "fig4_selected_model": "ARIMA",
+  "multiwindow_accuracy": [
+    {
+      "metal": "aluminium",
+      "decision_points": 85,
+      "first_decision": "2016-06-13",
+      "last_decision": "2026-06-03",
+      "arima_mean_inner_mape": 3.5793469177924115,
+      "lstm_mean_inner_mape": 9.352902067024363,
+      "persistence_mean_inner_mape": 3.5777239446529547,
+      "selected_mean_inner_mape": 3.183023600556819,
+      "arima_median_inner_mape": 2.562126877577238,
+      "lstm_median_inner_mape": 7.928865713057191,
+      "persistence_median_inner_mape": 2.499377036255716,
+      "pct_points_selected_beats_persistence": 24.705882352941178,
+      "pct_points_arima_selected": 85.88235294117646,
+      "mean_margin_vs_persistence_pp": 0.39470034409613597
+    },
+    {
+      "metal": "copper",
+      "decision_points": 91,
+      "first_decision": "2015-12-31",
+      "last_decision": "2026-05-12",
+      "arima_mean_inner_mape": 3.9031652508490717,
+      "lstm_mean_inner_mape": 10.163198481401581,
+      "persistence_mean_inner_mape": 3.902422362340062,
+      "selected_mean_inner_mape": 3.471863465616069,
+      "arima_median_inner_mape": 3.2202169350006122,
+      "lstm_median_inner_mape": 8.896591488805713,
+      "persistence_median_inner_mape": 3.2202169350006122,
+      "pct_points_selected_beats_persistence": 26.373626373626376,
+      "pct_points_arima_selected": 83.51648351648352,
+      "mean_margin_vs_persistence_pp": 0.430558896723993
+    },
+    {
+      "metal": "lead",
+      "decision_points": 88,
+      "first_decision": "2015-12-30",
+      "last_decision": "2026-04-30",
+      "arima_mean_inner_mape": 3.3496389253467886,
+      "lstm_mean_inner_mape": 6.892266602745136,
+      "persistence_mean_inner_mape": 3.3573399662011734,
+      "selected_mean_inner_mape": 2.8447041040807073,
+      "arima_median_inner_mape": 2.75352408647554,
+      "lstm_median_inner_mape": 5.516748599010226,
+      "persistence_median_inner_mape": 2.7870485141044217,
+      "pct_points_selected_beats_persistence": 31.818181818181817,
+      "pct_points_arima_selected": 78.4090909090909,
+      "mean_margin_vs_persistence_pp": 0.5126358621204653
+    },
+    {
+      "metal": "nickel",
+      "decision_points": 85,
+      "first_decision": "2015-12-30",
+      "last_decision": "2026-05-06",
+      "arima_mean_inner_mape": 6.0872509125685434,
+      "lstm_mean_inner_mape": 10.636972949511584,
+      "persistence_mean_inner_mape": 6.122752673331241,
+      "selected_mean_inner_mape": 4.839955752022042,
+      "arima_median_inner_mape": 4.954911258083482,
+      "lstm_median_inner_mape": 10.003021558107418,
+      "persistence_median_inner_mape": 5.0571646232324206,
+      "pct_points_selected_beats_persistence": 36.470588235294116,
+      "pct_points_arima_selected": 80.0,
+      "mean_margin_vs_persistence_pp": 1.2827969213091979
+    },
+    {
+      "metal": "steel",
+      "decision_points": 64,
+      "first_decision": "2017-11-22",
+      "last_decision": "2025-05-22",
+      "arima_mean_inner_mape": 4.8584010845501755,
+      "lstm_mean_inner_mape": 10.899414542139017,
+      "persistence_mean_inner_mape": 4.858058898868839,
+      "selected_mean_inner_mape": 4.4349288288068625,
+      "arima_median_inner_mape": 3.6093049437916758,
+      "lstm_median_inner_mape": 8.507725414909832,
+      "persistence_median_inner_mape": 3.6123909816392636,
+      "pct_points_selected_beats_persistence": 45.3125,
+      "pct_points_arima_selected": 78.125,
+      "mean_margin_vs_persistence_pp": 0.4231300700619756
+    },
+    {
+      "metal": "zinc",
+      "decision_points": 88,
+      "first_decision": "2015-12-29",
+      "last_decision": "2026-04-28",
+      "arima_mean_inner_mape": 4.328451187270948,
+      "lstm_mean_inner_mape": 10.548127499348565,
+      "persistence_mean_inner_mape": 4.3296963043568075,
+      "selected_mean_inner_mape": 3.8903756412526644,
+      "arima_median_inner_mape": 3.823302608945797,
+      "lstm_median_inner_mape": 10.044388594364769,
+      "persistence_median_inner_mape": 3.8395402520372945,
+      "pct_points_selected_beats_persistence": 44.31818181818182,
+      "pct_points_arima_selected": 82.95454545454545,
+      "mean_margin_vs_persistence_pp": 0.439320663104143
+    }
+  ],
+  "fig5_example": {
+    "metal": "zinc",
+    "date": "2019-04-25",
+    "tau_pct": 2.0,
+    "target_hit": true,
+    "realised_gain_pct": 2.8025477707006363,
+    "days_held": 3,
+    "selected": "LSTM",
+    "selection_rule": "proposed-rule HOLD whose realised gain is closest to the median over all proposed HOLDs"
+  },
+  "table6": {
+    "Naive (peak above current price)": {
+      "decision_points": 501,
+      "holds": 120,
+      "target_hits": 88,
+      "hit_rate_pct": 73.33333333333333,
+      "ci95_lo": 64.78739437150142,
+      "ci95_hi": 80.43165964588853,
+      "mean_gain_pct": 0.6156870397340154,
+      "median_gain_pct": 2.878846717426531,
+      "mean_days_held": 38.891666666666666,
+      "false_holds": 32,
+      "sells": 381,
+      "missed_rises": 293,
+      "base_rate_pct": 76.04790419161677,
+      "holds_when_not_beating_persistence": 35,
+      "rose_at_day90_pct_of_holds": 43.333333333333336
+    },
+    "Proposed, (4) and (5)": {
+      "decision_points": 501,
+      "holds": 13,
+      "target_hits": 10,
+      "hit_rate_pct": 76.92307692307692,
+      "ci95_lo": 49.74312600487308,
+      "ci95_hi": 91.8206209075343,
+      "mean_gain_pct": 0.22061258482225526,
+      "median_gain_pct": 2.8025477707006363,
+      "mean_days_held": 29.846153846153847,
+      "false_holds": 3,
+      "sells": 488,
+      "missed_rises": 371,
+      "base_rate_pct": 76.04790419161677,
+      "holds_when_not_beating_persistence": 0,
+      "rose_at_day90_pct_of_holds": 46.15384615384615
+    }
+  },
+  "tests": {
+    "fisher_one_sided_p": 0.5381446269943746,
+    "fisher_table": [
+      [
+        10,
+        3
+      ],
+      [
+        88,
+        32
+      ]
+    ],
+    "fisher_note": "proposed holds are a subset of naive holds, and 90-day windows 30 days apart overlap, so the Fisher p-value is optimistic (samples not independent); see non-overlapping subsample p-values",
+    "non_overlapping_subsamples": {
+      "offset0": {
+        "n": 171,
+        "holds_proposed": 2,
+        "hits_proposed": 2,
+        "holds_naive": 38,
+        "hits_naive": 30,
+        "fisher_one_sided_p": 0.6358974358974359
+      },
+      "offset1": {
+        "n": 165,
+        "holds_proposed": 6,
+        "hits_proposed": 5,
+        "holds_naive": 43,
+        "hits_naive": 33,
+        "fisher_one_sided_p": 0.5922591515792255
+      },
+      "offset2": {
+        "n": 165,
+        "holds_proposed": 5,
+        "hits_proposed": 3,
+        "holds_naive": 39,
+        "hits_naive": 25,
+        "fisher_one_sided_p": 0.7541380910637859
+      }
+    },
+    "mean_value_proposed_pct": 0.005724478248880877,
+    "mean_value_naive_pct": 0.14746994963688992,
+    "mean_paired_diff_pct": -0.14174547138800905,
+    "wilcoxon_two_sided_p": 0.006476687577572836,
+    "paired_t_two_sided_p": 0.43169425659249594,
+    "paired_diff_bootstrap95": [
+      -0.47884269894241543,
+      0.21529222357812952
+    ],
+    "n_decisions_where_rules_differ": 107
+  },
+  "holds_when_selected_not_beating_persistence": {
+    "proposed": 0,
+    "naive": 35
+  },
+  "share_decisions_selected_beats_persistence_pct": 34.3313373253493
+}
