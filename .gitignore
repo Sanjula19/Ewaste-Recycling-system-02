@@ -48,3 +48,16 @@ Mayashi-IOT-handoff/**/build/
 # decisions_raw.csv are what the paper cites. Nothing below excludes it.
 backend/models_walkforward/
 backend/models_walkforward_v3/
+
+# --- Vendored integration copy (~71 MB) -------------------------
+# Ewaste-Recycling-system-02/ is a copy of the five-component
+# integration repo (gateway + components 1-4 + dashboard), including a
+# YOLOv8 .pt weights file. It is not Component 4 source: this component's
+# code lives in backend/ and frontend/, and that folder holds its own
+# nested copy of them. Tracking it would push 71 MB and a binary model
+# into history permanently.
+#
+# FINAL-INTEGRATION-TEST.md in there is the 2026-08-29 integration result
+# cited in the paper -- if that record needs to be preserved in git, copy
+# the single file out rather than un-ignoring the directory.
+Ewaste-Recycling-system-02/
