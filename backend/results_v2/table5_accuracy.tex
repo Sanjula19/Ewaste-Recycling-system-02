@@ -1,0 +1,20 @@
+\begin{table}[!t]
+\caption{Holdout Forecast Accuracy (Last 30 Observations, Models Retrained Without the Holdout)}
+\label{tab:holdout}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccccccc}
+\hline
+Metal & ARIMA order & ARIMA & LSTM & Persist. & Selected & RMSE & $\tau$ \\
+ & & MAPE (\%) & MAPE (\%) & MAPE (\%) & & (USD/kg) & (\%) \\
+\hline
+Aluminium & (0, 1, 0) & 3.70 & 2.92 & 3.70 & LSTM & 0.093 & 2.92 \\
+Copper & (0, 1, 0) & 5.80 & 2.40 & 5.80 & LSTM & 0.258 & 2.40 \\
+Lead & (1, 0, 2) & 1.93 & 11.43 & 2.19 & ARIMA & 0.067 & 2.00 \\
+Nickel & (3, 1, 2) & 3.13 & 4.55 & 2.99 & ARIMA & 0.572 & 3.13 \\
+Steel & (2, 1, 2) & 2.16 & 7.17 & 2.19 & ARIMA & 0.009 & 2.16 \\
+Zinc & (0, 1, 0) & 3.36 & 4.08 & 3.36 & ARIMA & 0.120 & 3.36 \\
+\hline
+\end{tabular}
+\end{table}

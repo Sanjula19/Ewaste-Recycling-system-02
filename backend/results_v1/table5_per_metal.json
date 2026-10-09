@@ -1,0 +1,170 @@
+{
+  "aluminium": {
+    "proposed": {
+      "decision_points": 14,
+      "holds_issued": 3,
+      "correct_holds": 3,
+      "hold_precision_pct": 100.0,
+      "precision_ci95_lo": 43.84939195509823,
+      "precision_ci95_hi": 100.0,
+      "correct_holds_day90": 0,
+      "hold_precision_day90_pct": 0.0,
+      "sells_issued": 11,
+      "sells_correct": 1,
+      "base_rate_rise_pct": 92.85714285714286
+    },
+    "naive": {
+      "decision_points": 14,
+      "holds_issued": 8,
+      "correct_holds": 7,
+      "hold_precision_pct": 87.5,
+      "precision_ci95_lo": 52.91051942301386,
+      "precision_ci95_hi": 97.75830911367038,
+      "correct_holds_day90": 1,
+      "hold_precision_day90_pct": 12.5,
+      "sells_issued": 6,
+      "sells_correct": 0,
+      "base_rate_rise_pct": 92.85714285714286
+    }
+  },
+  "copper": {
+    "proposed": {
+      "decision_points": 14,
+      "holds_issued": 0,
+      "correct_holds": 0,
+      "hold_precision_pct": NaN,
+      "precision_ci95_lo": NaN,
+      "precision_ci95_hi": NaN,
+      "correct_holds_day90": 0,
+      "hold_precision_day90_pct": NaN,
+      "sells_issued": 14,
+      "sells_correct": 4,
+      "base_rate_rise_pct": 71.42857142857143
+    },
+    "naive": {
+      "decision_points": 14,
+      "holds_issued": 1,
+      "correct_holds": 1,
+      "hold_precision_pct": 100.0,
+      "precision_ci95_lo": 20.654329147389294,
+      "precision_ci95_hi": 100.0,
+      "correct_holds_day90": 1,
+      "hold_precision_day90_pct": 100.0,
+      "sells_issued": 13,
+      "sells_correct": 4,
+      "base_rate_rise_pct": 71.42857142857143
+    }
+  },
+  "lead": {
+    "proposed": {
+      "decision_points": 14,
+      "holds_issued": 0,
+      "correct_holds": 0,
+      "hold_precision_pct": NaN,
+      "precision_ci95_lo": NaN,
+      "precision_ci95_hi": NaN,
+      "correct_holds_day90": 0,
+      "hold_precision_day90_pct": NaN,
+      "sells_issued": 14,
+      "sells_correct": 4,
+      "base_rate_rise_pct": 71.42857142857143
+    },
+    "naive": {
+      "decision_points": 14,
+      "holds_issued": 6,
+      "correct_holds": 5,
+      "hold_precision_pct": 83.33333333333333,
+      "precision_ci95_lo": 43.649056343635394,
+      "precision_ci95_hi": 96.99474141282697,
+      "correct_holds_day90": 3,
+      "hold_precision_day90_pct": 50.0,
+      "sells_issued": 8,
+      "sells_correct": 3,
+      "base_rate_rise_pct": 71.42857142857143
+    }
+  },
+  "nickel": {
+    "proposed": {
+      "decision_points": 14,
+      "holds_issued": 0,
+      "correct_holds": 0,
+      "hold_precision_pct": NaN,
+      "precision_ci95_lo": NaN,
+      "precision_ci95_hi": NaN,
+      "correct_holds_day90": 0,
+      "hold_precision_day90_pct": NaN,
+      "sells_issued": 14,
+      "sells_correct": 7,
+      "base_rate_rise_pct": 50.0
+    },
+    "naive": {
+      "decision_points": 14,
+      "holds_issued": 8,
+      "correct_holds": 2,
+      "hold_precision_pct": 25.0,
+      "precision_ci95_lo": 7.147768885802764,
+      "precision_ci95_hi": 59.073012089741084,
+      "correct_holds_day90": 2,
+      "hold_precision_day90_pct": 25.0,
+      "sells_issued": 6,
+      "sells_correct": 1,
+      "base_rate_rise_pct": 50.0
+    }
+  },
+  "steel": {
+    "proposed": {
+      "decision_points": 12,
+      "holds_issued": 1,
+      "correct_holds": 1,
+      "hold_precision_pct": 100.0,
+      "precision_ci95_lo": 20.654329147389294,
+      "precision_ci95_hi": 100.0,
+      "correct_holds_day90": 1,
+      "hold_precision_day90_pct": 100.0,
+      "sells_issued": 11,
+      "sells_correct": 6,
+      "base_rate_rise_pct": 50.0
+    },
+    "naive": {
+      "decision_points": 12,
+      "holds_issued": 7,
+      "correct_holds": 4,
+      "hold_precision_pct": 57.142857142857146,
+      "precision_ci95_lo": 25.04542304090258,
+      "precision_ci95_hi": 84.17830777373732,
+      "correct_holds_day90": 1,
+      "hold_precision_day90_pct": 14.285714285714286,
+      "sells_issued": 5,
+      "sells_correct": 3,
+      "base_rate_rise_pct": 50.0
+    }
+  },
+  "zinc": {
+    "proposed": {
+      "decision_points": 14,
+      "holds_issued": 0,
+      "correct_holds": 0,
+      "hold_precision_pct": NaN,
+      "precision_ci95_lo": NaN,
+      "precision_ci95_hi": NaN,
+      "correct_holds_day90": 0,
+      "hold_precision_day90_pct": NaN,
+      "sells_issued": 14,
+      "sells_correct": 4,
+      "base_rate_rise_pct": 71.42857142857143
+    },
+    "naive": {
+      "decision_points": 14,
+      "holds_issued": 5,
+      "correct_holds": 4,
+      "hold_precision_pct": 80.0,
+      "precision_ci95_lo": 37.55282641185388,
+      "precision_ci95_hi": 96.37768390302125,
+      "correct_holds_day90": 2,
+      "hold_precision_day90_pct": 40.0,
+      "sells_issued": 9,
+      "sells_correct": 3,
+      "base_rate_rise_pct": 71.42857142857143
+    }
+  }
+}

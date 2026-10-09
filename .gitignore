@@ -61,3 +61,15 @@ backend/models_walkforward_v3/
 # cited in the paper -- if that record needs to be preserved in git, copy
 # the single file out rather than un-ignoring the directory.
 Ewaste-Recycling-system-02/
+
+# --- Evaluation run transcripts (regenerable, ~42 KB) -----------
+# Console transcripts of an evaluation run, not results. The tables,
+# figures, run_meta.json and decisions_raw.csv beside them ARE tracked --
+# see the README.md in each results directory.
+#
+# results/run_log.txt and results_v1/run_log.txt are the same file twice
+# (those two directories are byte-identical copies of one v1 run).
+backend/results_v2_run_log.txt
+backend/results_v2_analysis_log.txt
+backend/results/run_log.txt
+backend/results_v1/run_log.txt

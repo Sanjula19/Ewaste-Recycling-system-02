@@ -1,0 +1,163 @@
+{
+  "run_at": "2026-10-08T21:50:11",
+  "runtime_s_this_invocation": 8,
+  "settings": {
+    "holdout": 30,
+    "horizon": 90,
+    "window": 60,
+    "epochs_max": 50,
+    "batch": 32,
+    "val_frac": 0.1,
+    "floor_default": 0.02,
+    "level_default": 0.95,
+    "floors_grid": [
+      0.0,
+      0.01,
+      0.02,
+      0.03
+    ],
+    "levels_grid": [
+      0.95,
+      0.8,
+      0.68
+    ],
+    "start_offset_obs": 504,
+    "spacing_obs": 30,
+    "retrain_every_obs": 126,
+    "max_retrains": null,
+    "usd_inr_constant": 87.5,
+    "z_values": {
+      "0.95": 1.959963984540054,
+      "0.8": 1.2815515655446004,
+      "0.68": 0.9944578832097535
+    }
+  },
+  "seeds": {
+    "base_seed": 42,
+    "applied_via": "random.seed, np.random.seed, tf.keras.utils.set_random_seed before every training"
+  },
+  "versions": {
+    "python": "3.11.9",
+    "os": "Windows-10-10.0.26300-SP0",
+    "numpy": "1.26.4",
+    "pandas": "2.2.2",
+    "scipy": "1.13.1",
+    "statsmodels": "0.14.2",
+    "pmdarima": "2.0.4",
+    "tensorflow": "2.17.0",
+    "keras": "3.15.1",
+    "scikit-learn": "1.5.2",
+    "matplotlib": "3.11.2"
+  },
+  "leakage_controls": [
+    "scaler fit on training window only",
+    "early stopping validated on last 10% of training window",
+    "ARIMA order via auto_arima on training window only",
+    "model for decision t trained with train_end <= t-30 (asserted)",
+    "LSTM band sd from validation residuals only"
+  ],
+  "n_decision_points": 428,
+  "n_failed_points": 0,
+  "n_missing_points": 0,
+  "fig5_example": {
+    "metal": "nickel",
+    "date": "2019-05-30",
+    "tau_pct": 3.226854461853491,
+    "target_hit": true,
+    "realised_gain_pct": 3.2755755993354008,
+    "days_held": 8,
+    "selected": "LSTM",
+    "selection_rule": "proposed-rule HOLD whose realised gain is closest to the median over all proposed HOLDs"
+  },
+  "table6": {
+    "Naive (peak above current price)": {
+      "decision_points": 428,
+      "holds": 120,
+      "target_hits": 83,
+      "hit_rate_pct": 69.16666666666667,
+      "ci95_lo": 60.41683512553176,
+      "ci95_hi": 76.72738781732427,
+      "mean_gain_pct": 0.43649138017570654,
+      "median_gain_pct": 2.9417009520775306,
+      "mean_days_held": 44.666666666666664,
+      "false_holds": 37,
+      "sells": 308,
+      "missed_rises": 239,
+      "base_rate_pct": 75.23364485981308,
+      "holds_when_not_beating_persistence": 38,
+      "rose_at_day90_pct_of_holds": 48.333333333333336
+    },
+    "Proposed, (4) and (5)": {
+      "decision_points": 428,
+      "holds": 9,
+      "target_hits": 7,
+      "hit_rate_pct": 77.77777777777777,
+      "ci95_lo": 45.25833436728054,
+      "ci95_hi": 93.67762376877728,
+      "mean_gain_pct": 0.3498529090559537,
+      "median_gain_pct": 3.2755755993354008,
+      "mean_days_held": 35.0,
+      "false_holds": 2,
+      "sells": 419,
+      "missed_rises": 315,
+      "base_rate_pct": 75.23364485981308,
+      "holds_when_not_beating_persistence": 0,
+      "rose_at_day90_pct_of_holds": 66.66666666666666
+    }
+  },
+  "tests": {
+    "fisher_one_sided_p": 0.4521503111642405,
+    "fisher_table": [
+      [
+        7,
+        2
+      ],
+      [
+        83,
+        37
+      ]
+    ],
+    "fisher_note": "proposed holds are a subset of naive holds, and 90-day windows 30 days apart overlap, so the Fisher p-value is optimistic (samples not independent); see non-overlapping subsample p-values",
+    "non_overlapping_subsamples": {
+      "offset0": {
+        "n": 146,
+        "holds_proposed": 5,
+        "hits_proposed": 4,
+        "holds_naive": 42,
+        "hits_naive": 32,
+        "fisher_one_sided_p": 0.6681797646451391
+      },
+      "offset1": {
+        "n": 141,
+        "holds_proposed": 2,
+        "hits_proposed": 2,
+        "holds_naive": 39,
+        "hits_naive": 25,
+        "fisher_one_sided_p": 0.4280487804878048
+      },
+      "offset2": {
+        "n": 141,
+        "holds_proposed": 2,
+        "hits_proposed": 1,
+        "holds_naive": 39,
+        "hits_naive": 26,
+        "fisher_one_sided_p": 0.8890243902439025
+      }
+    },
+    "mean_value_proposed_pct": 0.007356720050242022,
+    "mean_value_naive_pct": 0.12238076079692708,
+    "mean_paired_diff_pct": -0.11502404074668501,
+    "wilcoxon_two_sided_p": 0.005428425262710882,
+    "paired_t_two_sided_p": 0.5578170618790335,
+    "paired_diff_bootstrap95": [
+      -0.482355101158195,
+      0.2837276765351985
+    ],
+    "n_decisions_where_rules_differ": 111
+  },
+  "holds_when_selected_not_beating_persistence": {
+    "proposed": 0,
+    "naive": 38
+  },
+  "share_decisions_selected_beats_persistence_pct": 36.21495327102804
+}

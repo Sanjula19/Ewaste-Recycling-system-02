@@ -1,0 +1,3 @@
+rule,v1_points,v1_holds,v1_correct,v1_precision_pct,v2_points,v2_holds,v2_hits,v2_precision_pct
+Naive (peak above current price),82.0,35.0,23.0,65.71428571428571,428,120,83,69.16666666666667
+"Proposed, (4) and (5)",82.0,4.0,4.0,100.0,428,9,7,77.77777777777777

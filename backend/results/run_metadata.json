@@ -1,0 +1,46 @@
+{
+  "run_at": "2026-10-08T20:17:26",
+  "runtime_s": 821,
+  "python": "3.11.9",
+  "os": "Windows-10-10.0.26300-SP0",
+  "numpy": "1.26.4",
+  "pandas": "2.2.2",
+  "statsmodels": "0.14.2",
+  "tensorflow": "2.17.0",
+  "holdout_days": 30,
+  "horizon_days": 90,
+  "lstm_window": 60,
+  "train_ratio": 0.8,
+  "floor_pct": 2.0,
+  "decision_step_days": 30,
+  "usd_inr_constant": 87.5,
+  "failed_decision_points": 0,
+  "table5_summary": {
+    "Naive (peak above current price)": {
+      "decision_points": 82,
+      "holds_issued": 35,
+      "correct_holds": 23,
+      "hold_precision_pct": 65.71428571428571,
+      "precision_ci95_lo": 49.15164687273671,
+      "precision_ci95_hi": 79.16850471731107,
+      "correct_holds_day90": 10,
+      "hold_precision_day90_pct": 28.571428571428573,
+      "sells_issued": 47,
+      "sells_correct": 14,
+      "base_rate_rise_pct": 68.29268292682927
+    },
+    "Proposed, (4) and (5)": {
+      "decision_points": 82,
+      "holds_issued": 4,
+      "correct_holds": 4,
+      "hold_precision_pct": 100.0,
+      "precision_ci95_lo": 51.009997959600085,
+      "precision_ci95_hi": 100.0,
+      "correct_holds_day90": 1,
+      "hold_precision_day90_pct": 25.0,
+      "sells_issued": 78,
+      "sells_correct": 26,
+      "base_rate_rise_pct": 68.29268292682927
+    }
+  }
+}
