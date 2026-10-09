@@ -55,11 +55,25 @@ export default function Dashboard() {
           ) : (
             <div className="card-grid" style={{ marginBottom: 'var(--space-6)' }}>
               <StatCard icon={Package} label={t('dashboard.batchesProcessed')} value={summary.batch_count} />
-              <StatCard icon={Scale} label={t('dashboard.totalTonnage')} value={`${summary.total_weight_kg} ${t('common.kg')}`} />
-              <StatCard icon={Zap} label={t('dashboard.totalEnergy')} value={`${summary.total_energy_recovered_kwh} kWh`} />
-              <StatCard icon={Wallet} label={t('dashboard.totalValue')} value={`Rs. ${summary.total_value_lkr.toLocaleString()}`} />
+              <StatCard icon={Scale} label={t('dashboard.totalTonnage')} value={`${fmt(summary.total_weight_kg)} ${t('common.kg')}`} />
+              <StatCard icon={Wallet} label={t('dashboard.totalValue')} value={`Rs. ${fmt(summary.total_value_lkr)}`} />
               <StatCard icon={Leaf} label={t('dashboard.diversionRate')} value={`${summary.landfill_diversion_rate_pct}%`} />
-              <StatCard icon={Cloud} label={t('dashboard.co2Avoided')} value={`${summary.total_co2_avoided_kg} kg`} />
+              <StatCard
+                icon={Zap}
+                label={t('dashboard.totalEnergy')}
+                value={`${fmt(summary.total_energy_recovered_kwh)} kWh`}
+                sub={summary.total_energy_consumed_kwh > 0
+                  ? `${t('manifest.energyConsumed')}: ${fmt(summary.total_energy_consumed_kwh)} kWh`
+                  : undefined}
+              />
+              <StatCard
+                icon={Cloud}
+                label={t('dashboard.co2Avoided')}
+                value={`${fmt(summary.total_co2_avoided_kg)} kg`}
+                sub={summary.total_co2_emitted_kg > 0
+                  ? `${t('manifest.co2Emitted')}: ${fmt(summary.total_co2_emitted_kg)} kg`
+                  : undefined}
+              />
             </div>
           )}
 
@@ -75,12 +89,22 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon: Icon, label, value }) {
+/* The backend sends full float precision so cycle totals are exact;
+   rounding happens here, once, at the point of display. */
+function fmt(n) {
+  return Number(n ?? 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="card stat">
       <Icon size={18} color="var(--color-primary)" />
       <span className="stat-label">{label}</span>
       <span className="stat-value">{value}</span>
+      {sub && <span className="stat-sub">{sub}</span>}
     </div>
   );
 }
