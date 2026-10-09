@@ -200,6 +200,21 @@ def load_metal_series_raw(metal: str) -> pd.Series:
     return df["Price"]
 
 
+def native_unit(metal: str) -> Unit:
+    """
+    The unit `load_metal_series_raw` actually returns for `metal`, under
+    whichever dataset `data_version()` selects -- "USD_per_kg" for v3.
+
+    Read this instead of MATERIAL_CONFIG[metal].native_unit when reporting
+    the unit of data that was just loaded. MATERIAL_CONFIG is the v1 table
+    only, so under v3 it names a unit the series is not in. Printing it
+    beside v3 numbers is how results_v3/dataset_summary.csv and
+    models_v3/meta_*.json came to label a USD/kg series as INR/kg.
+    """
+    cfg, _ = _resolve(metal)
+    return cfg.native_unit
+
+
 def native_to_usd_per_kg(metal: str, value) -> "float | pd.Series":
     """
     Converts a raw native-unit price (or Series of them) to USD/kg, using

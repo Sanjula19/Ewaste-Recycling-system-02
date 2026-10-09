@@ -54,7 +54,7 @@ import joblib
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
-from data_loader import SUPPORTED_METALS, USD_INR_RATE_HISTORICAL, MATERIAL_CONFIG, load_metal_series_raw
+from data_loader import SUPPORTED_METALS, USD_INR_RATE_HISTORICAL, load_metal_series_raw, native_unit
 
 # The training recipe itself -- imported, never re-typed.
 from evaluate_c4_v2 import (BATCH, EPOCHS, HOLDOUT, HORIZON, SEED, VAL_FRAC, WINDOW,
@@ -142,7 +142,7 @@ def train_one(metal: str, out_dir: str, seed: int, cache_root: str) -> dict:
 
     meta = {
         "metal": metal,
-        "native_unit": MATERIAL_CONFIG[metal].native_unit,
+        "native_unit": native_unit(metal),
         "n_obs": int(len(vals)),
         "first_date": str(series.index[0].date()),
         "last_date": str(series.index[-1].date()),

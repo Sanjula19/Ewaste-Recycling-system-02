@@ -165,7 +165,7 @@
   "per_metal": {
     "aluminium": {
       "metal": "aluminium",
-      "native_unit": "INR_per_kg",
+      "native_unit": "USD_per_kg",
       "n_obs": 3115,
       "first_date": "2014-06-16",
       "last_date": "2026-10-08",
@@ -218,7 +218,7 @@
     },
     "copper": {
       "metal": "copper",
-      "native_unit": "INR_per_kg",
+      "native_unit": "USD_per_kg",
       "n_obs": 3312,
       "first_date": "2014-01-02",
       "last_date": "2026-10-08",
@@ -271,7 +271,7 @@
     },
     "lead": {
       "metal": "lead",
-      "native_unit": "INR_per_kg",
+      "native_unit": "USD_per_kg",
       "n_obs": 3227,
       "first_date": "2014-01-02",
       "last_date": "2026-10-08",
@@ -324,7 +324,7 @@
     },
     "nickel": {
       "metal": "nickel",
-      "native_unit": "INR_per_kg",
+      "native_unit": "USD_per_kg",
       "n_obs": 3134,
       "first_date": "2014-01-02",
       "last_date": "2026-10-08",
@@ -377,7 +377,7 @@
     },
     "steel": {
       "metal": "steel",
-      "native_unit": "USD_per_ton",
+      "native_unit": "USD_per_kg",
       "n_obs": 2507,
       "first_date": "2015-11-24",
       "last_date": "2025-10-29",
@@ -430,7 +430,7 @@
     },
     "zinc": {
       "metal": "zinc",
-      "native_unit": "INR_per_kg",
+      "native_unit": "USD_per_kg",
       "n_obs": 3229,
       "first_date": "2014-01-02",
       "last_date": "2026-10-08",

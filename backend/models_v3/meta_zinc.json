@@ -1,6 +1,6 @@
 {
   "metal": "zinc",
-  "native_unit": "INR_per_kg",
+  "native_unit": "USD_per_kg",
   "n_obs": 3229,
   "first_date": "2014-01-02",
   "last_date": "2026-10-08",

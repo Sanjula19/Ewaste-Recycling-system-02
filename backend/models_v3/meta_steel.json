@@ -1,6 +1,6 @@
 {
   "metal": "steel",
-  "native_unit": "USD_per_ton",
+  "native_unit": "USD_per_kg",
   "n_obs": 2507,
   "first_date": "2015-11-24",
   "last_date": "2025-10-29",

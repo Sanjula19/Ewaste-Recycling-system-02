@@ -73,8 +73,8 @@ from scipy import stats
 from scipy.stats import norm
 
 import data_loader
-from data_loader import (SUPPORTED_METALS, USD_INR_RATE_HISTORICAL, MATERIAL_CONFIG,
-                         load_metal_series_raw, native_to_usd_per_kg)
+from data_loader import (SUPPORTED_METALS, USD_INR_RATE_HISTORICAL,
+                         load_metal_series_raw, native_to_usd_per_kg, native_unit)
 
 # --------------------------------------------------------------------------- constants
 HOLDOUT = 30
@@ -826,7 +826,7 @@ def main():
             recs_by_key[(m, r["t"])] = r
         all_recs += recs
         ds_rows.append({
-            "metal": m, "native_unit": MATERIAL_CONFIG[m].native_unit, "first_date": str(series.index[0].date()),
+            "metal": m, "native_unit": native_unit(m), "first_date": str(series.index[0].date()),
             "last_date": str(series.index[-1].date()), "n_obs": len(series),
             "first_decision_date": str(series.index[t_list[0]].date()) if t_list else "",
             "last_decision_date": str(series.index[t_list[-1]].date()) if t_list else "",
