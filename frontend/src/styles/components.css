@@ -176,6 +176,16 @@
   font-size: 0.9rem;
 }
 
+/* Sits immediately under the recommendation hero. Deliberately quiet --
+   no surface, no border, no icon: it qualifies the figure above it rather
+   than competing with it for attention, and an alert-styled box here would
+   read as a warning about this particular batch. */
+.forecast-disclaimer {
+  margin: var(--space-2) 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
 /* Shown when the model did not beat a no-change forecast, so the 90-day
    path is not something to act on. Same neutral surface as .action-note --
    this is a caveat on the recommendation, not an alert. */

@@ -86,6 +86,8 @@ export default {
     hold: 'රඳවා ගන්න',
     actionSell: 'වහාම විකිණීම සඳහා මෙම කණ්ඩායම වෙළඳපොල බැහැර කිරීමේ බඳුනට යොමු කරන්න.',
     actionHold: 'මෙම කණ්ඩායම කුඩු කර සම්පීඩනය කර පෝෂක කුට්ටි බවට පත් කර, වඩා හොඳ මිලක් සඳහා රඳවා ගන්න.',
+    // TODO: translate -- currently English
+    disclaimer: 'Forecasts and values are indicative and are not financial advice.',
     currentPrice: 'වත්මන් මිල',
     perKg: 'කි.ග්‍රෑ. එකකට',
     batchValue: 'මෙම කණ්ඩායමේ අගය',

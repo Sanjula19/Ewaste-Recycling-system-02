@@ -146,6 +146,10 @@ export default function Forecast() {
             <MaterialChip materialKey={metal} />
           </div>
 
+          {/* Directly under the recommendation, because that is the figure
+              someone might otherwise act on as advice. */}
+          <p className="forecast-disclaimer">{t('forecast.disclaimer')}</p>
+
           {isStale && (
             <div className="alert alert-warning" role="status" style={{ marginTop: 'var(--space-3)' }}>
               <AlertTriangle size={18} />

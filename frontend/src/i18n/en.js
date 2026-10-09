@@ -80,6 +80,7 @@ export default {
     hold: 'Hold',
     actionSell: 'Route this batch to the market liquidation bin for immediate sale.',
     actionHold: 'Crush and compress this batch into feedstock blocks and hold for a better price.',
+    disclaimer: 'Forecasts and values are indicative and are not financial advice.',
     currentPrice: 'Current Price',
     perKg: 'per kg',
     batchValue: "This Batch's Value",

@@ -86,6 +86,8 @@ export default {
     hold: 'வைத்திருக்கவும்',
     actionSell: 'உடனடி விற்பனைக்காக இந்த தொகுதியை சந்தை விற்பனைக் கிடங்கிற்கு அனுப்பவும்.',
     actionHold: 'இந்த தொகுதியை நசுக்கி அழுத்தி மூலப்பொருள் கட்டிகளாக மாற்றி, சிறந்த விலைக்காக வைத்திருக்கவும்.',
+    // TODO: translate -- currently English
+    disclaimer: 'Forecasts and values are indicative and are not financial advice.',
     currentPrice: 'தற்போதைய விலை',
     perKg: 'ஒரு கி.கி.க்கு',
     batchValue: 'இந்த தொகுதியின் மதிப்பு',
