@@ -1,5 +1,9 @@
-# Bench-session tooling only. The backend does not need these.
+# Tooling only. The backend runtime does not need any of these.
 #     pip install -r tools/requirements.txt
 #
 # log_trials.py reads the ESP32 over USB serial.
 pyserial==3.5
+
+# backend/scripts/export_figures.py converts the results_v3 figure PDFs to
+# SVG and 600 dpi PNG. Conversion, not re-plotting -- see that script.
+pymupdf>=1.24
