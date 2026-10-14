@@ -13,10 +13,8 @@
 // physical item accordingly. See component-3/REAL-COMPONENT-3.md,
 // section "IoT / moisture handling".
 //
-#define WIFI_SSID    "iPhone"
-#define WIFI_PASS    "12345678"
-#define BACKEND_IP   "172.20.10.4"      // this laptop; re-check with ipconfig
-#define BACKEND_PORT 8003               // component-3 backend (uvicorn ... --port 8003)
+const char* ssid = "YOUR_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";              // component-3 backend (uvicorn ... --port 8003)
 // =====================================================
 // The laptop IP changes every time it reconnects to Wi-Fi. If the fetch
 // suddenly starts failing (falls back to the alternating pattern below),

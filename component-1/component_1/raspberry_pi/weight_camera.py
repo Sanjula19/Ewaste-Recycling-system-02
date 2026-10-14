@@ -25,15 +25,19 @@ SERIAL_PORT = os.getenv("SERIAL_PORT", "/dev/ttyACM0")
 BAUD_RATE   = int(os.getenv("BAUD_RATE", "9600"))
 
 # ESP32-CAM
-CAMERA_URL = os.getenv("CAMERA_URL", "http://10.156.150.180/capture")
+CAMERA_URL = os.getenv("CAMERA_URL", "http://10.219.221.180/capture")
 
 # FastAPI backend (Component 1, port 8001)
 GENERAL_BACKEND_URL = os.getenv("GENERAL_BACKEND_URL", "http://localhost:8001/waste/predict")
 EWASTE_BACKEND_URL  = os.getenv("EWASTE_BACKEND_URL",  "http://localhost:8001/ewaste/analyze")
 
 # Weight thresholds
-TRIGGER_WEIGHT_G = 20.0
-RESET_WEIGHT_G = 5.0
+TRIGGER_WEIGHT_G = 3.0
+RESET_WEIGHT_G = 1.5
+
+# Servo timing
+SORT_SERVO_SETTLE_SECONDS = 1.0
+CONVEYOR_C_TRAVEL_SECONDS = 4.0
 
 # General waste confidence thresholds
 MIN_WASTE_CONFIDENCE = 0.60
@@ -80,6 +84,24 @@ elif mode_choice == "2":
 else:
     print("Invalid mode selected.")
     raise SystemExit(1)
+
+
+# ==================================================
+# ARDUINO SERVO COMMANDS
+# ==================================================
+
+def send_arduino_command(command):
+
+    message = f"{command.rstrip()}\n"
+
+    arduino.write(
+        message.encode("utf-8")
+    )
+    arduino.flush()
+
+    print(
+        f"Arduino command sent: {command}"
+    )
 
 
 # ==================================================
@@ -748,7 +770,9 @@ try:
             # Expected:
             # Weight: 45.69 g
 
-            match = re.search(
+            # Match only complete weight messages. Arduino feedback such as
+            # ACTION: GRADE A and ACTION: PUSH DONE is printed but ignored.
+            match = re.fullmatch(
                 r"Weight:\s*"
                 r"(-?\d+(?:\.\d+)?)"
                 r"\s*g",
@@ -805,6 +829,75 @@ try:
                             weight,
                             result
                         )
+
+                        final_grade = str(
+                            result.get(
+                                "final_grade",
+                                ""
+                            )
+                        ).strip().upper()
+
+                        if final_grade in (
+                            "A",
+                            "B",
+                            "C"
+                        ):
+
+                            print(
+                                f"\nPositioning sorting servo "
+                                f"for Grade {final_grade}..."
+                            )
+
+                            send_arduino_command(
+                                f"GRADE:{final_grade}"
+                            )
+
+                            print(
+                                "Waiting for sorting servo "
+                                "to settle..."
+                            )
+
+                            time.sleep(
+                                SORT_SERVO_SETTLE_SECONDS
+                            )
+
+                            print(
+                                "Activating pusher servo..."
+                            )
+
+                            send_arduino_command(
+                                "PUSH"
+                            )
+
+                            print(
+                                "Waiting for waste to travel "
+                                "along conveyor C..."
+                            )
+
+                            time.sleep(
+                                CONVEYOR_C_TRAVEL_SECONDS
+                            )
+
+                            print(
+                                "Returning sorting servo "
+                                "to HOME position..."
+                            )
+
+                            send_arduino_command(
+                                "HOME"
+                            )
+
+                            print(
+                                "General waste sorting "
+                                "sequence completed.\n"
+                            )
+
+                        else:
+
+                            print(
+                                "Sorting skipped: API did not "
+                                "return Grade A, B, or C.\n"
+                            )
 
 
                     else:

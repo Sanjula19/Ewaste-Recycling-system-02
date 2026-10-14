@@ -32,7 +32,11 @@ class Settings:
     health_paths = {
         "component1": "/health",          # GET http://localhost:8001/health
         "component2": "/api/v1/health",   # GET http://localhost:8002/api/v1/health
+<<<<<<< Updated upstream
         "component3": "/api/health",      # GET http://localhost:8003/api/health (real Smart Process Optimization backend, Step 5A/5B)
+=======
+        "component3": "/health",   # GET http://localhost:8003/api/v1/health
+>>>>>>> Stashed changes
         "component4": "/api/health",      # GET http://localhost:8004/api/health
     }
 
