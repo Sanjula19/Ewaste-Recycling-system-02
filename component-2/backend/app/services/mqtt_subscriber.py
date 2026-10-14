@@ -1,4 +1,4 @@
-﻿"""
+"""
 MQTT Subscriber -- E-Waste Toxic Gas Detection System
 =====================================================
 Broker : HiveMQ Cloud (TLS/SSL, port 8883, username+password)
@@ -40,12 +40,44 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
-from app.db.models import RawReadingDB
+from app.db.models import RawReadingDB, AlertDB
+from app.knowledge_base import WHO_LIMITS
 
 logger = logging.getLogger(__name__)
 
+# ── ADC → ppm helpers (calibration from firmware main.ino) ───────────────
+_ADC_MAX = 4095.0
+_VREF    = 3.3
+
+def _adc_to_ppm(adc_raw, rl, r0, a, b):
+    """Power-law ADC to ppm: ppm = A * (Rs/R0)^B"""
+    if adc_raw is None or adc_raw <= 0:
+        return 0.0
+    v_out = (min(float(adc_raw), _ADC_MAX - 1) / _ADC_MAX) * _VREF
+    if v_out <= 0:
+        return 0.0
+    rs    = rl * (_VREF - v_out) / v_out
+    ratio = rs / r0
+    return max(0.0, a * (ratio ** b)) if ratio > 0 else 0.0
+
+def _mq2_ppm(adc):   return _adc_to_ppm(adc,  5.0,  9.83,  574.25, -2.222)
+def _mq7_ppm(adc):   return _adc_to_ppm(adc, 10.0, 10.0,   99.042, -1.518)
+def _mq135_ppm(adc): return _adc_to_ppm(adc, 20.0, 76.63, 110.47, -2.862)
+def _mq136_ppm(adc): return _adc_to_ppm(adc, 10.0, 15.0,   36.737, -3.536)
+
+# Human-readable gas display names for alerts
+GAS_DISPLAY_NAMES = {
+    "AMMONIA": "NH3 (Ammonia)",
+    "BENZENE": "C6H6 (Benzene)",
+    "CO":      "CO (Carbon Monoxide)",
+    "H2S":     "H2S (Hydrogen Sulfide)",
+    "LPG":     "LPG (Smoke / Flammable Gas)",
+    "CLEAN":   "Clean Air",
+}
+
 # Fields required in every valid payload
 REQUIRED_FIELDS = {"temperature", "humidity", "mq2_raw", "mq135_raw"}
+
 
 
 class MQTTSubscriber:
@@ -233,11 +265,121 @@ class MQTTSubscriber:
                 f"temp={temp_c} hum={hum_pct}"
             )
 
+            # ── 5. Auto-Predict + Auto-Alert ──────────────────────────
+            self._auto_predict_and_alert(
+                db_id, rid, device_id, now,
+                mq2, mq7, mq135, None,
+                temp_c, hum_pct
+            )
+
         except Exception as e:
             self._db_errors += 1
             self._last_error = f"DB error: {e}"
             logger.error(f"[MQTT] ERROR: {self._last_error}")
             logger.error(f"[MQTT] TRACEBACK:\n{traceback.format_exc()}")
+
+    def _auto_predict_and_alert(
+        self,
+        db_id: int,
+        rid: str,
+        device_id: str,
+        ts: datetime,
+        mq2_raw, mq7_raw, mq135_raw, mq136_raw,
+        temp_c, hum_pct,
+    ):
+        """
+        Convert ADC -> ppm, run ML classification, evaluate WHO thresholds,
+        and write AlertDB rows for any exceeded limits.
+        Called synchronously from the MQTT thread.
+        """
+        try:
+            from app.services.ml_service import ml_service
+        except ImportError:
+            return
+
+        if not ml_service.is_loaded:
+            return
+
+        # ADC -> ppm
+        ppm2   = _mq2_ppm(mq2_raw)
+        ppm7   = _mq7_ppm(mq7_raw)
+        ppm135 = _mq135_ppm(mq135_raw)
+        ppm136 = _mq136_ppm(mq136_raw)
+        t      = float(temp_c)  if temp_c  is not None else 28.0
+        h      = float(hum_pct) if hum_pct is not None else 65.0
+
+        clf = ml_service.classify(ppm2, ppm7, ppm135, ppm136, t, h)
+        gas_class  = clf.get("gas_class")
+        confidence = clf.get("confidence", 0.0)
+
+        if not gas_class or gas_class == "CLEAN":
+            logger.info(
+                f"[AUTO-PREDICT] rid={rid[:8]} -> {gas_class} "
+                f"({confidence*100:.1f}%) — no alert needed"
+            )
+            return
+
+        logger.info(
+            f"[AUTO-PREDICT] rid={rid[:8]} -> {gas_class} ({confidence*100:.1f}%) "
+            f"MQ2={ppm2:.1f} MQ7={ppm7:.1f} MQ135={ppm135:.1f} MQ136={ppm136:.4f}"
+        )
+
+        # WHO threshold check
+        info = WHO_LIMITS.get(gas_class)
+        if not info:
+            return
+
+        ppm_map = {
+            "mq2_ppm": ppm2, "mq7_ppm": ppm7,
+            "mq135_ppm": ppm135, "mq136_ppm": ppm136,
+        }
+        measured = ppm_map.get(info["sensor_field"], 0.0)
+        limit    = info["limit"]
+        if measured <= 0 or limit <= 0:
+            return
+
+        pct = (measured / limit) * 100.0
+        if pct < 50.0:
+            return
+
+        risk_level      = "RED" if pct >= 100.0 else "YELLOW"
+        exceeded_by_pct = round(max(0.0, pct - 100.0), 2)
+        gas_display     = GAS_DISPLAY_NAMES.get(gas_class, gas_class)
+
+        logger.warning(
+            f"[ALERT] {risk_level} | {gas_display} "
+            f"{measured:.2f} ppm (limit {limit} ppm, {pct:.1f}%) "
+            f"rid={rid[:8]}"
+        )
+
+        # Write alert to DB
+        alert_session = self._Session()
+        try:
+            new_alert = AlertDB(
+                alert_id        = str(uuid.uuid4()),
+                raw_reading_id  = db_id,
+                device_id       = device_id,
+                timestamp       = ts,
+                gas_name        = gas_display,
+                ppm_value       = measured,
+                who_limit       = limit,
+                unit            = info["unit"],
+                exceeded_by_pct = exceeded_by_pct,
+                risk_level      = risk_level,
+                health_risks    = info["health_risks"],
+                safety_actions  = info["safety_actions"],
+                acknowledged    = False,
+            )
+            alert_session.add(new_alert)
+            alert_session.commit()
+            logger.info(f"[ALERT] DB row created for {gas_display} ({risk_level})")
+        except Exception as e:
+            alert_session.rollback()
+            logger.error(f"[ALERT] Failed to write alert: {e}")
+        finally:
+            alert_session.close()
+
+
 
     # ── Reconnect loop with TLS ────────────────────────────────────────
 
