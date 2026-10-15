@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 
 const api = axios.create({
   baseURL: "/api/v1",
@@ -16,9 +16,17 @@ export const getReadings = (params = {}) => api.get("/readings", {
   params: { ...params, _ts: Date.now() },
 });
 
+// ML Prediction (classify latest reading + create alerts)
+export const getPrediction = () => api.get("/predict/status", {
+  params: { _ts: Date.now() },
+});
+
 // Alerts
 export const getAlerts = (params = {}) => api.get("/alerts", {
   params: { ...params, _ts: Date.now() },
+});
+export const getRecentAlerts = (limit = 5) => api.get("/alerts", {
+  params: { limit, skip: 0, _ts: Date.now() },
 });
 export const acknowledgeAlert = (alertId) => api.put(`/alerts/${alertId}/acknowledge`);
 
@@ -31,3 +39,4 @@ export const getChartData = (params = {}) => api.get("/dashboard/chart-data", {
 });
 
 export default api;
+

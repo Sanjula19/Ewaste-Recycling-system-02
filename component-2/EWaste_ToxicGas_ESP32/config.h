@@ -4,8 +4,8 @@
 // ======================================================
 // Wi-Fi
 // ======================================================
-#define WIFI_SSID     "S A N J U L A"
-#define WIFI_PASSWORD "sanjula@1234"
+#define WIFI_SSID     "V I R U S"
+#define WIFI_PASSWORD "Sanjula1"
 
 // ======================================================
 // HiveMQ Cloud
