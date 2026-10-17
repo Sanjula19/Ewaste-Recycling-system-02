@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock, MinusCircle, Info, AlertTriangle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, Radio, Clock, Info } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
 import { getMarketOverview } from '../api/client.js';
@@ -69,8 +69,6 @@ export default function MarketOverview() {
   if (!data) return null;
 
   const holding = data.items.filter((i) => i.recommendation === 'HOLD');
-  // stale_data is absent on an older backend, so this stays empty there.
-  const staleItems = data.items.filter((i) => i.stale_data === true);
 
   return (
     <div style={{ marginBottom: 'var(--space-6)' }}>
@@ -105,19 +103,6 @@ export default function MarketOverview() {
         </div>
       )}
 
-      {staleItems.length > 0 && (
-        <div className="alert alert-warning" role="status" style={{ marginBottom: 'var(--space-4)' }}>
-          <AlertTriangle size={20} />
-          <p>
-            <strong>{t('dashboard.staleTitle')}</strong>{' '}
-            {t('dashboard.staleBody').replace(
-              '{metals}',
-              staleItems.map((i) => `${materialLabel(i.metal, t)} (${i.data_age_days}d)`).join(', ')
-            )}
-          </p>
-        </div>
-      )}
-
       <div className="market-grid">
         {data.items.map((item) => (
           <MarketCard key={item.metal} item={item} t={t} intlTag={intlTag} />
@@ -134,9 +119,6 @@ function MarketCard({ item, t, intlTag }) {
   const ChangeIcon = isUp ? ArrowUpRight : isDown ? ArrowDownRight : Minus;
   const asOfDate = new Date(item.last_price_date || item.data_as_of).toLocaleDateString(
     intlTag, { day: '2-digit', month: 'short', year: 'numeric' });
-  // Strict check: an older backend omits `signal`, and undefined must not
-  // render as "no signal".
-  const noSignal = item.signal === false;
   // "Live" is only honest for a price from the last few days. An older
   // backend sends no data_age_days, so fall back to the price_source flag
   // it does send rather than claiming staleness it never reported.
@@ -169,9 +151,8 @@ function MarketCard({ item, t, intlTag }) {
         {Math.abs(item.day_change_pct).toFixed(2)}%
       </div>
 
-      {/* Two fixed rows: freshness, then signal. Previously both sat in one
-          wrapping flex row, so the "No signal" chip landed in a different
-          place depending on how wide the freshness label happened to be. */}
+      {/* One fixed-height row so the freshness indicator sits at the same
+          height on every card, whatever its label width. */}
       <div className="market-card-footer">
         <div className="market-card-footer-row">
           {isFresh ? (
@@ -182,17 +163,6 @@ function MarketCard({ item, t, intlTag }) {
             </span>
           )}
         </div>
-        {noSignal && (
-          <div className="market-card-footer-row">
-            <span
-              className="market-card-nosignal"
-              title={t('dashboard.noSignalTooltip')}
-              aria-label={t('dashboard.noSignalTooltip')}
-            >
-              <MinusCircle size={12} /> {t('dashboard.noSignal')}
-            </span>
-          </div>
-        )}
       </div>
     </Link>
   );
